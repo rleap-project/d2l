@@ -1,8 +1,0 @@
-
-
-run:
-  mem: "32G"
-  time: "6:0:0"
-
-experiments:
-  - blocks generate_ijcai_features_on_x_y

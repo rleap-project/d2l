@@ -1,9 +1,0 @@
-
-
-run:
-  mem: "32G"
-  time: "8:0:0"
-
-experiments:
-  - "blocks2:one_tower"
-  - "blocks2:one_tower_inc"

@@ -1,32 +1,43 @@
 from sltp.util.misc import update_dict
+from sltp.util.names import satellite_names
 
 
 def experiments():
-
     base = dict(
         domain_dir="satellite",
         domain="domain.pddl",
         test_domain="domain.pddl",
-        complete_only_wrt_optimal=True
+        feature_namer=satellite_names,
+        pipeline="transition_classifier",
+        maxsat_encoding="separation",
+        complete_only_wrt_optimal=True,
+        prune_redundant_states=False,
+        optimal_selection_strategy="complete",
+        num_states="all",
+        concept_generator=None,
+        parameter_generator=None,
+        v_slack=2,
+
+        # concept_generation_timeout=120,  # in seconds
+        maxsat_timeout=None,
     )
 
     exps = dict()
 
-    exps["p1"] = update_dict(
+    exps["small"] = update_dict(
         base,
         instances=[
             'p01-pfile1.pddl',
+            'p02-pfile2.pddl',
         ],
-        test_instances=[
-            'p05-pfile5.pddl',
-        ],
+        test_instances=[],
         test_policy_instances=all_test_instances(),
-        num_states="until_first_goal",
-        num_tested_states=20000,
-        num_sampled_states=None,  # Take all expanded states into account
-        initial_concept_bound=8, max_concept_bound=16, concept_bound_step=1,
-        concept_generator=None,
+
+        max_concept_size=8,
         parameter_generator=None,
+        use_equivalence_classes=True,
+        # use_feature_dominance=True,
+        # use_incremental_refinement=True,
     )
 
     return exps

@@ -1,8 +1,0 @@
-
-
-run:
-  mem: "32G"
-  time: "48:0:0"
-
-experiments:
-  - "blocks2:one_tower_goal_selection"

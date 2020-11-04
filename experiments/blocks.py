@@ -1,260 +1,316 @@
-
-from sltp.incremental import IncrementalExperiment
-
-from common import build_ijcai_paper_bw_concepts, add_bw_domain_parameters, \
-    add_bw_domain_parameters_2, build_on_x_y_feature_set, generate_features_n_ab, get_on_x_y_feature, \
-    features_clear_x
 from sltp.util.misc import update_dict
-from sltp.util.names import blocksworld_names
+from sltp.util.names import blocksworld_names, blocksworld_parameters_for_clear, blocksworld_parameters_for_on
 
 
 def experiments():
-    domain = "domain.pddl"
     base = dict(
         domain_dir="blocks",
-        domain=domain,
+        feature_namer=blocksworld_names,
+        pipeline="transition_classifier",
+        maxsat_encoding="separation",
+        complete_only_wrt_optimal=True,
+        prune_redundant_states=False,
+        optimal_selection_strategy="complete",
+        num_states="all",
+        concept_generator=None,
+        parameter_generator=None,
+        v_slack=2,
+
+        # concept_generation_timeout=120,  # in seconds
+        maxsat_timeout=None,
+
+        distinguish_goals=True,
     )
 
     exps = dict()
 
-    # A small testing instance nonetheless producing an abstraction
-    exps["debugging_test"] = update_dict(base,
-                                         instances="instance_4_clear_x.pddl",
-                                         num_states=20, num_sampled_states=10,
-                                         max_concept_size=3, max_concept_grammar_iterations=1,
-                                         parameter_generator=add_bw_domain_parameters,
-                                         feature_namer=blocksworld_names, )
-
-    # Learns a simple action model which is however overfit to 3 blocks,
-    # and not sound in general
-    exps["simple_clear_3"] = update_dict(base,
-                                         instances="instance_3_clear_x.pddl",
-                                         test_domain=domain, test_instances=["instance_8_clear_x_0.pddl"],
-                                         num_states=100, max_concept_size=6, max_concept_grammar_iterations=None,
-                                         concept_generator=None, parameter_generator=add_bw_domain_parameters,
-                                         feature_namer=blocksworld_names, )
-
-    exps["simple_clear_3_gc"] = update_dict(exps["simple_clear_3"], parameter_generator=None)
-    exps["simple_clear_3_gc_blai"] = update_dict(exps["simple_clear_3_gc"], pipeline="maxsat_poly")
-
-    # This example shows that with 4 blocks, even if we expand all states, the model is still overfit to the 4 blocks
-    exps["simple_clear_4"] = update_dict(base,
-                                         instances="instance_4_clear_x.pddl",
-                                         num_states=150, max_concept_size=10, max_concept_grammar_iterations=3, num_sampled_states=None,
-                                         concept_generator=None, parameter_generator=add_bw_domain_parameters,
-                                         feature_namer=blocksworld_names, )
-
-    # With these settings we generate the desired m(x):
-    # card[And(And(Forall(Star(on),Not({a})), Forall(Star(Inverse(on)),Not({a}))), And(Not(holding), Not({a})))] 18
-    # And indeed learnt the correct state space!!!
-    exps["aaai_ijcai_features_on_clear_5_rnd"] = update_dict(base,
-                                                             instances=[
-            "inst_clear_x_1.pddl",
-            # "inst_clear_x_2.pddl",
-        ],
-                                                             num_states=1000, num_sampled_states=100, random_seed=10,
-                                                             max_concept_size=18, max_concept_grammar_iterations=3,
-                                                             concept_generator=None, parameter_generator=add_bw_domain_parameters,
-                                                             feature_namer=blocksworld_names, )
-
-    exps["simple_clear_3_completeness_opt"] = update_dict(exps["simple_clear_3"],
-                                                  instances=["instance_3_clear_x_2.pddl"]*2,
-                                                  num_states=500, max_width=[-1, 2],
-                                                  num_sampled_states=100,
-                                                  complete_only_wrt_optimal=True,
-                                                  # enforce_features=get_on_x_y_feature
-                                                  )
-
-    exps["aaai_clear_x_simple_hybrid"] = update_dict(base,
-                                                     instances="instance_5_clear_x_1.pddl",
-                                                     test_domain=domain, test_instances=["instance_5_clear_x_2.pddl"],
-                                                     num_states=2000, max_width=[-1],
-                                                     num_sampled_states=300,
-                                                     complete_only_wrt_optimal=True,
-                                                     max_concept_size=8, max_concept_grammar_iterations=3,
-                                                     concept_generator=None, parameter_generator=add_bw_domain_parameters,
-                                                     feature_namer=blocksworld_names,
-                                                     )
-    exps["aaai_clear_x_blai"] = update_dict(exps["aaai_clear_x_simple_hybrid"], wsat_solver_verbose=True, pipeline="maxsat_poly")
-    
-    # Same but using goal-concepts instead of goal parameters:
-    exps["aaai_clear_x_simple_hybrid_gc"] = update_dict(exps["aaai_clear_x_simple_hybrid"], parameter_generator=None)
-
-    exps["aaai_clear_x_8blocks"] = update_dict(exps["aaai_clear_x_simple_hybrid"],
-                                       instances="instance_8_clear_x_0.pddl", )
-
-    exps["aaai_clear_x_no_marking"] = update_dict(exps["aaai_clear_x_simple_hybrid"],
-                                          complete_only_wrt_optimal=False,  # num_sampled_states=200,
-                                          # concept_generator=build_ijcai_paper_bw_concepts,
-                                          )
-
-    exps["aaai_clear_x_no_marking_blai"] = update_dict(
-        exps["aaai_clear_x_no_marking"], pipeline="maxsat_poly",)
-
-    exps["aaai_clear_x_no_marking_8blocks"] = update_dict(exps["aaai_clear_x_no_marking"],
-                                                  instances="instance_8_clear_x_0.pddl",)
-
-    exps["aaai_clear_x_no_marking_k18"] = update_dict(exps["aaai_clear_x_no_marking"],
-                                              complete_only_wrt_optimal=False,  # num_sampled_states=200,
-                                              max_concept_size=18,
-                                              )
-
-    exps["clear_x_incremental"] = update_dict(base,
-                                              # domain_dir="blocks-downward",
-                                              experiment_class=IncrementalExperiment,
-                                              # instances=["probBLOCKS-5-0.pddl", "probBLOCKS-6-0.pddl", "probBLOCKS-7-0.pddl"],
-                                              # instances=["probBLOCKS-4-0.pddl", "probBLOCKS-4-1.pddl", "probBLOCKS-4-2.pddl"],
-                                              instances=["instance_8_clear_x_0.pddl", "instance_5_clear_x.pddl"],  # , "instance_4_clear_x.pddl"],
-                                              # instances=["probBLOCKS-4-0.pddl"],
-                                              num_states=5000, max_width=-1,
-                                              initial_sample_size=5,
-                                              # num_sampled_states=50,
-                                              complete_only_wrt_optimal=False,
-                                              max_concept_grammar_iterations=3,
-                                              initial_concept_bound=16, max_concept_bound=16, concept_bound_step=2,
-                                              batch_refinement_size=1,
-                                              # quiet=True,
-                                              clean_workspace=False,
-                                              concept_generator=None,
-                                              parameter_generator=add_bw_domain_parameters,
-                                              feature_namer=blocksworld_names,
-                                              )
-
-    # Learns a simple action model which is however overfit to 3 blocks, and not sound in general
-    exps["toy_clear_incremental"] = update_dict(base,
-                                                experiment_class=IncrementalExperiment,
-                                                instances=["instance_3_clear_x.pddl"],
-                                                max_concept_grammar_iterations=3,
-                                                num_states=100,
-                                                quiet=True,
-                                                initial_sample_size=100,
-                                                initial_concept_bound=10, max_concept_bound=10, concept_bound_step=2,
-                                                concept_generator=None, parameter_generator=add_bw_domain_parameters,
-                                                feature_namer=blocksworld_names, )
-
-    exps["aaai_clear_x_no_marking_2"] = update_dict(
-        exps["aaai_clear_x_no_marking"],
-        instances=["instance_5_clear_x_1.pddl"],#,"instance_5_clear_x_2.pddl",],
-        num_states=2000, max_width=[2],
-        num_sampled_states=100,
+    strips_base = update_dict(
+        base,
+        domain="domain.pddl",
+        test_domain="domain.pddl",
     )
 
-    #
-    exps["ijcai_features_on_clear_5"] = update_dict(exps["aaai_ijcai_features_on_clear_5_rnd"], num_sampled_states=None)
+    fn_base = update_dict(
+        base,
+        domain="domain_fstrips.pddl",
+        test_domain="domain_fstrips.pddl",
+    )
 
-    # Goal here is on(x,y).
-    exps["bw_on_x_y_4"] = update_dict(base,
-                                      instances="instance_4_on_x_y.pddl",
-                                      num_states=200, num_sampled_states=None, random_seed=12,
-                                      max_concept_size=31, max_concept_grammar_iterations=4,
-                                      concept_generator=None, parameter_generator=add_bw_domain_parameters_2,
-                                      feature_namer=blocksworld_names, )
+    strips_atomic_base = update_dict(
+        base,
+        domain="domain_atomic_move.pddl",
+        test_domain="domain_atomic_move.pddl",
+    )
 
-    exps["bw_on_x_y_4_rnd"] = update_dict(exps["bw_on_x_y_4"], num_sampled_states=60)
+    exps["clear"] = update_dict(
+        strips_base,
+        instances=["training_clear_5.pddl"],
+        test_instances=[
+            "instance_5_clear_x_1.pddl",
+            # "instance_5_clear_x_2.pddl",
+        ],
+        test_policy_instances=[
+            "testing_clear_10_0.pddl",
+            "testing_clear_10_1.pddl",
+        ],
 
-    # Goal here is on(x,y).
-    exps["bw_on_x_y_5"] = update_dict(base,
-                                      instances="instance_5_on_x_y.pddl",
-                                      num_states=1000, num_sampled_states=None, random_seed=12,
-                                      max_concept_size=10, max_concept_grammar_iterations=3,
-                                      concept_generator=None, parameter_generator=add_bw_domain_parameters_2,
-                                      feature_namer=blocksworld_names, )
+        max_concept_size=8,
+        parameter_generator=blocksworld_parameters_for_clear,
+        use_equivalence_classes=True,
+        # use_feature_dominance=True,
+        use_incremental_refinement=True,
 
-    exps["bw_on_x_y_5_gc"] = update_dict(exps["bw_on_x_y_5"], parameter_generator=None,)
+        # feature_generator=debug_features_clear,
+    )
 
-    exps["bw_on_x_y_5_iw"] = update_dict(base,
-                                         instances=["instance_9_on_x_y_1.pddl", "instance_9_on_x_y_2.pddl", "holding_a_b_unclear.pddl"],  #, "instance_9_on_x_y_4.pddl"],
-                                         num_states=1000, max_width=2,
-                                         max_concept_size=10, max_concept_grammar_iterations=3,
-                                         concept_generator=None, parameter_generator=add_bw_domain_parameters_2,
-                                         feature_namer=blocksworld_names, )
+    exps["clear_fn"] = update_dict(
+        fn_base,
+        instances=["training_clear_5_fs.pddl"],
+        test_instances=[],
+        test_policy_instances=[],
+        max_concept_size=8,
+        parameter_generator=blocksworld_parameters_for_clear,
+        use_equivalence_classes=True,
+        # use_feature_dominance=True,
+        use_incremental_refinement=True,
+    )
 
-    exps["aaai_bw_on_x_y_completeness_opt"] = update_dict(base,
-                                                          instances=[
-                                                      "inst_on_x_y_16.pddl",
-                                                      "inst_on_x_y_14.pddl",
-                                                      "holding_a_b_unclear.pddl",
+    exps["on"] = update_dict(
+        strips_base,
+        instances=[
+            "training_on_5.pddl",
+        ],
+        test_instances=["inst_on_x_y_7.pddl"],
+        test_policy_instances=[
+            "inst_on_x_y_7.pddl",
+            "inst_on_x_y_14.pddl",
+            "inst_on_x_y_16.pddl",
+            "instance_9_on_x_y_1.pddl",
+            "instance_3_on_x_y_2.pddl",
+        ],
 
-                                                  ],
-                                                          # test_domain=domain,
-                                                          # We cannot test this, since works only for states where A and B are on diff towers
-                                                          # test_instances=["inst_on_x_y_7.pddl"],
-                                                          num_states=2000, max_width=[-1],
-                                                          num_sampled_states=[50, 50, 1],
-                                                          complete_only_wrt_optimal=True,
-                                                          sampling="all",
-                                                          # enforce_features=get_on_x_y_feature,
-                                                          # feature_generator=features_clear_x,
-                                                          max_concept_size=8, max_concept_grammar_iterations=3,
-                                                          concept_generator=None, parameter_generator=add_bw_domain_parameters_2,
-                                                          feature_namer=blocksworld_names,
-                                                          )
+        max_concept_size=8,
+        distance_feature_max_complexity=8,
 
-    exps["aaai_bw_on_x_y_completeness_opt_blai"] = update_dict(exps["aaai_bw_on_x_y_completeness_opt"],
-                                                               pipeline="maxsat_poly")
+        # enforce_features=get_on_x_y_feature,
+        parameter_generator=blocksworld_parameters_for_on,
+        use_equivalence_classes=True,
+        # use_feature_dominance=True,
+        use_incremental_refinement=True,
+    )
 
-    exps["aaai_bw_on_x_y_completeness_opt_no_marking"] = update_dict(exps["aaai_bw_on_x_y_completeness_opt"],
-                                                             complete_only_wrt_optimal=False)
-    
-    exps["aaai_bw_on_x_y_completeness_opt_no_marking_blai"] = update_dict(
-        exps["aaai_bw_on_x_y_completeness_opt_no_marking"], pipeline="maxsat_poly",)
+    exps["on_fn"] = update_dict(
+        fn_base,
+        instances=["training_on_5_fs.pddl"],
+        test_instances=[],
+        test_policy_instances=[],
 
-    exps["bw_on_x_y_dt_iw"] = update_dict(base,
-                                          instances=["on_x_y_dt_1.pddl", "holding_a_b_unclear.pddl"],
-                                          num_states=49999, max_width=2,
-                                          max_concept_size=10, max_concept_grammar_iterations=3,
-                                          parameter_generator=add_bw_domain_parameters_2,
-                                          feature_namer=blocksworld_names, )
+        max_concept_size=8,
+        parameter_generator=blocksworld_parameters_for_on,
+        use_equivalence_classes=True,
+        # use_feature_dominance=True,
+        use_incremental_refinement=True,
+    )
 
-    exps["validate_bw_on_x_y_dt_iw"] = update_dict(base,
-                                                   instances=["on_x_y_dt_1.pddl"],
-                                                   num_states=49999, max_width=2,
-                                                   max_concept_size=10, max_concept_grammar_iterations=3,
-                                                   parameter_generator=add_bw_domain_parameters_2,
-                                                   feature_generator=generate_features_n_ab,
-                                                   feature_namer=blocksworld_names, )
+    exps["4op_5"] = update_dict(
+        strips_base,
 
-    exps["bw_on_x_y_dt_iw_fixed_goal"] = update_dict(exps["bw_on_x_y_dt_iw"],
-                                             instances=["on_x_y_dt_1.pddl"],
-                                             enforce_features=get_on_x_y_feature)
+        instances=[
+            "probBLOCKS-5-0.pddl"
+        ],
+        test_instances=[
 
-    exps["bw_on_x_y_dt_completeness_opt"] = update_dict(exps["bw_on_x_y_dt_iw"],
-                                                instances=["on_x_y_dt_1.pddl"],
-                                                num_states=50000, max_width=2,
-                                                num_sampled_states=14000,
-                                                complete_only_wrt_optimal=True,
-                                                # feature_generator=weird_feature_set,
-                                                enforce_features=get_on_x_y_feature)
+        ],
+        test_policy_instances=all_4op_test_instances(),
 
-    exps["bw_on_x_y_dt_completeness_opt2"] = update_dict(exps["bw_on_x_y_dt_completeness_opt"],
-                                                 instances=["on_x_y_dt_2.pddl", "on_x_y_dt_2.pddl"],
-                                                 num_states=50000, max_width=[2, -1],
-                                                 # feature_generator=weird_feature_set,
-                                                 # enforce_features=None,
-                                                 num_sampled_states=3000)
+        max_concept_size=12,
+        use_incremental_refinement=True,
+        use_equivalence_classes=True,
+        use_feature_dominance=False,
+    )
 
-    exps["check_ijcai_features_on_x_y"] = update_dict(base,
-                                                      instances="instance_5_on_x_y.pddl",
-                                                      num_states=1000, max_concept_size=1, max_concept_grammar_iterations=1, num_sampled_states=100, random_seed=2,
-                                                      concept_generator=build_on_x_y_feature_set, parameter_generator=add_bw_domain_parameters_2,
-                                                      feature_namer=blocksworld_names, )
+    exps["4op_debug"] = update_dict(
+        exps["4op_5"],
 
-    exps["generate_ijcai_features_on_x_y"] = update_dict(base,
-                                                         instances="instance_5_on_x_y.pddl",
-                                                         num_states=1000, max_concept_size=34, max_concept_grammar_iterations=4, num_sampled_states=50, random_seed=2,
-                                                         concept_generator=None, parameter_generator=add_bw_domain_parameters_2,
-                                                         feature_namer=blocksworld_names, )
+        instances=[
+            "probBLOCKS-4-0.pddl"
+        ],
 
-    exps["clear_two_atoms"] = update_dict(base,
-                                          instances="instance_5_clear_x_y.pddl",
-                                          test_domain=domain, test_instances=["instance_5_clear_x_2.pddl"],
-                                          num_states=2000, max_width=[-1],
-                                          num_sampled_states=300,
-                                          complete_only_wrt_optimal=True,
-                                          max_concept_size=8,
-                                          concept_generator=None,
-                                          parameter_generator=None,
-                                          feature_namer=blocksworld_names,
-                                          )
+        # transition_classification_policy=debug_policy_4op,
+        feature_generator=debug_features_4op,
+        use_incremental_refinement=False,
+        use_equivalence_classes=True,
+        use_feature_dominance=False,
+    )
+
+    exps["all_fn_5"] = update_dict(
+        fn_base,
+        instances=[
+            "training_arbitrary_5_fs.pddl",
+            # "training_singletower_5_fs.pddl",
+        ],
+        test_instances=[],
+        test_policy_instances=[],
+
+        max_concept_size=10,
+        use_incremental_refinement=False,
+        use_equivalence_classes=True,
+        use_feature_dominance=False,
+
+        # feature_generator=fs_debug_features,
+        # transition_classification_policy=fs_debug_policy
+    )
+
+    exps["all_at_5"] = update_dict(
+        strips_atomic_base,
+        instances=[
+            "training_arbitrary_5_atomic.pddl",
+        ],
+        test_instances=[],
+        test_policy_instances=[
+            "training_arbitrary_5_atomic.pddl",
+        ] + [
+            f"test_atomic_{n}_{i}.pddl" for n in range(10, 31) for i in range(0, 5)
+        ],
+
+        max_concept_size=8,
+        distance_feature_max_complexity=8,
+
+        # feature_generator=debug_features_at,
+        use_incremental_refinement=True,
+        use_equivalence_classes=True,
+        use_feature_dominance=False,
+    )
+
+    # Using incompletely-specified goals
+    exps["all_at_5_inc"] = update_dict(
+        exps["all_at_5"],
+        instances=[
+            "training_arbitrary_5_atomic_incomplete.pddl",
+        ],
+    )
+
+    exps["all_at_testing"] = update_dict(
+        strips_atomic_base,
+        instances=[
+            "training_arbitrary_5_atomic.pddl",
+        ],
+        test_instances=[],
+        test_policy_instances=[
+            "training_arbitrary_5_atomic.pddl",
+            "testing_arbitrary_10_atomic.pddl",
+            "testing_arbitrary_10_1_atomic.pddl",
+            "testing_arbitrary_17-0_atomic.pddl",
+            "testing_arbitrary_17-1_atomic.pddl",
+        ],
+        feature_generator=debug_features_at2,
+        use_incremental_refinement=False,
+        use_equivalence_classes=True,
+        use_feature_dominance=False,
+    )
 
     return exps
+
+
+def fs_debug_policy():
+    on = "loc"
+    eqons = f'Equal({on}_g,{on})'
+    wellplaced = f"Num[And({eqons},Forall(Star({on}),{eqons}))]"
+    nclear = f"Num[clear]"
+
+    return [
+        # Increasing the number of well-placed blocks is always good
+        [(wellplaced, 'INC')],
+
+        # Increasing the # of clear blocks (i.e. by putting some block on the table) is always good as long
+        # as that doesn't affect the number of well placed blocks
+        [(wellplaced, 'NIL'), (nclear, 'INC')],
+    ]
+
+
+def fs_debug_features(lang):
+    on = "loc"
+    eqons = f'Equal({on}_g,{on})'
+    wellplaced = f"Num[And({eqons},Forall(Star({on}),{eqons}))]"
+    nclear = f"Num[clear]"
+    return [wellplaced, nclear]
+
+
+def fs_debug_features2(lang):
+    nclear = "Num[clear]"
+    sup_wp = "Num[Equal(Star(loc_g),Star(loc))]"
+    ontarget = "Num[Equal(loc_g,loc)]"
+    return [sup_wp, nclear, ontarget]
+
+
+def debug_features_at(lang):
+    # This alone is UNSAT
+    on = "on"
+    eqons = f'Equal({on}_g,{on})'
+    wellplaced = f"Num[And({eqons},Forall(Star({on}),{eqons}))]"
+    nclear = f"Num[clear]"
+    return [wellplaced, nclear]
+
+
+def debug_features_at2(lang):
+    nallbelow_wellplaced = "Num[Forall(Star(on),Equal(on_g,on))]"
+    ontarget = "Num[Equal(on_g,on)]"
+    nclear = f"Num[clear]"
+    return [nallbelow_wellplaced, nclear, ontarget]
+
+
+def debug_policy_4op():
+
+    # NOTE the -holding below is important because in the standard BW instances the goal is underspecified:
+    # the goal is always a tower, but the block that must go on the table left implicitly. Let's say that block is D
+    # in some instance, and we don't have that -holding in the definition of well-placed.
+    # Then, if D is being held, it'd be considered well-placed, when it should not.
+    wp = "And(And(Equal(on_g,on),Forall(Star(on),Equal(on_g,on))),Not(holding))"
+    # wp = "And(Equal(on_g,on),Forall(Star(on),Equal(on_g,on)))"
+    ready_to_rock = f"Bool[And(Exists(on_g,And(clear,{wp})),holding)]"
+    nwp = f"Num[{wp}]"
+    holding = f"Bool[holding]"
+    nontable = f"Num[ontable]"
+
+    return [
+        # Pick up some block that has blocks below misplaced when possible
+        # [(some_below_misplaced, 'DEC'), (holding, 'ADD')],
+        # [(holding, 'ADD'), (nallbelow_wellplaced, 'NIL')],
+        [(holding, 'ADD'), (ready_to_rock, 'ADD'), (nontable, 'DEC')],  # pick one from the table if can be placed correctly next
+        [(holding, 'ADD'), (nwp, 'NIL'), (nontable, 'NIL')],  # pick
+        # [(holding, 'ADD'), (some_below_misplaced, 'DEC')],  # pick
+
+        # Put down the held block on its target if possible
+        [(holding, 'DEL'), (ready_to_rock, "DEL"), (nwp, 'INC')],
+
+        # Put down the held block on table if cannot put it well placed
+        [(holding, 'DEL'), (ready_to_rock, "=0"), (nontable, "INC")],
+    ]
+
+
+def debug_features_4op(lang):
+    wp = "And(And(Equal(on_g,on),Forall(Star(on),Equal(on_g,on))),Not(holding))"
+    # wp = "Forall(Star(on),Equal(on_g,on))"
+    ready_to_rock = f"Bool[And(Exists(on_g,And(clear,{wp})),holding)]"
+    nwp = f"Num[{wp}]"
+    holding = f"Bool[holding]"
+    nontable = f"Num[ontable]"
+    return [nwp, ready_to_rock, holding, nontable]
+
+
+def all_4op_test_instances():
+    res = []
+    for nblocks in [6, 7, 8, 9, 10, 11]:
+        res += [f"probBLOCKS-{nblocks}-{i}.pddl" for i in [0, 1, 2]]
+    return res
+
+
+def debug_features_clear(lang):
+    nx = "Num[Exists(Star(on),Nominal(a))]"
+    nontable = f"Num[ontable]"
+    nclear = f"Num[clear]"
+    holding = f"Bool[holding]"
+    cleara = "Bool[And(clear,Nominal(a))]"
+    handempty = "Atom[handempty]"
+    return [cleara, handempty, nx]
+    # return [nx, nontable, holding, cleara]

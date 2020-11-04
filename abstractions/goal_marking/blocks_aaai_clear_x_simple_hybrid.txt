@@ -1,8 +1,0 @@
-
-Action 1:
-	PRE: NOT holding(a), bool[holding]
-	EFFS: NOT bool[holding]
-
-Action 2:
-	PRE: NOT bool[holding], NOT holding(a), n(a) > 0
-	EFFS: DEC n(a), bool[holding]

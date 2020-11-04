@@ -1,6 +1,0 @@
-[submodule "qnp2fond"]
-	path = qnp2fond
-	url = https://github.com/bonetblai/qnp2fond.git
-[submodule "fond_solvers/FOND-SAT"]
-	path = fond_solvers/FOND-SAT
-	url = https://github.com/tomsons22/FOND-SAT.git

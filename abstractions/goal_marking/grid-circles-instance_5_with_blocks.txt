@@ -1,8 +1,0 @@
-
-Action 1:
-	PRE: min-dist[at, Restrict(adjacent,Not(blocked)), reward] = 0, num-rewards > 0
-	EFFS: DEC num-rewards, INC min-dist[at, Restrict(adjacent,Not(blocked)), reward]
-
-Action 2:
-	PRE: min-dist[at, Restrict(adjacent,Not(blocked)), reward] > 0, num-rewards > 0
-	EFFS: DEC min-dist[at, Restrict(adjacent,Not(blocked)), reward]

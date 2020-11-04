@@ -1,98 +1,72 @@
-#! /usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-import sys
-
-from sltp.driver import run_experiment
-
-from sltp.util.defaults import generate_experiment
 from sltp.util.misc import update_dict
-from tarski.dl import AndConcept, PrimitiveConcept, NotConcept, PrimitiveRole, UniversalConcept, MinDistanceFeature, ConceptCardinalityFeature, RestrictRole
-
-from sltp.util.names import reward_names
+from sltp.util.names import reward_names, no_parameter
 
 
-def add_domain_parameters(language):
-    return []
+def experiments():
+    base = dict(
+        domain_dir="reward",
+        domain="domain.pddl",
+        test_domain="domain.pddl",
+        feature_namer=reward_names,
+        pipeline="transition_classifier",
+        maxsat_encoding="separation",
+        complete_only_wrt_optimal=True,
+        prune_redundant_states=False,
+        optimal_selection_strategy="complete",
+        num_states="all",
+        concept_generator=None,
+        parameter_generator=None,
+        v_slack=2,
 
+        # concept_generation_timeout=120,  # in seconds
+        maxsat_timeout=None,
 
-def build_expected_concepts(lang):
-    obj_t = lang.Object
-
-    top = UniversalConcept("object")
-
-    current_cell = PrimitiveConcept(lang.get("at"))
-    reward_cells = PrimitiveConcept(lang.get("reward"))
-    blocked_cells = PrimitiveConcept(lang.get("blocked"))
-    unblocked_cells = NotConcept(blocked_cells, obj_t)
-    # visited_cells = PrimitiveConcept(lang.get("visited"))
-    # unvisited_cells = NotConcept(visited_cells, obj_t)
-    adjacent_role = PrimitiveRole(lang.get("adjacent"))
-    # unvisited_cells_with_reward = AndConcept(unvisited_cells, reward_cells, "cell")
-
-    at_cell_with_reward = AndConcept(current_cell, reward_cells, "cell")  # X
-
-    # concepts = [current_cell, unvisited_cells, unvisited_cells_with_reward, unblocked_cells]
-    # concepts = [current_cell, unblocked_cells, reward_cells]
-    # concepts = [current_cell, unblocked_cells, reward_cells, at_cell_with_reward]
-    concepts = [top, current_cell, reward_cells, at_cell_with_reward]
-
-    roles = [adjacent_role]
-
-    return [], concepts, roles  # atoms, concepts, roles
-
-
-def experiment(experiment_name=None):
-    domain_dir = "pick-reward"
-    domain = "domain.pddl"
+        distinguish_goals=True,
+    )
 
     exps = dict()
 
-    # One reason for overfitting: in a 3x3 grid, with 2 booleans per dimension you can perfectly represent any position
-    exps['sample_1x3'] = dict(
-        instances=["sample_1x3.pddl"],
-        complete_only_wrt_optimal=True,
-        num_states=1500, max_concept_size=8, max_concept_grammar_iterations=3,
+    exps["small"] = update_dict(
+        base,
+        instances=["training_5x5.pddl"],
+        # instances=["instance_5.pddl", "instance_4_blocked.pddl"],
+        test_instances=[],
+        test_policy_instances=all_test_instances(),
+
+        max_concept_size=8,
         distance_feature_max_complexity=8,
-        feature_namer=reward_names,
-        # feature_generator=build_expected_features,
-        concept_generator=None, parameter_generator=add_domain_parameters
+        parameter_generator=no_parameter,
+        # parameter_generator=None
+        use_equivalence_classes=True,
+        # use_feature_dominance=True,
+        use_incremental_refinement=True,
     )
 
-    exps['sample_2x2_1reward'] = update_dict(exps['sample_1x3'], instances=["sample_2x2_1reward.pddl"])
-    exps['sample_2x2_2rewards'] = update_dict(exps['sample_1x3'], instances=["sample_2x2_2rewards.pddl"])
-    exps['sample_3x3_2rewards'] = update_dict(exps['sample_1x3'], instances=["sample_3x3_2rewards.pddl"])
-    exps['instance_5'] = update_dict(exps['sample_1x3'], instances=["instance_5.pddl", "instance_4_blocked.pddl"])
-    exps['instance_5_no_marking'] = update_dict(exps['instance_5'], complete_only_wrt_optimal=False,)
+    exps["debug"] = update_dict(exps["small"], feature_generator=debug_features)
+
+    # One reason for overfitting: in a 3x3 grid, with 2 booleans per dimension you can perfectly represent any position
+    # exps['sample_2x2_1reward'] = update_dict(exps['sample_1x3'], instances=["sample_2x2_1reward.pddl"])
+    # exps['sample_2x2_2rewards'] = update_dict(exps['sample_1x3'], instances=["sample_2x2_2rewards.pddl"])
+    # exps['sample_3x3_2rewards'] = update_dict(exps['sample_1x3'], instances=["sample_3x3_2rewards.pddl"])
+    # exps['instance_5'] = update_dict(exps['sample_1x3'], instances=["instance_5.pddl", "instance_4_blocked.pddl"])
+    # exps['instance_5_no_marking'] = update_dict(exps['instance_5'], complete_only_wrt_optimal=False,)
 
     # Same but using goal-concepts instead of goal parameters:
-    exps["instance_5_gc"] = update_dict(exps["instance_5"], parameter_generator=None)
+    # exps["instance_5_gc"] = update_dict(exps["instance_5"], parameter_generator=None)
 
-    if experiment_name not in exps:
-        raise RuntimeError('No experiment named "{}" in current experiment script'.format(experiment_name))
-    parameters = exps[experiment_name]
-    return generate_experiment(domain_dir, domain, **parameters)
+    return exps
 
 
-def build_expected_features(lang):
-    obj_t = lang.Object
-
-    current_cell = PrimitiveConcept(lang.get("at"))
-    adjacent_role = PrimitiveRole(lang.get("adjacent"))
-    blocked = PrimitiveConcept(lang.get("blocked"))
-    unblocked = NotConcept(blocked, obj_t)
-    reward = PrimitiveConcept(lang.get("reward"))
-
-    adjacent_unblocked = RestrictRole(adjacent_role, unblocked)
-
+def debug_features(lang):
+    unblocked_dist = "Dist[at;Restrict(adjacent,unblocked);reward]"
+    nrewards = "Num[reward]"
     return [
-        ConceptCardinalityFeature(reward),
-        # MinDistanceFeature(current_cell, adjacent_role, reward),
-        MinDistanceFeature(current_cell, adjacent_unblocked, reward),
+        unblocked_dist,
+        nrewards,
     ]
 
 
-if __name__ == "__main__":
-    exp = experiment(sys.argv[1])
-    run_experiment(exp, sys.argv[2:])
-
+def all_test_instances():
+    for gridsize in [5, 7, 10, 15, 20, 25]:
+        for run in range(0, 5):
+            yield f"instance_{gridsize}x{gridsize}_{run}.pddl"

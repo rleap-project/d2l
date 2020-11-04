@@ -1,50 +1,49 @@
 from sltp.util.misc import update_dict
+from sltp.util.names import barman_names
 
 
 def experiments():
-
     base = dict(
         domain_dir="barman-opt11-strips",
         domain="domain.pddl",
         test_domain="domain.pddl",
+        feature_namer=barman_names,
+        pipeline="transition_classifier",
+        maxsat_encoding="separation",
         complete_only_wrt_optimal=True,
+        prune_redundant_states=False,
+        optimal_selection_strategy="complete",
+        num_states="all",
+        concept_generator=None,
+        parameter_generator=None,
+        v_slack=2,
+
+        # concept_generation_timeout=120,  # in seconds
+        maxsat_timeout=None,
     )
 
     exps = dict()
 
-    exps["p1"] = update_dict(
+    exps["small"] = update_dict(
         base,
-        instances=['sample01.pddl', ],
-        test_instances=["pfile01-00{}.pddl".format(i) for i in (1, 2, 3)],
-        test_policy_instances=policy_test_instances(),
-        num_states="until_first_goal",
-        num_tested_states=20000,
-        num_sampled_states=300,
+        instances=[
+            'sample01.pddl',
+        ],
+        test_instances=[
+            # 'child-snack_pfile01-2.pddl',
+        ],
+        test_policy_instances=all_test_instances(),
+
         max_concept_size=8,
-        concept_generator=None,
-        parameter_generator=None,
-    )
+        distance_feature_max_complexity=8,
 
-    exps["p1_inc"] = update_dict(
-        exps["p1"],
-        experiment_type='incremental',
-        num_sampled_states=None,  # Take all expanded states into account
-        initial_sample_size=100, batch_refinement_size=5,
-        initial_concept_bound=6, max_concept_bound=10, concept_bound_step=1,
-        clean_workspace=False,
+        use_equivalence_classes=True,
+        # use_feature_dominance=True,
+        use_incremental_refinement=True,
     )
-
-    exps["p1_p"] = update_dict(exps["p1"], pipeline="maxsat_poly")
 
     return exps
 
 
-def policy_test_instances():
-    instances = []
-    total = 1
-    for i in range(1, 6):
-        for _ in range(4):  # Each x has 4 subproblems
-            instances.append("pfile0{}-{:03d}.pddl".format(i, total))
-            total += 1
-    assert total == 21
-    return instances
+def all_test_instances():
+    return ['pfile01-001.pddl']

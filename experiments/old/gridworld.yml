@@ -1,8 +1,0 @@
-
-
-run:
-  mem: "32G"
-  time: "6:0:0"
-
-experiments:
-  - gridworld s5_2inst
