@@ -38,7 +38,26 @@ Example invocations:
 
 The configuration of each experiment can be inspected by looking at the experiment file.
 
-## Using the D2L Docker image 
-We can also run experiments from within the Docker image.
-[TODO]
+## The D2L Docker image 
+You can also use D2L from the provided Docker image.
+In order to build it or run it, you need [a Docker installation](https://docs.docker.com/engine/installation)
+on your machine.
 
+### Building the Docker image
+
+Build the docker image with the following command from the repo root:
+```shell script
+sudo docker build -t d2l -f containers/Dockerfile .
+```
+
+### Running the image
+
+You can open a terminal on the image for inspection or debugging by running
+```shell script
+sudo docker run --entrypoint bash -it  d2l
+```
+
+Or you can directly run a concrete experiment, e.g.:
+```shell script
+sudo docker run --rm d2l blocks:clear
+```

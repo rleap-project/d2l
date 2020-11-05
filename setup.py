@@ -101,9 +101,8 @@ class SltpInstall(install):
 
 
 class SltpDevelop(develop):
-    """Post-installation for development mode."""
-
     def run(self):
+        """Post-installation for development mode."""
         develop.run(self)
         self.execute(_post_install, (self.install_lib,), msg=f"Building SLTP binaries on {self.install_lib}")
 
