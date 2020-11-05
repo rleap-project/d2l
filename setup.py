@@ -13,7 +13,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 def get_description():
     from codecs import open
     # Get the long description from the README file
-    with open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
+    with open(os.path.join(here, 'readme.md'), encoding='utf-8') as f:
         return f.read()
 
 
@@ -33,7 +33,7 @@ def main():
         version=get_version(),
         description='The SLTP Generalized Planning Framework: Sample, Learn, Transform & Plan',
         long_description=get_description(),
-        url='https://github.com/aig-upf/sltp',
+        url='https://github.com/rleap-project/d2l',
         author='Blai Bonet and Guillem Francès',
         author_email='-',
 
@@ -47,6 +47,7 @@ def main():
             'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
 
             'Programming Language :: Python :: 3',
+            'Programming Language :: Python :: 3.6',
             'Programming Language :: Python :: 3.7',
             'Programming Language :: Python :: 3.8',
         ],
@@ -60,7 +61,7 @@ def main():
             'bitarray',
             'natsort>=7.0.1',
             'numpy',
-            "tarski @ git+ssh://git@github.com/aig-upf/tarski.git@2d57d46#egg=tarski-devel"
+            "tarski @ git+ssh://git@github.com/aig-upf/tarski.git@2d57d46#egg=tarski"
         ],
 
         # ext_modules=[
