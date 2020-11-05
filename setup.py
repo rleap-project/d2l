@@ -61,7 +61,7 @@ def main():
             'bitarray',
             'natsort>=7.0.1',
             'numpy',
-            "tarski @ git+ssh://git@github.com/aig-upf/tarski.git@2d57d46#egg=tarski"
+            "tarski@git+git://github.com/aig-upf/tarski.git@2d57d46#egg=tarski",
         ],
 
         # ext_modules=[
