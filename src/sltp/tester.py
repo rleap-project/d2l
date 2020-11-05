@@ -3,72 +3,27 @@ import sys
 
 from .models import FeatureModel
 from .separation import TransitionClassificationPolicy, generate_user_provided_policy
-from .util.tools import Abstraction, AbstractAction, generate_qualitative_effects_from_transition
 from .features import generate_model_cache, create_model_factory, compute_static_atoms
 from .returncodes import ExitCode
 from .sampling import read_transitions_from_files
-from .validator import AbstractionValidator
 from . import PYPERPLAN_DIR
-
-
-def test_abstraction_soundness(config, data):
-    """ Test that the computed abstraction is sound and able to distinguish goal from non-goal states. """
-    if not config.test_sample_files:
-        logging.info("No test instances specified for testing of abstraction soundness")
-        return ExitCode.Success
-
-    logging.info(f"Testing learnt abstraction on sample of states from instances: {config.test_instances}")
-    assert isinstance(data.abstraction, Abstraction)
-    sample, _ = read_transitions_from_files(config.test_sample_files)
-    _, model_cache = generate_model_cache(config.test_domain, config.test_instances, sample, config.parameter_generator)
-
-    validator = AbstractionValidator(model_cache, sample, list(sample.expanded))
-    flaws, undist = validator.find_flaws(data.abstraction, 1, check_completeness=False)
-    if flaws:
-        logging.error("The computed abstraction is not sound")
-        return ExitCode.AbstractionFailsOnTestInstances
-    elif undist:
-        logging.error("The computed abstraction cannot distinguish all goal states")
-        return ExitCode.AbstractionFailsOnTestInstances
-
-    logging.info("The computed abstraction is sound & complete in all test instances!")
-    return ExitCode.Success
 
 
 def apply_policy_on_test_instances(config, create_policy):
     """ Run a search on the test instances that follows the given policy """
-    logging.info(f"Testing abstract policy on instances: {config.test_policy_instances}")
+    logging.info(f"Testing learnt policy on instances: {config.test_policy_instances}")
     pyperplan = _import_pyperplan()
 
     for instance in config.test_policy_instances:
-        logging.info(f'Testing abstract policy on instance "{instance}"')
+        logging.info(f'Testing policy on instance "{instance}"')
 
         try:
             _run_pyperplan(pyperplan, config.test_domain, instance, create_policy, config.parameter_generator)
         except PolicySearchException as e:
-            logging.warning(f"Testing of abstract policy failed with code: {e.code}")
+            logging.warning(f"Testing of policy failed with code: {e.code}")
             return e.code
-    logging.info("Abstract policy solves all tested instances")
+    logging.info("Learnt policy solves all test instances")
     return ExitCode.Success
-
-
-def run(config, data, rng):
-    if config.test_domain is None:
-        logging.info("No testing instances were specified")
-        return ExitCode.Success, dict()
-
-    # First test whether the abstraction is sound on the test instances
-    res = test_abstraction_soundness(config, data)
-    if res != ExitCode.Success:
-        return res, dict()
-
-    def create_policy(model_factory, static_atoms):
-        return create_abstract_policy(model_factory, static_atoms, data.abstraction)
-
-    # Then test that the policy has the properties we desire (sound, complete, terminating) on a possibly disjoint
-    # set of test instances
-    apply_policy_on_test_instances(config, create_policy)
-    return ExitCode.Success, dict()
 
 
 def _import_pyperplan():
@@ -91,7 +46,7 @@ def _run_pyperplan(pyperplan, domain, instance, create_policy, parameter_generat
     search_policy = create_policy(model_factory, static_atoms)
 
     # And now we inject our desired search and heuristic functions
-    args.forced_search = create_pyperplan_abstract_policy_based_search(pyperplan, search_policy)
+    args.forced_search = create_pyperplan_policy_based_search(pyperplan, search_policy)
 
     # And run pyperplan!
     pyperplan.main(args)
@@ -112,35 +67,7 @@ def generate_model_from_state(model_factory, state, static_atoms):
     return FeatureModel(model_factory.create_model(translated))
 
 
-def create_abstract_policy(model_factory, static_atoms, abstraction):
-    assert isinstance(abstraction, Abstraction)
-
-    def _policy(state, successor_generator):
-        m0 = generate_model_from_state(model_factory, state, static_atoms)
-
-        # Obtain the abstract action dictated by the policy
-        abs_state, abs_action = abstraction.optimal_action(m0)
-        if abs_action is None:
-            logging.warning(f"Policy is incomplete on state:\n{state}")
-            raise PolicySearchException(ExitCode.AbstractPolicyNotCompleteOnTestInstances)
-
-        assert isinstance(abs_action, AbstractAction)
-        # Find a concrete representative for that abstract action - TODO Could be more efficient than a linear search
-        for op, succ in successor_generator:
-            m1 = generate_model_from_state(model_factory, succ, static_atoms)
-            concrete_changeset = generate_qualitative_effects_from_transition(abstraction.features, m0, m1)
-
-            if concrete_changeset == abs_action.effects:
-                # We stick with the 1st concrete operator representing the abstract action dictated by the policy
-                return op, succ
-
-        logging.warning(f"No concrete action represents abstract action {abs_action} on concrete state {state}")
-        raise PolicySearchException(ExitCode.AbstractPolicyNotSoundOnTestInstances)
-
-    return _policy
-
-
-def create_pyperplan_abstract_policy_based_search(pyperplan, search_policy):
+def create_pyperplan_policy_based_search(pyperplan, search_policy):
     """ Creates a pyperplan like search object that uses the abstract generalized policy to perform the search """
     searchspace = pyperplan.search.searchspace
 
@@ -205,16 +132,16 @@ def create_action_selection_function_from_transition_policy(model_factory, stati
     return _policy
 
 
-def test_transition_classification_policy(config, data, rng):
+def test_d2l_policy(config, data, rng):
     if config.test_domain is None:
         logging.info("No testing instances were specified")
         return ExitCode.Success, dict()
 
     def create_policy(model_factory, static_atoms):
-        if config.transition_classification_policy is not None:
+        if config.d2l_policy is not None:
             policy = generate_user_provided_policy(config)
         else:
-            policy = data.transition_classification_policy
+            policy = data.d2l_policy
 
         return create_action_selection_function_from_transition_policy(model_factory, static_atoms, policy)
 
@@ -223,14 +150,14 @@ def test_transition_classification_policy(config, data, rng):
     if res != ExitCode.Success:
         return res, dict()
 
-    res = test_transition_classification_policy_is_complete(config, data.transition_classification_policy)
+    res = test_d2l_policy_is_complete(config, data.d2l_policy)
     if res != ExitCode.Success:
         return res, dict()
     logging.info("The computed policy solves all test instances and is complete in all sampled test states")
     return res, dict()
 
 
-def test_transition_classification_policy_is_complete(config, policy):
+def test_d2l_policy_is_complete(config, policy):
     if not config.test_sample_files:
         logging.info("No test instances specified for testing of policy completeness")
         return ExitCode.Success

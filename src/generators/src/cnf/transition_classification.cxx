@@ -22,7 +22,7 @@ sltp::cnf::transition_denotation compute_transition_denotation(feature_value_t s
 }
 
 
-void TransitionClassificationEncoding::compute_equivalence_relations() {
+void D2LEncoding::compute_equivalence_relations() {
     const auto& mat = tr_set_.matrix();
 
     // A mapping from a full transition trace to the ID of the corresponding equivalence class
@@ -102,7 +102,7 @@ void TransitionClassificationEncoding::compute_equivalence_relations() {
 
 }
 
-void TransitionClassificationEncoding::report_eq_classes() const {
+void D2LEncoding::report_eq_classes() const {
     std::unordered_map<unsigned, std::vector<state_pair>> classes;
     for (unsigned tx=0; tx < transition_ids_.size(); ++tx) {
         auto repr = get_representative_id(tx);
@@ -123,7 +123,7 @@ void TransitionClassificationEncoding::report_eq_classes() const {
 }
 
 
-std::vector<unsigned> TransitionClassificationEncoding::
+std::vector<unsigned> D2LEncoding::
 prune_dominated_features() {
     const auto& mat = tr_set_.matrix();
 
@@ -184,7 +184,7 @@ prune_dominated_features() {
     return nondominated;
 }
 
-std::vector<transition_pair> TransitionClassificationEncoding::
+std::vector<transition_pair> D2LEncoding::
 compute_dt(unsigned f) {
     const auto& mat = tr_set_.matrix();
 
@@ -215,7 +215,7 @@ compute_dt(unsigned f) {
 
 
 
-sltp::cnf::CNFGenerationOutput TransitionClassificationEncoding::write(
+sltp::cnf::CNFGenerationOutput D2LEncoding::write(
         CNFWriter& wr, const std::vector<transition_pair>& transitions_to_distinguish)
 {
     using Wr = CNFWriter;
@@ -441,30 +441,6 @@ sltp::cnf::CNFGenerationOutput TransitionClassificationEncoding::write(
         }
     }
     
-/*
- * Not using this ATM
-    if (options.force_zeros) { // Clauses (9)
-        for (unsigned f = 0; f < nf_; ++f) {
-            if (tr_set_.matrix().feature_is_boolean(f)) continue;
-
-            cnfclause_t clause{Wr::lit(selecteds[f], false)};
-
-            for (unsigned tx=0; tx < num_alive_transitions; ++tx) {
-                const auto& txpair = get_state_pair(tx);
-                auto s_f = mat.entry(txpair.first, f);
-                auto sprime_f = mat.entry(txpair.second, f);
-                
-                if (s_f > 0 && sprime_f == 0) {
-                    clause.push_back(Wr::lit(goods.at(get_representative_id(tx)), true));
-                }
-            }
-
-            wr.cl(clause);
-            n_zero_clauses += 1;
-        }
-    }
-*/
-
     if (!options.validate_features.empty()) {
         // If we only want to validate a set of features, we just force the Selected(f) to be true for them,
         // plus we don't really need any soft constraints.
@@ -498,7 +474,7 @@ sltp::cnf::CNFGenerationOutput TransitionClassificationEncoding::write(
     return sltp::cnf::CNFGenerationOutput::Success;
 }
 
-CNFGenerationOutput TransitionClassificationEncoding::refine_theory(CNFWriter& wr) {
+CNFGenerationOutput D2LEncoding::refine_theory(CNFWriter& wr) {
     if (!options.validate_features.empty()) {
         // If validate_features not empty, we will want to generate a validation CNF T(F', S) with all transitions
         // but with the given subset of features F' only.
@@ -524,7 +500,7 @@ CNFGenerationOutput TransitionClassificationEncoding::refine_theory(CNFWriter& w
     return write(wr, transitions);
 }
 
-std::vector<transition_pair> TransitionClassificationEncoding::distinguish_all_transitions() const {
+std::vector<transition_pair> D2LEncoding::distinguish_all_transitions() const {
     std::vector<transition_pair> transitions_to_distinguish;
     transitions_to_distinguish.reserve(class_representatives_.size() * class_representatives_.size());
     const auto& sample = tr_set_.sample();
@@ -547,7 +523,7 @@ std::vector<transition_pair> TransitionClassificationEncoding::distinguish_all_t
 }
 
 std::vector<transition_pair>
-TransitionClassificationEncoding::compute_transitions_to_distinguish(
+D2LEncoding::compute_transitions_to_distinguish(
         bool load_transitions_from_previous_iteration,
         const flaw_index_t& flaws) const {
 
@@ -580,7 +556,7 @@ TransitionClassificationEncoding::compute_transitions_to_distinguish(
     return transitions_to_distinguish;
 }
 
-bool TransitionClassificationEncoding::check_existing_solution_for_flaws(flaw_index_t& flaws)  const {
+bool D2LEncoding::check_existing_solution_for_flaws(flaw_index_t& flaws)  const {
     auto ifs_good_transitions = get_ifstream(options.workspace + "/good_transitions.io");
     auto ifs_good_features = get_ifstream(options.workspace + "/good_features.io");
 
@@ -656,7 +632,7 @@ bool TransitionClassificationEncoding::check_existing_solution_for_flaws(flaw_in
     return true;
 }
 
-bool TransitionClassificationEncoding::are_transitions_d1d2_distinguishable(
+bool D2LEncoding::are_transitions_d1d2_distinguishable(
         state_id_t s, state_id_t sprime, state_id_t t, state_id_t tprime, const std::vector<unsigned>& features) const {
     const auto& mat = tr_set_.matrix();
     for (unsigned f:features) {
@@ -668,7 +644,7 @@ bool TransitionClassificationEncoding::are_transitions_d1d2_distinguishable(
     return false;
 }
 
-void TransitionClassificationEncoding::store_transitions_to_distinguish(
+void D2LEncoding::store_transitions_to_distinguish(
         const std::vector<transition_pair> &transitions) const {
 
     auto ofs = get_ofstream(options.workspace + "/last_iteration_transitions.io");
@@ -679,7 +655,7 @@ void TransitionClassificationEncoding::store_transitions_to_distinguish(
 }
 
 
-std::vector<transition_pair> TransitionClassificationEncoding::load_transitions_to_distinguish() const {
+std::vector<transition_pair> D2LEncoding::load_transitions_to_distinguish() const {
     std::vector<transition_pair> transitions;
     auto ifs = get_ifstream(options.workspace + "/last_iteration_transitions.io");
     transition_id_t tx1, tx2;
@@ -690,7 +666,7 @@ std::vector<transition_pair> TransitionClassificationEncoding::load_transitions_
     return transitions;
 }
 
-std::vector<transition_pair> TransitionClassificationEncoding::generate_t0_transitions(unsigned m) const {
+std::vector<transition_pair> D2LEncoding::generate_t0_transitions(unsigned m) const {
     std::vector<transition_pair> transitions;
 
     std::mt19937 engine{std::random_device()()};

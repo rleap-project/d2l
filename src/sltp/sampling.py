@@ -3,8 +3,7 @@ import logging
 import math
 from collections import defaultdict, OrderedDict, deque
 
-from .goal_selection import select_goal_maximizing_states
-from .outputs import print_sat_transition_matrix, print_transition_matrix, print_state_set
+from .outputs import print_transition_matrix
 
 from .util.command import read_file
 from .util.naming import filename_core
@@ -145,11 +144,6 @@ class TransitionSample:
             instance_goals[self.instance[sid]].append(sid)
         return set(min(instance_goals[x]) for x in range(0, len(self.roots)) if instance_goals[x])
 
-    def remove_goals(self):
-        """ Delete goal-related info from the sample """
-        self.goals = set()
-        self.optimal_transitions = set()
-
 
 def mark_optimal(goal_states, root_states, parents):
     """ Collect all those transitions that lie on one arbitrary optimal path to the goal """
@@ -260,11 +254,11 @@ def sample_generated_states(config, rng):
     logging.info('Loading state space samples...')
     sample, goals_by_instance = read_transitions_from_files(config.sample_files)
 
-    if not config.create_goal_features_automatically and not config.goal_selector and not sample.goals:
+    if not config.create_goal_features_automatically and not sample.goals:
         raise RuntimeError("No goal found in the sample - increase # expanded states!")
 
-    mark_optimal_transitions(config.optimal_selection_strategy, sample)
-    logging.info("Entire sample: {}".format(sample.info()))
+    mark_optimal_transitions(sample)
+    logging.info(f"Entire sample: {sample.info()}")
 
     if config.num_sampled_states is not None:
         # Resample the full sample and extract only a few specified states
@@ -272,43 +266,19 @@ def sample_generated_states(config, rng):
         states_in_some_optimal_transition = sample.compute_optimal_states(include_goals=True)
         selected.update(states_in_some_optimal_transition)
         sample = sample.resample(set(selected))
-        logging.info("Sample after resampling: {}".format(sample.info()))
-
-    goal_maximizing_states = select_goal_maximizing_states(config, sample, rng)
-    if goal_maximizing_states:
-        sample.remove_goals()
-        sample.mark_as_goals(goal_maximizing_states)
-        optimal = mark_optimal(goal_maximizing_states, sample.roots, sample.parents)
-        sample.mark_as_optimal(optimal)
+        logging.info(f"Sample after resampling: {sample.info()}")
 
     return sample
 
 
-def print_transition_matrices(sample, config):
-    state_ids = sample.get_sorted_state_ids()
-    # We print the optimal transitions only if they need to be used for the encoding
-    optimal_transitions = sample.optimal_transitions if config.complete_only_wrt_optimal else []
-    print_sat_transition_matrix(state_ids, sample.transitions, sample.alive_states, sample.vstar,
-                                optimal_transitions, config.sat_transitions_filename)
-    print_transition_matrix(state_ids, sample.transitions, config.transitions_filename)
-
-
-def mark_optimal_transitions(selection_strategy, sample: TransitionSample):
+def mark_optimal_transitions(sample: TransitionSample):
     """ Marks which transitions are optimal in a transition system according to some selection criterion
-    such as marking *all* optimal transitions, or marking just one *single* optimal path.
+    such as marking *all* optimal transitions.
      """
-    if selection_strategy == "arbitrary":
-        # For each instance, we keep the first-reached goal, as a way of selecting an arbitrary optimal path.
-        goals = sample.get_one_goal_per_instance()
-        optimal = mark_optimal(goals, sample.roots, sample.parents)
-
-    elif selection_strategy == "complete":  # Only the complete strategy also marks which states are alive.
-        # Mark all transitions that are optimal from some alive state
-        optimal, alive, sample.vstar = mark_all_optimal(sample.goals, sample.parents)
-        sample.mark_as_alive(alive)
-
-    else:
-        raise RuntimeError(f'Unknown optimal selection strategy "{selection_strategy}"')
+    # Mark all transitions that are optimal from some alive state
+    # We also mark which states are alive.
+    optimal, alive, sample.vstar = mark_all_optimal(sample.goals, sample.parents)
+    sample.mark_as_alive(alive)
 
     sample.mark_as_optimal(optimal)
 
@@ -458,7 +428,7 @@ def run(config, data, rng):
     assert not data
     sample = sample_generated_states(config, rng)
     log_sampled_states(sample, config.resampled_states_filename)
-    print_transition_matrices(sample, config)
-    print_state_set(sample.goals, config.goal_states_filename)
-    print_state_set(sample.unsolvable, config.unsolvable_states_filename)
+    print_transition_matrix(sample.get_sorted_state_ids(), sample.transitions, sample.alive_states, sample.vstar,
+                                sample.optimal_transitions, config.transitions_info_filename)
+
     return ExitCode.Success, dict(sample=sample)

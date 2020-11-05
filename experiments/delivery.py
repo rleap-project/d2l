@@ -9,11 +9,8 @@ def experiments():
         domain="domain.pddl",
         test_domain="domain.pddl",
         feature_namer=delivery_names,
-        pipeline="transition_classifier",
-        maxsat_encoding="separation",
-        complete_only_wrt_optimal=True,
-        prune_redundant_states=False,
-        optimal_selection_strategy="complete",
+        pipeline="d2l_pipeline",
+        maxsat_encoding="d2l",
         num_states="all",
         concept_generator=None,
         parameter_generator=None,
@@ -40,7 +37,7 @@ def experiments():
         distance_feature_max_complexity=14,
 
         # feature_generator=debug_features,
-        # transition_classification_policy=debug_policy,
+        # d2l_policy=debug_policy,
 
         use_equivalence_classes=True,
         # use_feature_dominance=True,

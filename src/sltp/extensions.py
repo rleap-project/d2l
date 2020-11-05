@@ -6,7 +6,6 @@
  hashable and comparable, so that we can use them in hash tables.
 """
 import itertools
-import logging
 
 from bitarray import bitarray
 
@@ -151,22 +150,3 @@ def get_term_key(term):
     if isinstance(term, (PrimitiveConcept, PrimitiveRole, UniversalConcept, EmptyConcept, NullaryAtom)):
         return str(term)
     return term
-
-
-class DLDenotationTraceIndex:
-    """ A cache of full traces of denotations, i.e. sequences containing the denotation of concepts / roles over
-    a full (ordered) set of states <s_1, ..., s_n>. We assume that the provided traces always contain the
-    """
-    def __init__(self):
-        self.all_traces = dict()  # a dictionary from extension trace to (simplest/earliest) concept / role achieving it
-
-    def register_trace(self, term, trace):
-        """ Register the trace for the given term. Return true iff no equivalent trace was already registered """
-        wrapped = ExtensionTrace(trace)
-        try:
-            equivalent = self.all_traces[wrapped]
-            logging.debug("Term '{}' semantically equivalent to the previously-generated '{}'".format(term, equivalent))
-            return False
-        except KeyError:
-            self.all_traces[wrapped] = term
-            return True

@@ -10,14 +10,14 @@
 
 namespace sltp::cnf {
 
-class TransitionClassificationEncoding : public CNFEncoding {
+class D2LEncoding : public CNFEncoding {
 public:
     enum class transition_type : bool {
         alive_to_solvable,
         alive_to_dead
     };
 
-    TransitionClassificationEncoding(const TrainingSet& sample, const Options& options) :
+    D2LEncoding(const TrainingSet& sample, const Options& options) :
             CNFEncoding(sample, options),
             transition_ids_(),
             transition_ids_inv_(),

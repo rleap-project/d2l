@@ -6,11 +6,8 @@ def experiments():
     base = dict(
         domain_dir="blocks",
         feature_namer=blocksworld_names,
-        pipeline="transition_classifier",
-        maxsat_encoding="separation",
-        complete_only_wrt_optimal=True,
-        prune_redundant_states=False,
-        optimal_selection_strategy="complete",
+        pipeline="d2l_pipeline",
+        maxsat_encoding="d2l",
         num_states="all",
         concept_generator=None,
         parameter_generator=None,
@@ -136,7 +133,7 @@ def experiments():
             "probBLOCKS-4-0.pddl"
         ],
 
-        # transition_classification_policy=debug_policy_4op,
+        # d2l_policy=debug_policy_4op,
         feature_generator=debug_features_4op,
         use_incremental_refinement=False,
         use_equivalence_classes=True,
@@ -158,7 +155,7 @@ def experiments():
         use_feature_dominance=False,
 
         # feature_generator=fs_debug_features,
-        # transition_classification_policy=fs_debug_policy
+        # d2l_policy=fs_debug_policy
     )
 
     exps["all_at_5"] = update_dict(

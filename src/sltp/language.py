@@ -1,9 +1,5 @@
-import logging
-
 
 from tarski.io import FstripsReader
-from tarski.syntax.transform.errors import TransformationError
-from tarski.syntax.transform.simplifications import transform_to_ground_atoms
 
 
 def parse_pddl(domain_file, instance_file=None):
@@ -19,16 +15,3 @@ def parse_pddl(domain_file, instance_file=None):
         reader.parse_instance(instance_file)
 
     return problem, problem.language, generic_constants
-
-
-def compute_goal_denotation(problem, use_goal_denotation):
-    """ Compute the goal-version of the relevant concepts from the problem goal specification """
-    if not use_goal_denotation:
-        return []
-
-    try:
-        return transform_to_ground_atoms(problem.goal)
-    except TransformationError:
-        logging.error("Cannot create goal concepts when problem goal is not a conjunction of ground atoms")
-        raise
-

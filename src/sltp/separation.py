@@ -88,7 +88,7 @@ def extract_features_from_sat_solution(config, solution):
 
 
 def generate_user_provided_policy(config):
-    rules = config.transition_classification_policy()
+    rules = config.d2l_policy()
     _, language, _ = parse_pddl(config.domain)
     policy = TransitionClassificationPolicy.parse(rules, language, config.feature_namer)
     return policy

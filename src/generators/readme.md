@@ -10,12 +10,5 @@ The build system is CMake (`sudo apt install cmake`)
 ## Building
 
     cd features
-    cmake .
-    make
+    cmake . && make -j6
 
-
-## Development Notes
-
-### Input / Output of the Module
-
-The module 

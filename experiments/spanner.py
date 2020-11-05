@@ -8,11 +8,8 @@ def experiments():
         domain="domain.pddl",
         test_domain="domain.pddl",
         feature_namer=spanner_names,
-        pipeline="transition_classifier",
-        maxsat_encoding="separation",
-        complete_only_wrt_optimal=True,
-        prune_redundant_states=False,
-        optimal_selection_strategy="complete",
+        pipeline="d2l_pipeline",
+        maxsat_encoding="d2l",
         num_states="all",
         concept_generator=None,
         parameter_generator=None,
@@ -28,7 +25,7 @@ def experiments():
 
     exps["small"] = update_dict(
         base,
-        pipeline="transition_classifier",
+        pipeline="d2l_pipeline",
         instances=[
             "prob-2-2-10.pddl",
             "prob-4-2-5.pddl",
@@ -45,7 +42,7 @@ def experiments():
         max_concept_size=8,
         distance_feature_max_complexity=8,
 
-        # transition_classification_policy=debug_policy
+        # d2l_policy=debug_policy
         # comparison_features=True,
         use_equivalence_classes=True,
         # use_feature_dominance=True,

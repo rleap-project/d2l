@@ -11,9 +11,7 @@ namespace sltp::cnf {
 
 struct Options {
     enum class Encoding {
-        Basic,
-        D2Tree,
-        TransitionClassification
+        D2L
     };
 
     //! The path of the workspace where output files will be left
@@ -22,16 +20,13 @@ struct Options {
     //! The type of encoding we want to use
     Encoding encoding;
 
-    //! In the transition-separation encoding, whether we want to exploit the equivalence relation
+    //! In the d2L encoding, whether we want to exploit the equivalence relation
     //! among transitions given by the feature pool
     bool use_equivalence_classes;
 
-    //! In the transition-separation encoding, whether we want to exploit the dominance among features to ignore
+    //! In the d2L encoding, whether we want to exploit the dominance among features to ignore
     //! dominated features and reduce the size of the encoding.
     bool use_feature_dominance;
-
-    //! In the AAAI19 encoding, whether to prune states that appear redundant for the given feature pool
-    bool prune_redundant_states;
 
     //! Whether to be more verbose in the generation of the encoding
     bool verbose;
@@ -39,21 +34,17 @@ struct Options {
     //! The slack value for the maximum allowed value for V_\pi(s) = slack * V^*(s)
     double v_slack;
 
-    //! In the transition-separation encoding, whether to use the incremental refinement approach
+    //! In the d2L encoding, whether to use the incremental refinement approach
     bool use_incremental_refinement;
 
-    //! In the transition-separation encoding, whether to post constraints to ensure distinguishability of goals
+    //! In the d2L encoding, whether to post constraints to ensure distinguishability of goals
     bool distinguish_goals;
 
-    //! In the transition-separation encoding, whether to post constraints to ensure distinguishability of goals
+    //! In the d2L encoding, whether to post constraints to ensure distinguishability of goals
     //! and transitions coming from different training instances
     bool cross_instance_constraints;
 
-    //! In the transition-separation encoding, whether to post constraints to ensure that all selected features
-    //! decrease to zero in some transition
-    bool force_zeros;
-
-    //! In the transition-separation encoding, whether to force any V-descending transition to be labeled as Good
+    //! In the d2L encoding, whether to force any V-descending transition to be labeled as Good
     bool decreasing_transitions_must_be_good;
 
     //! A list of user-provided feature IDs for which we want to enforce selection
@@ -64,9 +55,8 @@ struct Options {
     std::vector<unsigned> validate_features;
 
 
-    [[nodiscard]] bool use_d2tree() const { return encoding == Encoding::D2Tree; }
-    [[nodiscard]] bool use_transition_classification_encoding() const {
-        return encoding == Encoding::TransitionClassification;
+    [[nodiscard]] bool use_d2l_encoding() const {
+        return encoding == Encoding::D2L;
     }
 };
 

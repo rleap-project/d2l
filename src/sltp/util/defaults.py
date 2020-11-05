@@ -1,16 +1,20 @@
 import os
-from sltp.driver import Experiment, generate_pipeline, BENCHMARK_DIR, BASEDIR
-from sltp.learn_actions import OptimizationPolicy
+from enum import Enum
+
+from sltp.driver import Experiment, BENCHMARK_DIR, BASEDIR
+from sltp.steps import generate_pipeline
+
+
+class OptimizationPolicy(Enum):
+    NUM_FEATURES = 1  # Minimize number of features
+    TOTAL_FEATURE_COMPLEXITY = 2  # Minimize the sum of depths of selected features
+    NUMERIC_FEATURES_FIRST = 3   # Minimize number of numeric features first, then overall features.
 
 
 def get_experiment_class(kwargs):
     exptype = kwargs.get('experiment_type', None)
     if exptype is not None:  # parameter 'experiment_type' takes precedence
-        if exptype == 'incremental':
-            from sltp.incremental import IncrementalExperiment
-            return IncrementalExperiment
-        else:
-            return Experiment
+        return Experiment
 
     expclass = kwargs.get('experiment_class', None)
     return expclass if expclass is not None else Experiment
@@ -38,34 +42,16 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
         kwargs["test_policy_instances"] = []
 
     defaults = dict(
-        # pipeline="maxsat",
-        pipeline="maxsatcpp",
-        # pipeline="maxsatcpp_old",
-        # pipeline="sat",
-        # pipeline="maxsat_poly",
+        pipeline="d2l_pipeline",
 
         # The directory where the experiment outputs will be left
         workspace=os.path.join(BASEDIR, 'workspace'),
 
         # Location of the FS planner, used to do the state space sampling
-        # planner_location=os.getenv("FS_PATH", os.path.expanduser("~/projects/code/fs")),
-        planner_location=os.getenv("FS_PATH", os.path.expanduser("~/software/github/fs-planner")),
+        planner_location=os.getenv("FS_PATH", os.path.expanduser("~/projects/code/fs")),
 
         # Type of sampling procedure. Only breadth-first search implemented ATM
         driver="bfs",
-
-        # Whether to do IW-like pruning of nodes with novelty higher than the specified (default: -1, no pruning at all)
-        max_width=-1,
-
-        # Whether we are happy to obtain completeness guarantees only with respect to those states
-        # that lie in some arbitrary (one) optimal path. Default: False
-        complete_only_wrt_optimal=False,
-
-        # The selection strategy to be used when marking which transitions are considered as optimal.
-        # - "arbitrary": marks as optimal the transitions in one single path btw initial state
-        #               and (some) goal per instance, chosen arbitrarily.
-        # - "complete": marks all transitions that are optimal between some _non-dead_ state and some goal.
-        optimal_selection_strategy="arbitrary",
 
         # Type of sampling. Accepted options are:
         # - "all" (default): Use all expanded states
@@ -76,18 +62,14 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
 
         # Number of states to be expanded in the sampling procedure. Either a positive integer, or the string
         # "until_first_goal", or the string "all", both with obvious meanings
-        num_states=50,
+        num_states="all",
 
         # Number randomly sampled states among the set of expanded states. The default of None means
         # all expanded states will be used
         num_sampled_states=None,
 
-        # Max. size of the generated concepts (mandatory)
+        # Max. size of the generated concepts
         max_concept_size=10,
-
-        # Max. number of iterations of the concept-generation grammar. Optional. Defaults to infinity,
-        # in which case the limit is set by max_concept_size alone.
-        max_concept_grammar_iterations=2,
 
         # Provide a special, handcrafted method to generate concepts, if desired.
         # This will override the standard concept generation procedure (default: None)
@@ -115,16 +97,12 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
         # apperaring in the goal)
         create_goal_features_automatically=False,
 
-        # Generator of goal-like expressions
-        goal_selector=None,
-
         # Optionally, use a method that gives handcrafted names to the features
         # (default: None, which will use their string representation)
         feature_namer=default_feature_namer,
 
         # What optimization criteria to use in the max-sat problem
         optimization=OptimizationPolicy.TOTAL_FEATURE_COMPLEXITY,
-        # optimization=OptimizationPolicy.NUM_FEATURES
 
         # Set a random seed for reproducibility (default: 1)
         random_seed=1,
@@ -133,47 +111,19 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
         maxsat_solver='openwbo',
         maxsat_timeout=None,
 
-        # The number of features and actions for the SAT encoding
-        encoding_k=10,
-        encoding_m=10,
-
         domain_dir=domain_dir,
 
         # The Experiment class to be used (e.g. standard, or incremental)
         experiment_class=get_experiment_class(kwargs),
 
-        # The size of the initial batch of states for the incremental sampling approach
-        initial_sample_size=100,
-
-        # The max. number of states in the Flaw set when validating an incremental abstraction
-        batch_refinement_size=10,
-
-        # Whether to clean the (sub-) workspaces used to compute incremental abstractions after finishing.
-        clean_workspace=True,
-
         # Reduce output to a minimum
         quiet=False,
-
-        # Whether to take into acount states labeled as unsolvable by whatever planner is being used
-        compute_unsolvable_states=False,
-
-        # Whether to prune features that have denotation > 0 over *all states*
-        prune_positive_features=True,
-
-        # Whether to prune features that have infinity denotation *in some state*
-        prune_infty_features=False,
-
-        # Whether ad-hoc solve runs with verbose option
-        wsat_solver_verbose=False,
 
         # Number of states to expand & test on the testing instances
         num_tested_states=50000,
 
-        # Prune those states that are redundante wrt the feature pool before building the CNF theory
-        prune_redundant_states=True,
-
-        # Use the D2-Tree for the CNF encoding
-        maxsat_encoding="d2tree",
+        # The particular encoding to be used by the C++ CNF generator
+        maxsat_encoding="d2l",
 
         # Some debugging help to print the denotations of all features over all states (expensive!)
         print_denotations=False,
@@ -182,7 +132,7 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
         concept_generation_timeout=-1,
 
         # A function to manually provide a transition-classification policy that we want to test
-        transition_classification_policy=None,
+        d2l_policy=None,
 
         # In the transition-separation encoding, whether we want to exploit the equivalence relation
         # among transitions given by the feature pool
@@ -207,10 +157,6 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
         # In the transition-separation encoding, whether to post constraints to ensure distinguishability of goals
         # and transitions coming from different training instances
         cross_instance_constraints=True,
-
-        # In the transition-separation encoding, whether to post constraints to ensure that all selected features
-        # decrease to zero in some transition
-        force_zeros=False,
 
         # In the transition-separation encoding, whether to force any V-descending transition to be labeled as Good
         decreasing_transitions_must_be_good=False,

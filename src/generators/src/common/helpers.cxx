@@ -6,7 +6,7 @@
 #include "utils.h"
 
 sltp::TransitionSample read_transition_data(const std::string& workspace, bool verbose) {
-    std::string transitions_filename = workspace + "/sat_transitions.dat";
+    std::string transitions_filename = workspace + "/transitions-info.io";
     std::cout << Utils::blue() << "reading" << Utils::normal() << " '" << transitions_filename << std::endl;
     auto ifs_transitions = get_ifstream(transitions_filename);
     auto transitions = sltp::TransitionSample::read_dump(ifs_transitions, verbose);

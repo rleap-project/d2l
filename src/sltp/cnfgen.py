@@ -11,9 +11,6 @@ from .returncodes import ExitCode
 def run(config, data, rng):
     from .solvers import solve
 
-    if config.maxsat_encoding != "separation":
-        return generate_cnf(config, data)
-
     good_transitions, features = [], []
     policy = None
 
@@ -52,12 +49,12 @@ def run(config, data, rng):
         #
         #     # Recover the policy one more time
         #     _, _, policy = generate_policy_from_sat_solution(config, solution, data.model_cache)
-        #     return ExitCode.Success, dict(transition_classification_policy=policy)
+        #     return ExitCode.Success, dict(d2l_policy=policy)
 
         solution = solve(config.experiment_dir, config.cnf_filename, config.maxsat_solver, config.maxsat_timeout)
 
         if solution.result == "UNSATISFIABLE":
-            return ExitCode.MaxsatModelUnsat, dict(transition_classification_policy=None)
+            return ExitCode.MaxsatModelUnsat, dict(d2l_policy=None)
         elif solution.result == "SATISFIABLE":
             logging.info(f"Possibly suboptimal MAXSAT solution with cost {solution.cost} found")
         else:
@@ -69,7 +66,7 @@ def run(config, data, rng):
     # Recover the policy one more time, but doing policy minimization
     # _, _, policy = generate_policy_from_sat_solution(config, solution, data.model_cache)
     # policy.minimize()  # ATM we no longer minimize
-    return ExitCode.Success, dict(transition_classification_policy=policy)
+    return ExitCode.Success, dict(d2l_policy=policy)
 
 
 def print_good_transition_list(good_txs, filename):
@@ -90,7 +87,6 @@ def generate_cnf(config, data, validate_features=None):
     args = ["--workspace", config.experiment_dir]
     args += ["--enforce-features", ",".join(map(str, data.in_goal_features))] if data.in_goal_features else []
     args += ["--validate-features", ",".join(map(str, validate_features))] if validate_features is not None else []
-    args += ["--prune-redundant-states"] if config.prune_redundant_states else []
     args += ["--encoding", config.maxsat_encoding]
     args += ["--use-equivalence-classes"] if config.use_equivalence_classes else []
     args += ["--use-feature-dominance"] if config.use_feature_dominance else []
@@ -98,7 +94,6 @@ def generate_cnf(config, data, validate_features=None):
     args += ["--use-incremental-refinement"] if config.use_incremental_refinement else []
     args += ["--distinguish-goals"] if config.distinguish_goals else []
     args += ["--cross_instance_constraints"] if config.cross_instance_constraints else []
-    args += ["--force_zeros"] if config.force_zeros else []
     args += ["--decreasing_transitions_must_be_good"] if config.decreasing_transitions_must_be_good else []
     retcode = execute([cmd] + args)
 

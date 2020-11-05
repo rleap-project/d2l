@@ -177,8 +177,8 @@ def transform_generator_output(config, sample, matrix_filename, info_filename):
             matrix[i] = [cast_feature_value_to_numpy_value(int(x)) for x in data]
 
     logging.info("Read denotation matrix with dimensions {}".format(matrix.shape))
-    sat_feature_mapping, in_goal_features = print_actual_output(sample, config, in_goal_features, names, complexities, matrix, types)
-    return sat_feature_mapping, in_goal_features, len(names)
+    print_actual_output(sample, config, names, complexities, matrix)
+    return in_goal_features, len(names)
 
 
 def generate_output_from_handcrafted_features(sample, config, features, model_cache):
@@ -187,7 +187,6 @@ def generate_output_from_handcrafted_features(sample, config, features, model_ca
     num_states = len(sample.states)
 
     names = [str(f) for f in features]
-    types = [1]*num_features  # Let us harmlessly assume that all features are numeric
     complexities = [f.complexity() for f in features]
     matrix = np.empty(shape=(num_states, num_features), dtype=NP_FEAT_VALUE_TYPE)
 
@@ -203,18 +202,13 @@ def generate_output_from_handcrafted_features(sample, config, features, model_ca
         models = {sid: model_cache.get_feature_model(sid) for sid in sample.states}
         log_feature_denotations(state_ids, features, models, config.feature_denotation_filename, None)
 
-    sat_feature_mapping, in_goal_features = print_actual_output(sample, config, [], names, complexities, matrix, types)
-    return sat_feature_mapping, in_goal_features, len(names)
+    print_actual_output(sample, config, names, complexities, matrix)
+    return [], len(names)
 
 
-def print_actual_output(sample, config, in_goal_features, names, complexities, matrix, types):
+def print_actual_output(sample, config, names, complexities, matrix):
     state_ids = sample.get_sorted_state_ids()
-    sat_feature_mapping = print_blai_sat_feature_matrix(config.sat_feature_matrix_filename,
-                                                        matrix, state_ids, sample.goals,
-                                                        names, complexities, types)
-
     print_feature_matrix(config.feature_matrix_filename, matrix, state_ids, sample.goals, sample.deadends, names, complexities)
-    return sat_feature_mapping, in_goal_features
 
 
 def generate_debug_scripts(target_dir, exe, arguments):
@@ -274,8 +268,7 @@ def extract_features(config, sample):
     if config.feature_generator is not None:
         features = deal_with_serialized_features(language, config.feature_generator, config.serialized_feature_filename)
         generate_output_from_handcrafted_features(sample, config, features, model_cache)
-        return ExitCode.Success, dict(enforced_feature_idxs=[], in_goal_features=[], sat_feature_mapping={},
-                                      num_features=len(features),
+        return ExitCode.Success, dict(enforced_feature_idxs=[], in_goal_features=[],
                                       model_cache=model_cache)
 
     # Invoke C++ feature generation module
@@ -299,16 +292,14 @@ def extract_features(config, sample):
 
     # Read off the output of the module and transform it into the numpy matrices to be consumed
     # by the next pipeline step
-    sat_feature_mapping, in_goal_features, nfeatures = transform_generator_output(
+    in_goal_features, nfeatures = transform_generator_output(
         config, sample,
         os.path.join(config.experiment_dir, "feature-matrix.io"),
         os.path.join(config.experiment_dir, "feature-info.io"),)
 
     return ExitCode.Success, dict(enforced_feature_idxs=[],
                                   in_goal_features=in_goal_features,
-                                  num_features=nfeatures,
-                                  model_cache=model_cache,
-                                  sat_feature_mapping=sat_feature_mapping)
+                                  model_cache=model_cache)
 
 
 def deal_with_serialized_features(language, feature_generator, serialized_feature_filename):
@@ -322,49 +313,6 @@ def deal_with_serialized_features(language, feature_generator, serialized_featur
         for f in features:
             print("{}\t{}".format(f, f.complexity()), file=file)
     return features
-
-
-def print_blai_sat_feature_matrix(filename, matrix, state_ids, goals, names, complexities, types):
-    ngoals = len(goals)
-    nfeatures = len(names)
-    num_numeric = sum(types)
-
-    logging.info("Printing SAT matrix of {} features x {} states to '{}'".format(nfeatures, len(state_ids), filename))
-
-    # Separate features into binary and numeric
-    binary, numeric = [], []
-    for i, t in enumerate(types, 0):
-        if t == 0:
-            binary.append(i)
-        elif t == 1:
-            numeric.append(i)
-        else:
-            assert 0, "Unknown feature type"
-
-    all_feature_idxs = numeric + binary  # Shuffle the idxs so that all numeric features come first
-
-    with open(filename, 'w') as f:
-        # Header row: <#states> <#features> <#goals> <1 + index-last-numerical-feature> <index-first-boolean-feature>
-        print("{} {} {} {} {}".format(len(state_ids), nfeatures, ngoals, num_numeric, num_numeric), file=f)
-
-        # Line #2:: <#features> <list of feature names>
-        print("{} {}".format(nfeatures, " ".join(names[f].replace(" ", "") for f in all_feature_idxs)), file=f)
-
-        # Line #3: <#features> <list of feature costs>
-        print("{} {}".format(nfeatures, " ".join(str(complexities[f]) for f in all_feature_idxs)), file=f)
-
-        # Line #4: <# goal states> <list of goal state IDs>
-        print("{} {}".format(ngoals, " ".join(map(str, goals))), file=f)
-
-        # next lines: one per each state with format: <state-index> <#features-in-state> <list-features>
-        # each feature has format: <feature-index>:<value>
-        for s in state_ids:
-            feature_values = ((i, matrix[s][f]) for i, f in enumerate(all_feature_idxs, 0))
-            nonzero_features = [(i, v) for i, v in feature_values if v != 0]
-            print("{} {} {}".format(s, len(nonzero_features), " ".join(
-                "{}:{}".format(i, int(v)) for i, v in nonzero_features)), file=f)
-
-    return all_feature_idxs  # A mapping between the new and the old feature indexes
 
 
 def print_feature_matrix(filename, matrix, state_ids, goals, deadends, names, complexities):
@@ -393,5 +341,5 @@ def print_feature_matrix(filename, matrix, state_ids, goals, deadends, names, co
         for s in state_ids:
             feature_values = ((i, matrix[s][i]) for i in range(0, nfeatures))
             nonzero_features = [(i, v) for i, v in feature_values if v != 0]
-            print("{} {} {}".format(s, len(nonzero_features), " ".join(
-                "{}:{}".format(i, int(v)) for i, v in nonzero_features)), file=f)
+            flist = " ".join(f"{i}:{int(v)}" for i, v in nonzero_features)
+            print(f"{s} {len(nonzero_features)} {flist}", file=f)

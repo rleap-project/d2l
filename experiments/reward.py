@@ -8,11 +8,8 @@ def experiments():
         domain="domain.pddl",
         test_domain="domain.pddl",
         feature_namer=reward_names,
-        pipeline="transition_classifier",
-        maxsat_encoding="separation",
-        complete_only_wrt_optimal=True,
-        prune_redundant_states=False,
-        optimal_selection_strategy="complete",
+        pipeline="d2l_pipeline",
+        maxsat_encoding="d2l",
         num_states="all",
         concept_generator=None,
         parameter_generator=None,
@@ -45,14 +42,6 @@ def experiments():
     exps["debug"] = update_dict(exps["small"], feature_generator=debug_features)
 
     # One reason for overfitting: in a 3x3 grid, with 2 booleans per dimension you can perfectly represent any position
-    # exps['sample_2x2_1reward'] = update_dict(exps['sample_1x3'], instances=["sample_2x2_1reward.pddl"])
-    # exps['sample_2x2_2rewards'] = update_dict(exps['sample_1x3'], instances=["sample_2x2_2rewards.pddl"])
-    # exps['sample_3x3_2rewards'] = update_dict(exps['sample_1x3'], instances=["sample_3x3_2rewards.pddl"])
-    # exps['instance_5'] = update_dict(exps['sample_1x3'], instances=["instance_5.pddl", "instance_4_blocked.pddl"])
-    # exps['instance_5_no_marking'] = update_dict(exps['instance_5'], complete_only_wrt_optimal=False,)
-
-    # Same but using goal-concepts instead of goal parameters:
-    # exps["instance_5_gc"] = update_dict(exps["instance_5"], parameter_generator=None)
 
     return exps
 

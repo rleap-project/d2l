@@ -8,12 +8,9 @@
 
 #include <blai/sample.h>
 #include <blai/utils.h>
-#include <blai/matrix.h>
-#include <blai/transitions.h>
 #include <cnf/generator.h>
 #include <common/utils.h>
 #include <cnf/transition_classification.h>
-#include <cnf/aaai19_generator.h>
 #include <common/helpers.h>
 
 
@@ -50,9 +47,6 @@ sltp::cnf::Options parse_options(int argc, const char **argv) {
                 "Directory where the input files (feature matrix, transition sample) reside, "
                 "and where the output .wsat file will be left.")
 
-        ("prune-redundant-states,p",
-                "Whether to prune those states that appear redundant for the given feature pool.")
-
         ("enforce-features,e", po::value<std::string>()->default_value(""),
          "Comma-separated (no spaces!) list of IDs of feature we want to enforce in the abstraction.")
 
@@ -63,31 +57,27 @@ sltp::cnf::Options parse_options(int argc, const char **argv) {
          "The slack value for the maximum allowed value for V_pi(s) = slack * V^*(s)")
 
         ("use-incremental-refinement",
-         "In the transition-separation encoding, whether to use the incremental refinement approach")
+         "In the D2L encoding, whether to use the incremental refinement approach")
 
         ("distinguish-goals",
-         "In the transition-separation encoding, whether to post constraints to ensure distinguishability of goals")
+         "In the D2L encoding, whether to post constraints to ensure distinguishability of goals")
 
         ("cross_instance_constraints",
-         "In the transition-separation encoding, whether to post constraints to ensure distinguishability of goals "
+         "In the D2L encoding, whether to post constraints to ensure distinguishability of goals "
          "and transitions coming from different training instances")
 
-        ("encoding", po::value<std::string>()->default_value("basic"),
-             "The encoding to be used (options: {basic, d2tree, separation}).")
+        ("encoding", po::value<std::string>()->default_value("d2l"),
+             "The encoding to be used (options: {d2l}).")
 
         ("use-equivalence-classes",
-         "In the transition-separation encoding, whether we want to exploit the equivalence relation "
+         "In the D2L encoding, whether we want to exploit the equivalence relation "
          "among transitions given by the feature pool")
 
-        ("force_zeros",
-         "In the transition-separation encoding, whether to post constraints to ensure that all selected features "
-         "decrease to zero in some transition")
-
         ("decreasing_transitions_must_be_good",
-         "In the transition-separation encoding, whether to force any V-descending transition to be labeled as Good")
+         "In the D2L encoding, whether to force any V-descending transition to be labeled as Good")
 
         ("use-feature-dominance",
-         "In the transition-separation encoding, whether we want to exploit the dominance among features to ignore "
+         "In the D2L encoding, whether we want to exploit the dominance among features to ignore "
          "dominated features and reduce the size of the encoding.")
     ;
 
@@ -108,21 +98,18 @@ sltp::cnf::Options parse_options(int argc, const char **argv) {
     }
 
     options.workspace = vm["workspace"].as<std::string>();
-    options.prune_redundant_states = vm.count("prune-redundant-states") > 0;
     options.verbose = vm.count("verbose") > 0;
     options.use_equivalence_classes = vm.count("use-equivalence-classes") > 0;
     options.use_feature_dominance = vm.count("use-feature-dominance") > 0;
     options.use_incremental_refinement = vm.count("use-incremental-refinement") > 0;
     options.distinguish_goals = vm.count("distinguish-goals") > 0;
     options.decreasing_transitions_must_be_good = vm.count("decreasing_transitions_must_be_good") > 0;
-    options.force_zeros = vm.count("force_zeros") > 0;
     options.cross_instance_constraints = vm.count("cross_instance_constraints") > 0;
     options.v_slack = vm["v_slack"].as<double>();
 
     auto enc = vm["encoding"].as<std::string>();
-    if (enc == "basic") options.encoding = sltp::cnf::Options::Encoding::Basic;
-    else if (enc == "d2tree") options.encoding = sltp::cnf::Options::Encoding::D2Tree;
-    else if  (enc == "separation") options.encoding = sltp::cnf::Options::Encoding::TransitionClassification;
+    // ATM we only support one encoding in D2L, but let's leave the option open to other incoming encodings
+    if  (enc == "d2l") options.encoding = sltp::cnf::Options::Encoding::D2L;
     else throw po::validation_error(po::validation_error::invalid_option_value, "encoding");
 
 
@@ -137,21 +124,9 @@ sltp::cnf::Options parse_options(int argc, const char **argv) {
 
 sltp::cnf::CNFGenerationOutput
 write_encoding(CNFWriter& wr, const sltp::TrainingSet& sample, const sltp::cnf::Options& options) {
-    if (options.use_transition_classification_encoding()) {
-        sltp::cnf::TransitionClassificationEncoding generator(sample, options);
-        return generator.refine_theory(wr);
-    }
-
-    // Else we assume we want to use the AAAI19 Encoding
-    if (options.prune_redundant_states) {
-        // If indicated by the user, prune those states that appear redundant for the given feature pool
-        auto resample = sltp::cnf::AAAI19Generator::preprocess_sample(sample, options);
-        sltp::cnf::AAAI19Generator gen(resample, options);
-        return gen.write(wr);
-    } else {
-        sltp::cnf::AAAI19Generator gen(sample, options);
-        return gen.write(wr);
-    }
+    assert(options.use_d2l_encoding());
+    sltp::cnf::D2LEncoding generator(sample, options);
+    return generator.refine_theory(wr);
 }
 
 int main(int argc, const char **argv) {

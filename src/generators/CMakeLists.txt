@@ -30,11 +30,9 @@ set(SOURCE_FILES
 set(CNFGEN_SOURCE_FILES
         src/cnfgen.cpp
         src/cnf/transition_classification
-        src/cnf/aaai19_generator
         src/cnf/types
         src/cnf/generator
         src/cnf/cnfwriter.h
-        src/cnf/d2tree.h
         src/common/utils
         src/common/helpers
         src/common/base

@@ -8,11 +8,8 @@ def experiments():
         domain="domain.pddl",
         test_domain="domain.pddl",
         feature_namer=childsnack_names,
-        pipeline="transition_classifier",
-        maxsat_encoding="separation",
-        complete_only_wrt_optimal=True,
-        prune_redundant_states=False,
-        optimal_selection_strategy="complete",
+        pipeline="d2l_pipeline",
+        maxsat_encoding="d2l",
         num_states="all",
         concept_generator=None,
         parameter_generator=None,
@@ -40,8 +37,6 @@ def experiments():
         ],
         test_policy_instances=all_test_instances(),
 
-        # clean_workspace=False,
-        # goal_selector=goal_selector,
         # create_goal_features_automatically=True,
         max_concept_size=10,
         use_equivalence_classes=True,
@@ -60,7 +55,3 @@ def all_test_instances():
             'child-snack_pfile07.pddl', 'child-snack_pfile09-2.pddl', 'child-snack_pfile10.pddl',
             'child-snack_pfile02-2.pddl', 'child-snack_pfile03.pddl', 'child-snack_pfile05-2.pddl',
             'child-snack_pfile06.pddl', 'child-snack_pfile08-2.pddl', 'child-snack_pfile09.pddl']
-
-
-def goal_selector(lang):
-    return "served"

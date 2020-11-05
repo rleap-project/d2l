@@ -42,7 +42,7 @@ RUN git clone --depth 1 -b devel --single-branch https://github.com/aig-upf/tars
 #################################
 # Install & build SLTP
 #################################
-RUN git clone --depth 1 -b d2l --single-branch https://github.com/aig-upf/sltp.git d2l \
+RUN git clone --depth 1 -b main --single-branch https://github.com/rleap-project/d2l \
     && cd d2l \
     && cd src/generators \
     && cmake . \
