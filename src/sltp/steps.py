@@ -11,8 +11,7 @@ from .util.naming import compute_sample_filenames, compute_test_sample_filenames
 
 class PlannerStep(Step):
     """ Run some planner on certain instance(s) to get the sample of transitions """
-
-    VALID_DRIVERS = ("bfs", "ff")
+    VALID_DRIVERS = ("bfs", )
 
     def get_required_attributes(self):
         return ["workspace", "instances", "domain", "num_states", "planner_location", "driver", "test_instances",
@@ -23,12 +22,15 @@ class PlannerStep(Step):
 
     def process_config(self, config):
         if config["driver"] not in self.VALID_DRIVERS:
-            raise InvalidConfigParameter('"driver" must be one of: {}'.format(self.VALID_DRIVERS))
-        if any(not os.path.isfile(i) for i in config["instances"]):
-            raise InvalidConfigParameter('"instances" must be the path to existing instance files. Specified: "{}"'
-                                         .format(config["instances"]))
+            raise InvalidConfigParameter(f'"driver" must be one of: {self.VALID_DRIVERS}')
+
+        for i in config["instances"]:
+            if not os.path.isfile(i):
+                raise InvalidConfigParameter(f'"instances" contains non-existing path "{config["instances"]}"')
+
         if not os.path.isfile(config["domain"]):
-            raise InvalidConfigParameter('Specified domain file "{}" does not exist'.format(config["domain"]))
+            raise InvalidConfigParameter(f'Specified domain file "{config["domain"]}" does not exist')
+
         if not os.path.isdir(config["planner_location"]):
             raise InvalidConfigParameter(f'Specified planner location "{config["planner_location"]}" does not exist')
 
@@ -50,15 +52,13 @@ class PlannerStep(Step):
 class TransitionSamplingStep(Step):
     """ Generate the sample of transitions from the set of solved planning instances """
     def get_required_attributes(self):
-        return ["instances", "sample_files", "experiment_dir"]
+        return ["sample_files", "experiment_dir"]
 
     def get_required_data(self):
         return []
 
     def process_config(self, config):
         config["resampled_states_filename"] = os.path.join(config["experiment_dir"], 'sample.txt')
-        config["num_sampled_states"] = config.get("num_sampled_states", None)
-        config["sampling"] = config.get("sampling", "all")
         config["transitions_info_filename"] = compute_info_filename(config, "transitions-info.io")
 
         ns = config["num_sampled_states"]
@@ -98,12 +98,7 @@ class CPPFeatureGenerationStep(Step):
         check_int_parameter(config, "max_concept_size")
 
         config["feature_matrix_filename"] = compute_info_filename(config, "feature-matrix.dat")
-        config["concept_dir"] = os.path.join(config["experiment_dir"], 'terms')
-        config["concept_generator"] = config.get("concept_generator", None)
-        config["feature_generator"] = config.get("feature_generator", None)
-        config["enforce_features"] = config.get("enforce_features", None)
         config["parameter_generator"] = config.get("parameter_generator", None)
-        config["distance_feature_max_complexity"] = config.get("distance_feature_max_complexity", None)
         config["concept_denotation_filename"] = compute_info_filename(config, "concept-denotations.txt")
         config["feature_denotation_filename"] = compute_info_filename(config, "feature-denotations.txt")
         config["serialized_feature_filename"] = compute_info_filename(config, "serialized-features.io")
@@ -194,17 +189,6 @@ def _run_planner(config, data, rng):
     return ExitCode.Success, dict()
 
 
-PIPELINES = dict(
-    d2l_pipeline=[
-        PlannerStep,
-        TransitionSamplingStep,
-        CPPFeatureGenerationStep,
-        CPPMaxsatProblemGenerationStep,
-        D2LPolicyTestingStep,
-    ],
-)
-
-
 def generate_pipeline(pipeline, **kwargs):
     pipeline, config = generate_pipeline_from_list(PIPELINES[pipeline], **kwargs)
     return pipeline
@@ -218,3 +202,14 @@ def generate_pipeline_from_list(elements, **kwargs):
         config = step.config
         steps.append(step)
     return steps, config
+
+
+PIPELINES = dict(
+    d2l_pipeline=[
+        PlannerStep,
+        TransitionSamplingStep,
+        CPPFeatureGenerationStep,
+        CPPMaxsatProblemGenerationStep,
+        D2LPolicyTestingStep,
+    ],
+)

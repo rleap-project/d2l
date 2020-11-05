@@ -2,10 +2,10 @@ import importlib
 import os
 import sys
 
-from sltp.util import console
-from sltp.util.bootstrap import setup_argparser
+from ..util import console
+from ..util.bootstrap import setup_argparser
 
-from sltp.util.defaults import generate_experiment
+from ..util.defaults import generate_experiment
 
 
 def import_from_file(filename):

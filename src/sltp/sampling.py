@@ -4,10 +4,9 @@ import math
 from collections import defaultdict, OrderedDict, deque
 
 from .outputs import print_transition_matrix
-
+from .returncodes import ExitCode
 from .util.command import read_file
 from .util.naming import filename_core
-from .returncodes import ExitCode
 
 
 class TransitionSample:
@@ -20,17 +19,15 @@ class TransitionSample:
         self.roots = set()  # The set of all roots
         self.instance_roots = []  # The root of each instance
         self.goals = set()
-        self.unsolvable = set()
         self.alive_states = set()
         self.optimal_transitions = set()
         self.expanded = set()
         self.deadends = set()
         self.instance = dict()  # A mapping between states and the problem instances they came from
-        # self.transition_schemas = dict()  # A mapping between transitions and the action schema that induced them
         self.remapping = dict()
         self.vstar = {}
 
-    def add_transitions(self, states, transitions, schemas, instance_id, deadends):
+    def add_transitions(self, states, transitions, instance_id, deadends):
         assert not any(s in self.states for s in states.keys())  # Don't allow repeated states
         self.states.update(states)
         self.transitions.update(transitions)
@@ -38,9 +35,6 @@ class TransitionSample:
         for s in states:
             assert s not in self.instance
             self.instance[s] = instance_id
-        # for t, a in schemas.items():
-        #     assert t not in self.transition_schemas
-        #     self.transition_schemas[t] = a
         self.deadends.update(deadends)
         # We consider a state expanded if it has some child or it is marked as a deadend
         self.expanded.update(s for s in states if (len(transitions[s]) > 0 or s in self.deadends))
@@ -51,9 +45,6 @@ class TransitionSample:
 
     def mark_as_goals(self, goals):
         self.goals.update(goals)
-
-    def mark_as_unsolvable(self, states):
-        self.unsolvable.update(states)
 
     def num_states(self):
         return len(self.states)
@@ -77,7 +68,7 @@ class TransitionSample:
     def info(self):
         return f"roots: {len(self.roots)}, states: {len(self.states)}, " \
                f"transitions: {self.num_transitions()} ({len(self.optimal_transitions)} optimal)," \
-               f" goals: {len(self.goals)}, unsolvable: {len(self.unsolvable)}, alive: {len(self.alive_states)}"
+               f" goals: {len(self.goals)}, alive: {len(self.alive_states)}"
 
     def __str__(self):
         return "TransitionsSample[{}]".format(self.info())
@@ -99,7 +90,6 @@ class TransitionSample:
 
         # Pick the selected elements from the data structures
         goals = {remapping[x] for x in ordered_sample if x in self.goals}
-        unsolvable = {remapping[x] for x in ordered_sample if x in self.unsolvable}
         alive_states = {remapping[x] for x in ordered_sample if x in self.alive_states}
         deadends = {remapping[x] for x in ordered_sample if x in self.deadends}
         roots = {remapping[x] for x in ordered_sample if x in self.roots}
@@ -116,21 +106,18 @@ class TransitionSample:
                 instance[remapping[i]] = self.instance[i]
 
         transitions = defaultdict(set)
-        schemas = dict()
         for source, targets in self.transitions.items():
             if source in selected:
                 mapped_source = remapping[source]
                 for t in targets:
                     assert t in remapping  # because we have added all children of the selected nodes
                     transitions[mapped_source].add(remapping[t])
-                    # schemas[(mapped_source, remapping[t])] = self.transition_schemas[(source, t)]
 
         resampled = TransitionSample()
-        resampled.add_transitions(states, transitions, schemas, 0, deadends)
+        resampled.add_transitions(states, transitions, 0, deadends)
         resampled.instance = instance
         resampled.mark_as_goals(goals)
         resampled.mark_as_optimal(optimal)
-        resampled.mark_as_unsolvable(unsolvable)
         resampled.mark_as_alive(alive_states)
         resampled.vstar = vstar
         resampled.remapping = remapping
@@ -231,12 +218,11 @@ def log_sampled_states(sample, filename):
             is_deadend = "º" if id_ in sample.deadends else ""
             is_root = "=" if id_ in sample.roots else ""
             is_optimal = "+" if id_ in optimal_s else ""
-            is_unsolvable = "U" if id_ in sample.unsolvable else ""
-            print(f"#{id_}{is_root}{is_goal}{is_optimal}{is_expanded}{is_deadend}{is_unsolvable}"
+            print(f"#{id_}{is_root}{is_goal}{is_optimal}{is_expanded}{is_deadend}"
                   f"(parents: {state_parents}, children: {state_children}):\n\t{atoms}", file=f)
 
         print("Symbols:\n*: goal, \n^: expanded, \nº: dead-end, \n=: root, \n"
-              "+: source of some transition marked as optimal,\nU: unsolvable", file=f)
+              "+: source of some transition marked as optimal", file=f)
     logging.info('Resampled states logged at "{}"'.format(filename))
 
 
@@ -255,7 +241,7 @@ def sample_generated_states(config, rng):
     sample, goals_by_instance = read_transitions_from_files(config.sample_files)
 
     if not config.create_goal_features_automatically and not sample.goals:
-        raise RuntimeError("No goal found in the sample - increase # expanded states!")
+        raise RuntimeError("No goal found in the sample - increase number of expanded states!")
 
     mark_optimal_transitions(sample)
     logging.info(f"Entire sample: {sample.info()}")
@@ -279,7 +265,6 @@ def mark_optimal_transitions(sample: TransitionSample):
     # We also mark which states are alive.
     optimal, alive, sample.vstar = mark_all_optimal(sample.goals, sample.parents)
     sample.mark_as_alive(alive)
-
     sample.mark_as_optimal(optimal)
 
 
@@ -333,23 +318,19 @@ def normalize_atom_name(name):
     return tmp.split(',')
 
 
-def remap_state_ids(states, goals, transitions, unsolvable, schemas, deadends, remap):
+def remap_state_ids(states, goals, transitions, deadends, remap):
 
     new_goals = {remap(x) for x in goals}
-    new_unsolvable = {remap(x) for x in unsolvable}
     new_deadends = {remap(x) for x in deadends}
     new_states = OrderedDict()
     for i, s in states.items():
         new_states[remap(i)] = s
 
     new_transitions = defaultdict(set)
-    new_schemas = dict()
     for source, targets in transitions.items():
         new_transitions[remap(source)] = {remap(t) for t in targets}
-        # for target in targets:
-        #     new_schemas[(remap(source), remap(target))] = schemas[(source, target)]
 
-    return new_states, new_goals, new_transitions, new_schemas, new_unsolvable, new_deadends
+    return new_states, new_goals, new_transitions, new_deadends
 
 
 def read_transitions_from_files(filenames):
@@ -359,17 +340,15 @@ def read_transitions_from_files(filenames):
     sample = TransitionSample()
     for instance_id, filename in enumerate(filenames, 0):
         starting_state_id = sample.num_states()
-        s, g, tx, unsolv, schemas, deadends = read_single_sample_file(filename)
+        s, g, tx, deadends = read_single_sample_file(filename)
         assert next(iter(s.keys())) == 0  # Make sure state IDs in the sample file start by 0
-        s, g, tx, schemas, unsolv, deadends = remap_state_ids(s, g, tx, unsolv, schemas, deadends,
-                                                              remap=lambda state: state + starting_state_id)
+        s, g, tx, deadends = remap_state_ids(s, g, tx, deadends,
+                                             remap=lambda state: state + starting_state_id)
         assert next(iter(s)) == starting_state_id
 
-        sample.add_transitions(s, tx, schemas, instance_id, deadends)
+        sample.add_transitions(s, tx, instance_id, deadends)
         sample.mark_as_root(starting_state_id)
         sample.mark_as_goals(g)
-        sample.mark_as_unsolvable(unsolv)
-
         goals_by_instance.append(g)
 
     return sample, goals_by_instance
@@ -381,8 +360,6 @@ def read_single_sample_file(filename):
     transitions_inv = defaultdict(set)
     goal_states = set()
     deadends = set()
-    unsolvable_states = set()  # At the moment we no longer record these
-    schemas = dict()  # At the moment we no longer record these
 
     nlines = 0  # The number of useful lines processed
     for line in read_file(filename):
@@ -390,8 +367,6 @@ def read_single_sample_file(filename):
             pid, cid = (int(x) for x in line[4:].split(' '))
             transitions[pid].add(cid)
             transitions_inv[cid].add(pid)
-            # Currently we do not log the schema name simply for performance reasons, but should be easy to do it again
-            # schemas[(state['parent'], state['id'])] = state['schema']
             nlines += 1
 
         elif line.startswith('(N)'):  # A node
@@ -421,7 +396,7 @@ def read_single_sample_file(filename):
     ordered = OrderedDict()  # Make sure we return an ordered dictionary
     for id_ in sorted(state_atoms.keys()):
         ordered[id_] = state_atoms[id_]
-    return ordered, goal_states, transitions, unsolvable_states, schemas, deadends
+    return ordered, goal_states, transitions, deadends
 
 
 def run(config, data, rng):
@@ -429,6 +404,6 @@ def run(config, data, rng):
     sample = sample_generated_states(config, rng)
     log_sampled_states(sample, config.resampled_states_filename)
     print_transition_matrix(sample.get_sorted_state_ids(), sample.transitions, sample.alive_states, sample.vstar,
-                                sample.optimal_transitions, config.transitions_info_filename)
+                            sample.optimal_transitions, config.transitions_info_filename)
 
     return ExitCode.Success, dict(sample=sample)

@@ -3,7 +3,7 @@ import os
 import time
 
 from . import SLTP_GEN_DIR
-from sltp.separation import generate_policy_from_sat_solution
+from .separation import generate_policy_from_sat_solution
 from .util.command import execute, read_file
 from .returncodes import ExitCode
 

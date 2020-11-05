@@ -1,8 +1,8 @@
 import os
 from enum import Enum
 
-from sltp.driver import Experiment, BENCHMARK_DIR, BASEDIR
-from sltp.steps import generate_pipeline
+from ..driver import Experiment, BENCHMARK_DIR, BASEDIR
+from ..steps import generate_pipeline
 
 
 class OptimizationPolicy(Enum):
