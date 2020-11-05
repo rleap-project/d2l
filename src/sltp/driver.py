@@ -61,7 +61,7 @@ class Step:
         config = copy.deepcopy(kwargs)
         for attribute in self.get_required_attributes():
             if attribute not in kwargs:
-                raise RuntimeError('Missing attribute "{}" in step "{}"'.format(attribute, self.__class__.__name__))
+                raise RuntimeError(f'Missing configuration parameter "{attribute}" in pipeline step "{self.__class__}"')
             config[attribute] = kwargs[attribute]
 
         return config
