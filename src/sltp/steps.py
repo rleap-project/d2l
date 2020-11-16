@@ -4,7 +4,6 @@ import sys
 from .returncodes import ExitCode
 from .util.command import execute
 from .driver import Step, InvalidConfigParameter, check_int_parameter
-from .util.command import create_experiment_workspace
 from .util.naming import compute_sample_filenames, compute_test_sample_filenames, compute_info_filename, \
     compute_maxsat_filename
 
@@ -14,7 +13,7 @@ class PlannerStep(Step):
     VALID_DRIVERS = ("bfs", )
 
     def get_required_attributes(self):
-        return ["workspace", "instances", "domain", "num_states", "planner_location", "driver", "test_instances",
+        return ["instances", "domain", "num_states", "planner_location", "driver", "test_instances",
                 "num_tested_states"]
 
     def get_required_data(self):
@@ -36,10 +35,6 @@ class PlannerStep(Step):
 
         config["sample_files"] = compute_sample_filenames(**config)
         config["test_sample_files"] = compute_test_sample_filenames(**config)
-
-        # TODO This should prob be somewhere else
-        create_experiment_workspace(config["experiment_dir"], rm_if_existed=False)
-
         return config
 
     def description(self):
@@ -190,7 +185,8 @@ def _run_planner(config, data, rng):
 
 
 def generate_pipeline(pipeline, **kwargs):
-    pipeline, config = generate_pipeline_from_list(PIPELINES[pipeline], **kwargs)
+    pipeline = DEFAULT_PIPELINES[pipeline] if isinstance(pipeline, str) else pipeline
+    pipeline, config = generate_pipeline_from_list(pipeline, **kwargs)
     return pipeline
 
 
@@ -204,7 +200,7 @@ def generate_pipeline_from_list(elements, **kwargs):
     return steps, config
 
 
-PIPELINES = dict(
+DEFAULT_PIPELINES = dict(
     d2l_pipeline=[
         PlannerStep,
         TransitionSamplingStep,

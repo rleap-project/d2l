@@ -4,7 +4,6 @@ import sys
 
 from ..util import console
 from ..util.bootstrap import setup_argparser
-
 from ..util.defaults import generate_experiment
 
 
@@ -13,7 +12,7 @@ def import_from_file(filename):
     import importlib.util
     spec = importlib.util.spec_from_file_location("imported", filename)
     if spec is None:
-        report_and_exit('Could not import Python module "{}"'.format(filename))
+        report_and_exit(f'Could not import Python module "{filename}"')
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
@@ -27,18 +26,18 @@ def import_experiment_file(filename):
     try:
         return importlib.import_module(filename)
     except ImportError:
-        report_and_exit('No script named "{}".py found on current directory'.format(filename))
+        report_and_exit(f'No script named "{filename}.py" found on current directory')
 
 
 def report_and_exit(msg):
-    print("ERROR: {}".format(msg))
+    print(f"ERROR: {msg}")
     sys.exit(-1)
 
 
 def do(expid, steps=None, workspace=None, show_steps_only=False):
     name_parts = expid.split(":")
     if len(name_parts) != 2:
-        report_and_exit(f'Wrong experiment ID "{expid}"')
+        report_and_exit(f'Wrong experiment ID syntax "{expid}". Expected format <domain>:<experiment_name>')
 
     scriptname, expname = name_parts
     mod = import_experiment_file(scriptname)
@@ -60,7 +59,7 @@ def do(expid, steps=None, workspace=None, show_steps_only=False):
 
     if show_steps_only:
         console.print_hello()
-        print('Experiment with id "{}" is configured with the following steps:'.format(expid))
+        print(f'Experiment with id "{expid}" is configured with the following steps:')
         print(experiment.print_description())
         return
 

@@ -1,6 +1,7 @@
 import os
 from enum import Enum
 
+from .command import create_experiment_workspace
 from ..driver import Experiment, BENCHMARK_DIR, BASEDIR
 from ..steps import generate_pipeline
 
@@ -165,6 +166,7 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
     parameters = {**defaults, **kwargs}  # Copy defaults, overwrite with user-specified parameters
 
     parameters['experiment_dir'] = os.path.join(parameters['workspace'], expid.replace(':', '_'))
+    create_experiment_workspace(parameters["experiment_dir"], rm_if_existed=False)
 
     steps = generate_pipeline(**parameters)
     exp = parameters["experiment_class"](steps, parameters)
