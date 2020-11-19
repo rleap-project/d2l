@@ -24,7 +24,7 @@ def parse_all_instances(domain, instances):
 
 
 def compute_static_atoms(problem):
-    """ Compute a list with all of the predicate / function symbols from the problem that are static """
+    """ Compute a list with all of the atoms and predicates from the problem that are static """
     init_atoms = state_as_atoms(problem.init)
 
     fluent_symbols, _ = approximate_symbol_fluency(problem)
@@ -53,7 +53,7 @@ def compute_static_atoms(problem):
 def compute_instance_information(problem, goal_predicates):
     goal_denotations = None
 
-    # Compute the universe of each instance - a bit redundant with the above, but should be OK
+    # Compute the universe of each instance
     universe = compute_universe_from_pddl_model(problem.language)
 
     static_atoms, static_predicates = compute_static_atoms(problem)

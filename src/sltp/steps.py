@@ -98,9 +98,6 @@ class CPPFeatureGenerationStep(Step):
         config["feature_denotation_filename"] = compute_info_filename(config, "feature-denotations.txt")
         config["serialized_feature_filename"] = compute_info_filename(config, "serialized-features.io")
 
-        if config["enforce_features"]:
-            raise RuntimeError("Option enforce_features not allowed when using the C++ feature generator")
-
         return config
 
     def description(self):

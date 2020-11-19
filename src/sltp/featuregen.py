@@ -17,7 +17,7 @@ from .returncodes import ExitCode
 
 
 def run(config, data, rng):
-    return extract_features(config, data.sample)
+    return generate_feature_pool(config, data.sample)
 
 
 def convert_tuple(universe, name, values):
@@ -105,20 +105,18 @@ def print_sample_info(sample, infos, model_cache, all_predicates, all_functions,
         # Next line disables the "in-goal" functionality that enforces goal-identifying features of the form
         # p_g - p = 0, for all predicates p
         if config.create_goal_features_automatically:
-            print(" ".join("{}".format(name) for name, arity in sorted(goal_predicate_info)), file=f)
+            print(" ".join(name for name, arity in sorted(goal_predicate_info)), file=f)
         else:
             print("", file=f)
 
         # Next: per-instance information.
-        # Number of instances:
-        print(len(infos), file=f)
+        print(len(infos), file=f)  # Number of instances
 
         assert len(infos) == len(all_objects) == len(atoms_per_instance)
         for instance_id, objects in enumerate(all_objects, start=0):
-            # all object names in instance i
-            print(" ".join(sorted(objects)), file=f)
+            print(" ".join(sorted(objects)), file=f)  # all object names in instance i
 
-            # all possible atoms in instance i
+            # all possible atoms in instance i:
             print("\t".join(",".join(atom) for atom in sorted(atoms_per_instance[instance_id])), file=f)
 
         # Next: all states. One state per line. first column is instance_id of state, rest are all atoms in that state,
@@ -129,10 +127,10 @@ def print_sample_info(sample, infos, model_cache, all_predicates, all_functions,
 
     nominals_fn = os.path.join(workspace, "nominals.io")
     if nominals:
-        logging.info("Printing information on nominal concepts to {}".format(nominals_fn))
+        logging.info(f"Printing information on nominal concepts to {nominals_fn}")
         with open(nominals_fn, "w") as f:
             # Print off the desired nominals
-            print(" ".join("{}".format(name) for name in sorted(x.symbol for x in nominals)), file=f)
+            print(" ".join(name for name in sorted(x.symbol for x in nominals)), file=f)
     else:
         open(nominals_fn, 'w').close()  # Just write an empty file
 
@@ -234,8 +232,8 @@ def make_script(filename, code):
     os.chmod(filename, st.st_mode | stat.S_IEXEC)
 
 
-def extract_features(config, sample):
-    logging.info("Generating non-redundant concepts from sample set: {}".format(sample.info()))
+def generate_feature_pool(config, sample):
+    logging.info(f"Starting generation of feature pool. State sample used to detect redundancies: {sample.info()}")
 
     parsed_problems = parse_all_instances(config.domain, config.instances)  # Parse all problem instances
 

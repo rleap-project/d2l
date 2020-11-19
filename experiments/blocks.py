@@ -89,7 +89,6 @@ def experiments():
         max_concept_size=8,
         distance_feature_max_complexity=8,
 
-        # enforce_features=get_on_x_y_feature,
         parameter_generator=blocksworld_parameters_for_on,
         use_equivalence_classes=True,
         # use_feature_dominance=True,

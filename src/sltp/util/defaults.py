@@ -79,10 +79,6 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
         # Or, alternatively, provide directly the features instead of the concepts (default: None)
         feature_generator=None,
 
-        # A list of features the user wants to be in the abstraction (possibly along others).
-        # Default is [], i.e. just run the generation process without enforcing anything
-        enforce_features=[],
-
         # Max. allowed complexity for distance and conditional features (default: 0)
         distance_feature_max_complexity=0,
         cond_feature_max_complexity=0,
