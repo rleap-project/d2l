@@ -243,7 +243,7 @@ def generate_feature_pool(config, sample):
     all_objects = []
     all_predicates, all_functions = set(), set()
     goal_predicate_info = set()
-    for problem, lang, _ in parsed_problems:
+    for _, lang, _ in parsed_problems:
         all_objects.append(set(c.symbol for c in lang.constants()))
         all_predicates.update((p.name, p.arity) for p in lang.predicates if not p.builtin)
         all_functions.update((p.name, p.arity) for p in lang.functions if not p.builtin)
@@ -258,7 +258,7 @@ def generate_feature_pool(config, sample):
         # Add type predicates
         all_predicates.update((p.name, 1) for p in lang.sorts if not p.builtin and p != lang.Object)
 
-    # Write sample information
+    # Write out all input data for the C++ feature generator code
     print_sample_info(sample, infos, model_cache, all_predicates, all_functions, nominals,
                       all_objects, goal_predicate_info, config)
 
@@ -269,23 +269,7 @@ def generate_feature_pool(config, sample):
         return ExitCode.Success, dict(enforced_feature_idxs=[], in_goal_features=[],
                                       model_cache=model_cache)
 
-    # Invoke C++ feature generation module
-    logging.info('Invoking C++ feature generation module'.format())
-    cmd = os.path.realpath(os.path.join(SLTP_GEN_DIR, "featuregen"))
-    args = f" --complexity-bound {config.max_concept_size}" \
-           + f" --timeout {config.concept_generation_timeout}" \
-           + f" --dist-complexity-bound {config.distance_feature_max_complexity}" \
-           + f" --cond-complexity-bound {config.cond_feature_max_complexity}" \
-           + (f" --comparison-features" if config.comparison_features else "") \
-           + (f" --generate-goal-concepts" if config.generate_goal_concepts else "") \
-           + (f" --print-denotations" if config.print_denotations else "") \
-           + f" --workspace {config.experiment_dir}"
-
-    args = args.split()
-    generate_debug_scripts(config.experiment_dir, cmd, args)
-    retcode = execute([cmd] + args)
-
-    if retcode != 0:
+    if invoke_cpp_generator(config) != 0:
         return ExitCode.FeatureGenerationUnknownError, dict()
 
     # Read off the output of the module and transform it into the numpy matrices to be consumed
@@ -298,6 +282,23 @@ def generate_feature_pool(config, sample):
     return ExitCode.Success, dict(enforced_feature_idxs=[],
                                   in_goal_features=in_goal_features,
                                   model_cache=model_cache)
+
+
+def invoke_cpp_generator(config):
+    logging.info('Invoking C++ feature generation module'.format())
+    cmd = os.path.realpath(os.path.join(SLTP_GEN_DIR, "featuregen"))
+    args = f" --complexity-bound {config.max_concept_size}" \
+           + f" --timeout {config.concept_generation_timeout}" \
+           + f" --dist-complexity-bound {config.distance_feature_max_complexity}" \
+           + f" --cond-complexity-bound {config.cond_feature_max_complexity}" \
+           + (f" --comparison-features" if config.comparison_features else "") \
+           + (f" --generate-goal-concepts" if config.generate_goal_concepts else "") \
+           + (f" --print-denotations" if config.print_denotations else "") \
+           + f" --workspace {config.experiment_dir}"
+    args = args.split()
+    generate_debug_scripts(config.experiment_dir, cmd, args)
+    retcode = execute([cmd] + args)
+    return retcode
 
 
 def deal_with_serialized_features(language, feature_generator, serialized_feature_filename):
