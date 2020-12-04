@@ -328,7 +328,10 @@ sltp::cnf::CNFGenerationOutput D2LEncoding::write(
 
         // Add clauses (1) for this state
         if (clause.empty()) {
-            throw std::runtime_error("State #" + std::to_string(s) + " has no successor that can be good");
+            throw std::runtime_error(
+                    "State #" + std::to_string(s) + " is marked as alive, but has no successor that can be good. "
+                    "This is likely due to the feature pool not being large enough to distinguish some dead state from "
+                    "some alive state. Try increasing the feature complexity bound");
         }
         wr.cl(clause);
         ++n_good_tx_clauses;
