@@ -82,7 +82,8 @@ def generate_policy_from_sat_solution(config, solution, model_cache, print_polic
 def extract_features_from_sat_solution(config, solution):
     selected_feature_ids = read_selected_variable_ids(
         solution.assignment, os.path.join(config.experiment_dir, "selecteds.wsat"))
-    features = load_selected_features(selected_feature_ids, config.domain, config.serialized_feature_filename)
+    language = config.language_creator(config)
+    features = load_selected_features(language, selected_feature_ids, config.serialized_feature_filename)
     features = [IdentifiedFeature(f, i, config.feature_namer(str(f))) for i, f in zip(selected_feature_ids, features)]
     return features
 

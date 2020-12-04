@@ -3,6 +3,7 @@ from enum import Enum
 
 from .command import create_experiment_workspace
 from ..driver import Experiment, BENCHMARK_DIR, BASEDIR
+from ..language import parse_pddl
 from ..steps import generate_pipeline
 
 
@@ -157,6 +158,9 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
 
         # In the transition-separation encoding, whether to force any V-descending transition to be labeled as Good
         decreasing_transitions_must_be_good=False,
+
+        # A function to create the FOL language, used to be able to parse the features.
+        language_creator=pddl_language_creator
     )
 
     parameters = {**defaults, **kwargs}  # Copy defaults, overwrite with user-specified parameters
@@ -171,3 +175,9 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
 
 def default_feature_namer(s):
     return str(s)
+
+
+def pddl_language_creator(config):
+    _, language, _ = parse_pddl(config.domain)
+    return language
+
