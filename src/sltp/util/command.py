@@ -29,7 +29,7 @@ def execute(command, **kwargs):
     stderr = open(kwargs["stderr"], 'w') if "stderr" in kwargs else None
     cwd = kwargs["cwd"] if "cwd" in kwargs else os.getcwd()
 
-    logging.info(f'Executing "{" ".join(command)}" on directory "{cwd}"')
+    logging.info(f'Executing "{" ".join(map(str, command))}" on directory "{cwd}"')
     if stdout:
         logging.info(f'Standard output redirected to "{stdout.name}"')
     if stderr:
