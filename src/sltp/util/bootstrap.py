@@ -66,7 +66,7 @@ def get_parser(add_log_option=True, **kwargs):
     parser = argparse.ArgumentParser(**kwargs)
     if add_log_option:
         parser.add_argument(
-            '-l', '--log-level',
+            '--log',
             dest='log_level',
             choices=['DEBUG', 'INFO', 'WARNING'],
             default='INFO',
