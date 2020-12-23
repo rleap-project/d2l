@@ -1,9 +1,8 @@
 # The D2L Generalized Policy Learner
 
-
 ## Installation
 
-The whole pipeline runs in *Python3* and relies on some dependencies; most notably:
+The entire D2L pipeline runs in Python3 and relies on the following dependencies:
 
 * The [FS planner](https://github.com/aig-upf/fs-private/).
 * Some MaxSat solver such as [OpenWBO](http://sat.inesc-id.pt/open-wbo/).
@@ -11,8 +10,8 @@ The whole pipeline runs in *Python3* and relies on some dependencies; most notab
 * CMake
 
 The provided [Dockerfile](containers/Dockerfile) recipe lists all necessary instructions to install D2L
-on an Ubuntu box. You can either use it through Docker, or simply follow the commands
-to install it locally.
+on an Ubuntu box. You can either use it through Docker, or simply follow the commands to install the pipeline
+locally on your machine.
 
 
 ## Usage
@@ -38,12 +37,11 @@ Example invocations:
 
 The configuration of each experiment can be inspected by looking at the experiment file.
 
-## The D2L Docker image 
-You can also use D2L from the provided Docker image.
-In order to build it or run it, you need [a Docker installation](https://docs.docker.com/engine/installation)
+## Using the Docker image 
+In order to use the provided Docker image, you need [a Docker installation](https://docs.docker.com/engine/installation)
 on your machine.
 
-### Building the Docker image
+### Building the image
 
 Build the docker image with the following command from the repo root:
 ```shell script

@@ -259,7 +259,7 @@ sltp::cnf::CNFGenerationOutput D2LEncoding::write(
         ++n_select_vars;
     }
 
-    // Create variables V(s, d) variables for all all alive state s and d in 1..D
+    // Create variables V(s, d) variables for all alive state s and d in 1..D
     for (const auto s:all_alive()) {
         const auto min_vs = get_vstar(s);
         const auto max_vs = get_max_v(s);
