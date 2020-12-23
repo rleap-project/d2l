@@ -215,13 +215,13 @@ def log_sampled_states(sample, filename):
             atoms = ", ".join(print_atom(atom) for atom in state)
             is_goal = "*" if id_ in sample.goals else ""
             is_expanded = "^" if id_ in sample.expanded else ""
-            is_deadend = "º" if id_ in sample.deadends else ""
+            is_alive = "º" if id_ in sample.alive_states else ""
             is_root = "=" if id_ in sample.roots else ""
             is_optimal = "+" if id_ in optimal_s else ""
-            print(f"#{id_}{is_root}{is_goal}{is_optimal}{is_expanded}{is_deadend}"
+            print(f"#{id_}{is_root}{is_goal}{is_optimal}{is_expanded}{is_alive}"
                   f"(parents: {state_parents}, children: {state_children}):\n\t{atoms}", file=f)
 
-        print("Symbols:\n*: goal, \n^: expanded, \nº: dead-end, \n=: root, \n"
+        print("Symbols:\n*: goal, \n^: expanded, \nº: alive, \n=: root, \n"
               "+: source of some transition marked as optimal", file=f)
     logging.info('Resampled states logged at "{}"'.format(filename))
 
