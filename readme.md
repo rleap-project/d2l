@@ -30,12 +30,27 @@ Example invocations:
 
   # Learn to stack two blocks
   ./run.py blocks:on
-
-  # Learn to solve the standard Gripper domain
-  ./run.py gripper
 ```
 
 The configuration of each experiment can be inspected by looking at the experiment file.
+
+## AAAI21 Paper Experiments
+The following is a list of the concrete experiments used in the results table
+of our AAAI'21 paper,
+Guillem Francès, Blai Bonet, Hector Geffner,
+[Learning General Policies from Small Examples Without Supervision](https://arxiv.org/abs/2101.00692).
+
+```shell script
+  ./run.py blocks:clear   # Q_clear
+  ./run.py blocks:on      # Q_on
+  ./run.py gripper:small  # Q_grip
+  ./run.py reward:small   # Q_rew
+  ./run.py delivery:small # Q_deliv
+  ./run.py visitall:small # Q_visit
+  ./run.py spanner:small  # Q_span
+  ./run.py miconic:small  # Q_micon
+  ./run.py blocks:all_at_5     # Q_bw
+```
 
 ## Using the Docker image 
 In order to use the provided Docker image, you need [a Docker installation](https://docs.docker.com/engine/installation)
