@@ -13,6 +13,8 @@ def experiments():
         parameter_generator=None,
         v_slack=2,
 
+        test_instances=[],
+
         # concept_generation_timeout=120,  # in seconds
         maxsat_timeout=None,
 
@@ -42,14 +44,7 @@ def experiments():
     exps["clear"] = update_dict(
         strips_base,
         instances=["training_clear_5.pddl"],
-        test_instances=[
-            "instance_5_clear_x_1.pddl",
-            # "instance_5_clear_x_2.pddl",
-        ],
-        test_policy_instances=[
-            "testing_clear_10_0.pddl",
-            "testing_clear_10_1.pddl",
-        ],
+        test_policy_instances=all_clear_test_instancess(),
 
         max_concept_size=8,
         parameter_generator=blocksworld_parameters_for_clear,
@@ -63,7 +58,6 @@ def experiments():
     exps["clear_fn"] = update_dict(
         fn_base,
         instances=["training_clear_5_fs.pddl"],
-        test_instances=[],
         test_policy_instances=[],
         max_concept_size=8,
         parameter_generator=blocksworld_parameters_for_clear,
@@ -77,14 +71,7 @@ def experiments():
         instances=[
             "training_on_5.pddl",
         ],
-        test_instances=["inst_on_x_y_7.pddl"],
-        test_policy_instances=[
-            "inst_on_x_y_7.pddl",
-            "inst_on_x_y_14.pddl",
-            "inst_on_x_y_16.pddl",
-            "instance_9_on_x_y_1.pddl",
-            "instance_3_on_x_y_2.pddl",
-        ],
+        test_policy_instances=all_on_test_instancess(),
 
         max_concept_size=8,
         distance_feature_max_complexity=8,
@@ -98,7 +85,6 @@ def experiments():
     exps["on_fn"] = update_dict(
         fn_base,
         instances=["training_on_5_fs.pddl"],
-        test_instances=[],
         test_policy_instances=[],
 
         max_concept_size=8,
@@ -145,7 +131,6 @@ def experiments():
             "training_arbitrary_5_fs.pddl",
             # "training_singletower_5_fs.pddl",
         ],
-        test_instances=[],
         test_policy_instances=[],
 
         max_concept_size=10,
@@ -161,8 +146,8 @@ def experiments():
         strips_atomic_base,
         instances=[
             "training_arbitrary_5_atomic.pddl",
+            "training_arbitrary_5_atomic_tower.pddl"
         ],
-        test_instances=[],
         test_policy_instances=[
             "training_arbitrary_5_atomic.pddl",
         ] + [
@@ -191,7 +176,6 @@ def experiments():
         instances=[
             "training_arbitrary_5_atomic.pddl",
         ],
-        test_instances=[],
         test_policy_instances=[
             "training_arbitrary_5_atomic.pddl",
             "testing_arbitrary_10_atomic.pddl",
@@ -310,3 +294,87 @@ def debug_features_clear(lang):
     handempty = "Atom[handempty]"
     return [cleara, handempty, nx]
     # return [nx, nontable, holding, cleara]
+
+
+def all_clear_test_instancess():
+    return ["test_clear_probBLOCKS-10-0.pddl",
+            "test_clear_probBLOCKS-10-1.pddl",
+            "test_clear_probBLOCKS-10-2.pddl",
+            "test_clear_probBLOCKS-11-0.pddl",
+            "test_clear_probBLOCKS-11-1.pddl",
+            "test_clear_probBLOCKS-11-2.pddl",
+            "test_clear_probBLOCKS-12-0.pddl",
+            "test_clear_probBLOCKS-12-1.pddl",
+            "test_clear_probBLOCKS-13-0.pddl",
+            "test_clear_probBLOCKS-13-1.pddl",
+            "test_clear_probBLOCKS-14-0.pddl",
+            "test_clear_probBLOCKS-14-1.pddl",
+            "test_clear_probBLOCKS-15-0.pddl",
+            "test_clear_probBLOCKS-15-1.pddl",
+            "test_clear_probBLOCKS-16-1.pddl",
+            "test_clear_probBLOCKS-16-2.pddl",
+            "test_clear_probBLOCKS-17-0.pddl",
+            "test_clear_probBLOCKS-2-0.pddl",
+            "test_clear_probBLOCKS-3-0.pddl",
+            "test_clear_probBLOCKS-3-3.pddl",
+            "test_clear_probBLOCKS-4-0.pddl",
+            "test_clear_probBLOCKS-4-1.pddl",
+            "test_clear_probBLOCKS-4-2.pddl",
+            "test_clear_probBLOCKS-5-0.pddl",
+            "test_clear_probBLOCKS-5-1.pddl",
+            "test_clear_probBLOCKS-5-2.pddl",
+            "test_clear_probBLOCKS-6-0.pddl",
+            "test_clear_probBLOCKS-6-1.pddl",
+            "test_clear_probBLOCKS-6-2.pddl",
+            "test_clear_probBLOCKS-7-0.pddl",
+            "test_clear_probBLOCKS-7-1.pddl",
+            "test_clear_probBLOCKS-7-2.pddl",
+            "test_clear_probBLOCKS-8-0.pddl",
+            "test_clear_probBLOCKS-8-1.pddl",
+            "test_clear_probBLOCKS-8-2.pddl",
+            "test_clear_probBLOCKS-9-0.pddl",
+            "test_clear_probBLOCKS-9-1.pddl",
+            "test_clear_probBLOCKS-9-2.pddl",
+    ]
+
+
+def all_on_test_instancess():
+    return ["test_on_probBLOCKS-10-0.pddl",
+            "test_on_probBLOCKS-10-1.pddl",
+            "test_on_probBLOCKS-10-2.pddl",
+            "test_on_probBLOCKS-11-0.pddl",
+            "test_on_probBLOCKS-11-1.pddl",
+            "test_on_probBLOCKS-11-2.pddl",
+            "test_on_probBLOCKS-12-0.pddl",
+            "test_on_probBLOCKS-12-1.pddl",
+            "test_on_probBLOCKS-13-0.pddl",
+            "test_on_probBLOCKS-13-1.pddl",
+            "test_on_probBLOCKS-14-0.pddl",
+            "test_on_probBLOCKS-14-1.pddl",
+            "test_on_probBLOCKS-15-0.pddl",
+            "test_on_probBLOCKS-15-1.pddl",
+            "test_on_probBLOCKS-16-1.pddl",
+            "test_on_probBLOCKS-16-2.pddl",
+            "test_on_probBLOCKS-17-0.pddl",
+            "test_on_probBLOCKS-2-0.pddl",
+            "test_on_probBLOCKS-3-0.pddl",
+            "test_on_probBLOCKS-3-3.pddl",
+            "test_on_probBLOCKS-4-0.pddl",
+            "test_on_probBLOCKS-4-1.pddl",
+            "test_on_probBLOCKS-4-2.pddl",
+            "test_on_probBLOCKS-5-0.pddl",
+            "test_on_probBLOCKS-5-1.pddl",
+            "test_on_probBLOCKS-5-2.pddl",
+            "test_on_probBLOCKS-6-0.pddl",
+            "test_on_probBLOCKS-6-1.pddl",
+            "test_on_probBLOCKS-6-2.pddl",
+            "test_on_probBLOCKS-7-0.pddl",
+            "test_on_probBLOCKS-7-1.pddl",
+            "test_on_probBLOCKS-7-2.pddl",
+            "test_on_probBLOCKS-8-0.pddl",
+            "test_on_probBLOCKS-8-1.pddl",
+            "test_on_probBLOCKS-8-2.pddl",
+            "test_on_probBLOCKS-9-0.pddl",
+            "test_on_probBLOCKS-9-1.pddl",
+            "test_on_probBLOCKS-9-2.pddl",
+    ]
