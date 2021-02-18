@@ -2,6 +2,7 @@ import os
 from enum import Enum
 
 from .command import create_experiment_workspace
+from .. import SLTP_SRC_DIR
 from ..driver import Experiment, BENCHMARK_DIR, BASEDIR
 from ..language import parse_pddl
 from ..steps import generate_pipeline
@@ -45,6 +46,10 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
 
     defaults = dict(
         pipeline="d2l_pipeline",
+
+        # Some directories of external tools needed by the pipeline
+        generators_path=os.path.join(os.path.dirname(SLTP_SRC_DIR), "generators"),
+        pyperplan_path=os.path.join(os.path.dirname(SLTP_SRC_DIR), "pyperplan"),
 
         # The directory where the experiment outputs will be left
         workspace=os.path.join(BASEDIR, 'workspace'),

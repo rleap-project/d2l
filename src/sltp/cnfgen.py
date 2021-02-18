@@ -2,7 +2,6 @@ import logging
 import os
 import time
 
-from . import SLTP_GEN_DIR
 from .separation import generate_policy_from_sat_solution
 from .util.command import execute, read_file
 from .returncodes import ExitCode
@@ -83,7 +82,7 @@ def print_good_features_list(good_features, filename):
 def generate_cnf(config, data, validate_features=None):
     # Invoke C++ feature generation module
     logging.info('Invoking C++ CNF generation module'.format())
-    cmd = os.path.realpath(os.path.join(SLTP_GEN_DIR, "cnfgen"))
+    cmd = os.path.realpath(os.path.join(config.generators_path, "cnfgen"))
     args = ["--workspace", config.experiment_dir]
     args += ["--enforce-features", ",".join(map(str, data.in_goal_features))] if data.in_goal_features else []
     args += ["--validate-features", ",".join(map(str, validate_features))] if validate_features is not None else []

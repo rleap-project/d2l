@@ -6,13 +6,12 @@ from .separation import TransitionClassificationPolicy, generate_user_provided_p
 from .features import generate_model_cache, create_model_factory, compute_static_atoms
 from .returncodes import ExitCode
 from .sampling import read_transitions_from_files
-from . import PYPERPLAN_DIR
 
 
 def apply_policy_on_test_instances(config, create_policy):
     """ Run a search on the test instances that follows the given policy """
     logging.info(f"Testing learnt policy on instances: {config.test_policy_instances}")
-    pyperplan = _import_pyperplan()
+    pyperplan = _import_pyperplan(config.pyperplan_path)
 
     for instance in config.test_policy_instances:
         logging.info(f'Testing policy on instance "{instance}"')
@@ -26,8 +25,8 @@ def apply_policy_on_test_instances(config, create_policy):
     return ExitCode.Success
 
 
-def _import_pyperplan():
-    sys.path.insert(0, PYPERPLAN_DIR)
+def _import_pyperplan(path):
+    sys.path.insert(0, path)
     import pyperplan
     sys.path = sys.path[1:]
     return pyperplan

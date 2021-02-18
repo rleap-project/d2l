@@ -7,7 +7,6 @@ from collections import defaultdict
 from tarski.dl import PrimitiveConcept, UniversalConcept, NullaryAtom, NominalConcept, GoalConcept, GoalRole, \
     EmptyConcept, GoalNullaryAtom
 
-from . import SLTP_GEN_DIR
 from .matrices import NP_FEAT_VALUE_TYPE, cast_feature_value_to_numpy_value, log_feature_denotations
 from .models import DLModel
 from .features import parse_all_instances, compute_models, InstanceInformation
@@ -286,7 +285,7 @@ def generate_feature_pool(config, sample):
 
 def invoke_cpp_generator(config):
     logging.info('Invoking C++ feature generation module'.format())
-    cmd = os.path.realpath(os.path.join(SLTP_GEN_DIR, "featuregen"))
+    cmd = os.path.realpath(os.path.join(config.generators_path, "featuregen"))
     args = f" --complexity-bound {config.max_concept_size}" \
            + f" --timeout {config.concept_generation_timeout}" \
            + f" --dist-complexity-bound {config.distance_feature_max_complexity}" \
