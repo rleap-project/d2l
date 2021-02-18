@@ -403,7 +403,6 @@ def run(config, data, rng):
     assert not data
     sample = sample_generated_states(config, rng)
     log_sampled_states(sample, config.resampled_states_filename)
-    print_transition_matrix(sample.get_sorted_state_ids(), sample.transitions, sample.alive_states, sample.vstar,
-                            sample.optimal_transitions, config.transitions_info_filename)
+    print_transition_matrix(sample, config.transitions_info_filename)
 
     return ExitCode.Success, dict(sample=sample)

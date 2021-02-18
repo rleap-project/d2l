@@ -2,7 +2,11 @@ import logging
 import itertools
 
 
-def print_transition_matrix(state_ids, transitions, alive, vstar, optimal_transitions, transitions_filename):
+def print_transition_matrix(sample, transitions_filename):
+    state_ids = sample.get_sorted_state_ids()
+    transitions = sample.transitions
+    optimal_transitions = sample.optimal_transitions
+    alive = sample.alive_states
     num_transitions = sum(len(targets) for targets in transitions.values())
     num_states = len(transitions.keys())
     num_optimal_transitions = len(optimal_transitions)
@@ -31,4 +35,4 @@ def print_transition_matrix(state_ids, transitions, alive, vstar, optimal_transi
         print(f'{len(alive)} ' + " ".join(map(str, alive)), file=f)
 
         # Next: A space-separated list of V^*(s) values, one per each state s, where -1 denotes infinity
-        print(' '.join(str(vstar.get(s, -1)) for s in state_ids), file=f)
+        print(' '.join(str(sample.vstar.get(s, -1)) for s in state_ids), file=f)
