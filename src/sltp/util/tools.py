@@ -10,6 +10,14 @@ from ..language import parse_pddl
 from .serialization import unserialize_features
 
 
+# def load_selected_features(feature_indexes, domain, filename):
+#     """ Load from the given filename the Feature objects with the specified indexes only """
+#     _, language, _ = parse_pddl(domain)
+#     feature_indexes = feature_indexes if isinstance(feature_indexes, set) else set(feature_indexes)
+#     objs = unserialize_features(language, filename, feature_indexes)
+#     assert len(feature_indexes) == len(objs)
+#     return objs
+
 def load_selected_features(language, feature_indexes, filename):
     """ Load from the given filename the Feature objects with the specified indexes only """
     feature_indexes = feature_indexes if isinstance(feature_indexes, set) else set(feature_indexes)

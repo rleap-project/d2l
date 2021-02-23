@@ -10,7 +10,6 @@ def experiments():
         test_domain="domain_strips.pddl",
         feature_namer=gridworld_names,
         pipeline="d2l_pipeline",
-        maxsat_encoding="d2l",
         num_states="all",
         concept_generator=None,
         parameter_generator=None,
@@ -42,7 +41,6 @@ def experiments():
         parameter_generator=add_domain_parameters_strips,
         use_equivalence_classes=True,
         # use_feature_dominance=True,
-        # use_incremental_refinement=True,
 
         # feature_generator=generate_features_1,
     )

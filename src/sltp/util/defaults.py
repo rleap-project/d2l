@@ -125,9 +125,6 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
         # Number of states to expand & test on the testing instances
         num_tested_states=50000,
 
-        # The particular encoding to be used by the C++ CNF generator
-        maxsat_encoding="d2l",
-
         # Some debugging help to print the denotations of all features over all states (expensive!)
         print_denotations=False,
 
@@ -151,21 +148,24 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
         # The slack value for the maximum allowed value for V_pi(s) = slack * V^*(s)
         v_slack=2,
 
-        # In the transition-separation encoding, whether to use the incremental refinement approach
-        use_incremental_refinement=False,
-
         # In the transition-separation encoding, whether to post constraints to ensure distinguishability of goals
         distinguish_goals=False,
 
-        # In the transition-separation encoding, whether to post constraints to ensure distinguishability of goals
-        # and transitions coming from different training instances
-        cross_instance_constraints=True,
-
-        # In the transition-separation encoding, whether to force any V-descending transition to be labeled as Good
-        decreasing_transitions_must_be_good=False,
-
         # A function to create the FOL language, used to be able to parse the features.
-        language_creator=pddl_language_creator
+        language_creator=pddl_language_creator,
+
+        # The random seed
+        seed=123,
+
+        # The hyper-parameters of the incremental approach
+        initial_sample_size=50,
+        refinement_batch_size=20,
+
+        # Run in verbose mode to get more output, e.g. to help debugging
+        verbose=False,
+
+        # The acyclicity encoding to be used
+        acyclicity="topological",
     )
 
     parameters = {**defaults, **kwargs}  # Copy defaults, overwrite with user-specified parameters

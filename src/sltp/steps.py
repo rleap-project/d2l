@@ -111,7 +111,7 @@ class CPPFeatureGenerationStep(Step):
 class CPPMaxsatProblemGenerationStep(Step):
     """ Generate the standard SLTP Max-sat CNF encoding """
     def get_required_attributes(self):
-        return ["experiment_dir", "maxsat_encoding"]
+        return ["experiment_dir"]
 
     def get_required_data(self):
         return ["in_goal_features", "model_cache"]

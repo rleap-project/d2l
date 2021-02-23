@@ -12,7 +12,6 @@
 #include <blai/matrix.h>
 #include <blai/transitions.h>
 #include <common/base.h>
-#include "utils.h"
 
 namespace sltp {
 
@@ -97,11 +96,10 @@ public:
         }
 
         os
-            << "TransitionSample[instances: " << ninstances
+            << "[instances: " << ninstances
             << ", states: " << transitions_.num_states()
             << ", transitions: " << transitions_.num_transitions()
             << " (" << num_alive << " alive: " << alive_string << ")"
-//          << " (" << transitions_.num_marked_transitions() << " marked)"
             << ", deadends: " << matrix_.deadends().size()
             << ", goals: " << matrix_.num_goals()
             << ", features: " << matrix_.num_features()

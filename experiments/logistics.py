@@ -10,7 +10,6 @@ def experiments():
         test_domain="domain.pddl",
         feature_namer=logistics_names,
         pipeline="d2l_pipeline",
-        maxsat_encoding="d2l",
         num_states="all",
         concept_generator=None,
         parameter_generator=None,
@@ -37,7 +36,6 @@ def experiments():
 
         use_equivalence_classes=True,
         # use_feature_dominance=True,
-        use_incremental_refinement=True,
     )
 
     return exps

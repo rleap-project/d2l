@@ -12,39 +12,40 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_FLAGS "-O3 -DNDEBUG")  # -Wall -Wextra
 
 
+set(COMMON_FILES
+    src/common/utils.h
+    src/common/utils.cxx
+    src/common/helpers
+    src/common/base
+    src/common/types
+)
+
 set(SOURCE_FILES
-        src/featuregen.cpp
-        src/sltp/dl/cache
-        src/sltp/dl/elements
-        src/sltp/dl/factory
-        src/sltp/dl/types.hxx
-        src/sltp/utils.hxx
-        src/sltp/algorithms
-        src/common/utils
-        src/common/helpers
-        src/common/base
-        src/common/types
+    src/featuregen.cpp
+    src/sltp/dl/cache
+    src/sltp/dl/elements
+    src/sltp/dl/factory
+    src/sltp/dl/types.hxx
+    src/sltp/algorithms
 )
 
 
 set(CNFGEN_SOURCE_FILES
-        src/cnfgen.cpp
-        src/cnf/transition_classification
-        src/cnf/types
-        src/cnf/generator
-        src/cnf/cnfwriter.h
-        src/common/utils
-        src/common/helpers
-        src/common/base
-        src/common/types
-        src/blai/sample.h
-        src/blai/matrix.h
-        src/blai/transitions.h
-        src/blai/utils.h
+    src/cnfgen.cpp
+    src/cnf/transition_classification.cxx
+    src/cnf/types.cxx
+    src/cnf/generator
+    src/cnf/cnfwriter.h
+    src/cnf/options.h
+    src/cnf/options.cxx
+    src/cnf/sample.h
+    src/cnf/sample.cxx
+    src/cnf/solver.h
+    src/cnf/solver.cxx
 )
 
-add_executable(featuregen ${SOURCE_FILES})
-add_executable(cnfgen ${CNFGEN_SOURCE_FILES})
+add_executable(featuregen ${SOURCE_FILES} ${COMMON_FILES})
+add_executable(cnfgen ${CNFGEN_SOURCE_FILES} ${COMMON_FILES})
 set_target_properties(featuregen PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(cnfgen PROPERTIES LINKER_LANGUAGE CXX)
 

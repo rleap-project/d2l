@@ -7,7 +7,7 @@
 
 #include <boost/bimap.hpp>
 
-#include <sltp/utils.hxx>
+#include <common/utils.h>
 
 
 namespace sltp {

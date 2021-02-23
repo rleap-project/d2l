@@ -10,7 +10,8 @@
 #include <unordered_set>
 #include <vector>
 #include <algorithm>
-#include "utils.h"
+
+#include <common/utils.h>
 
 namespace sltp {
 
@@ -174,7 +175,7 @@ class FeatureMatrix {
             // read expanded states (TODO: Should be in TrainingSet class)
             std::getline(is, line); // Eat up one line break
             std::getline(is, line); // Read the actual line
-            auto deadend = Utils::split<unsigned>(line);
+            auto deadend = sltp::utils::split<unsigned>(line);
             deadends_.insert(deadend.begin(), deadend.end());
 
             // Read the actual feature matrix data

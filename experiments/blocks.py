@@ -7,7 +7,6 @@ def experiments():
         domain_dir="blocks",
         feature_namer=blocksworld_names,
         pipeline="d2l_pipeline",
-        maxsat_encoding="d2l",
         num_states="all",
         concept_generator=None,
         parameter_generator=None,
@@ -50,7 +49,6 @@ def experiments():
         parameter_generator=blocksworld_parameters_for_clear,
         use_equivalence_classes=True,
         # use_feature_dominance=True,
-        use_incremental_refinement=True,
 
         # feature_generator=debug_features_clear,
     )
@@ -63,7 +61,6 @@ def experiments():
         parameter_generator=blocksworld_parameters_for_clear,
         use_equivalence_classes=True,
         # use_feature_dominance=True,
-        use_incremental_refinement=True,
     )
 
     exps["on"] = update_dict(
@@ -79,7 +76,6 @@ def experiments():
         parameter_generator=blocksworld_parameters_for_on,
         use_equivalence_classes=True,
         # use_feature_dominance=True,
-        use_incremental_refinement=True,
     )
 
     exps["on_fn"] = update_dict(
@@ -91,7 +87,6 @@ def experiments():
         parameter_generator=blocksworld_parameters_for_on,
         use_equivalence_classes=True,
         # use_feature_dominance=True,
-        use_incremental_refinement=True,
     )
 
     exps["4op_5"] = update_dict(
@@ -106,7 +101,6 @@ def experiments():
         test_policy_instances=all_4op_test_instances(),
 
         max_concept_size=12,
-        use_incremental_refinement=True,
         use_equivalence_classes=True,
         use_feature_dominance=False,
     )
@@ -120,7 +114,6 @@ def experiments():
 
         # d2l_policy=debug_policy_4op,
         feature_generator=debug_features_4op,
-        use_incremental_refinement=False,
         use_equivalence_classes=True,
         use_feature_dominance=False,
     )
@@ -134,7 +127,6 @@ def experiments():
         test_policy_instances=[],
 
         max_concept_size=10,
-        use_incremental_refinement=False,
         use_equivalence_classes=True,
         use_feature_dominance=False,
 
@@ -158,9 +150,10 @@ def experiments():
         distance_feature_max_complexity=8,
 
         # feature_generator=debug_features_at,
-        use_incremental_refinement=True,
         use_equivalence_classes=True,
         use_feature_dominance=False,
+
+        initial_sample_size=100,
     )
 
     # Using incompletely-specified goals
@@ -184,7 +177,6 @@ def experiments():
             "testing_arbitrary_17-1_atomic.pddl",
         ],
         feature_generator=debug_features_at2,
-        use_incremental_refinement=False,
         use_equivalence_classes=True,
         use_feature_dominance=False,
     )

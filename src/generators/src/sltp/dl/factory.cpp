@@ -305,7 +305,7 @@ bool Factory::prune_feature_denotation(
         // Make sure that we don't prune a feature of lower complexity in favor of a feature of higher complexity
         // This should come for free, since features are ordered in increasing complexity
         if (it->second->complexity() > f.complexity()) {
-            std::cout << Utils::warning()
+            std::cout << sltp::utils::warning()
                       <<  "Feature " + f.as_str_with_complexity() + " has been pruned in favor of more complex "
                           + it->second->as_str_with_complexity() << std::endl;
         }

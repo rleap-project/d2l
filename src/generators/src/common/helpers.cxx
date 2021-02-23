@@ -2,13 +2,13 @@
 #include <boost/algorithm/string.hpp>
 
 #include <common/helpers.h>
-#include <blai/utils.h>
-#include "utils.h"
+#include <common/utils.h>
+
 
 sltp::TransitionSample read_transition_data(const std::string& workspace, bool verbose) {
     std::string transitions_filename = workspace + "/transitions-info.io";
-    std::cout << Utils::blue() << "reading" << Utils::normal() << " '" << transitions_filename << std::endl;
-    auto ifs_transitions = get_ifstream(transitions_filename);
+    std::cout << sltp::utils::blue() << "reading" << sltp::utils::normal() << " '" << transitions_filename << std::endl;
+    auto ifs_transitions = sltp::utils::get_ifstream(transitions_filename);
     auto transitions = sltp::TransitionSample::read_dump(ifs_transitions, verbose);
     ifs_transitions.close();
     return transitions;
@@ -17,22 +17,22 @@ sltp::TransitionSample read_transition_data(const std::string& workspace, bool v
 
 sltp::FeatureMatrix read_feature_matrix(const std::string& workspace, bool verbose) {
     std::string matrix_filename = workspace + "/feature-matrix.dat";
-    std::cout << Utils::blue() << "reading" << Utils::normal() << " '" << matrix_filename << std::endl;
-    auto ifs_matrix = get_ifstream(matrix_filename);
+    std::cout << sltp::utils::blue() << "reading" << sltp::utils::normal() << " '" << matrix_filename << std::endl;
+    auto ifs_matrix = sltp::utils::get_ifstream(matrix_filename);
     auto matrix = sltp::FeatureMatrix::read_dump(ifs_matrix, verbose);
     ifs_matrix.close();
     return matrix;
 }
 
 sltp::Sample read_input_sample(const std::string& workspace) {
-    auto ifs = get_ifstream(workspace + "/sample.io");
+    auto ifs = sltp::utils::get_ifstream(workspace + "/sample.io");
     auto res = sltp::Sample::read(ifs);
     ifs.close();
     return res;
 }
 
 std::vector<std::string> read_nominals(const std::string& workspace) {
-    auto ifs = get_ifstream(workspace + "/nominals.io");
+    auto ifs = sltp::utils::get_ifstream(workspace + "/nominals.io");
     std::string nominals_line;
     std::getline(ifs, nominals_line);
     ifs.close();

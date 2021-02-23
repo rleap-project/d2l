@@ -14,7 +14,6 @@ def experiments():
 
         feature_namer=miconic_names,
         pipeline="d2l_pipeline",
-        maxsat_encoding="d2l",
         num_states="all",
         concept_generator=None,
         parameter_generator=None,
@@ -49,9 +48,6 @@ def experiments():
         parameter_generator=None,
         use_equivalence_classes=True,
         # use_feature_dominance=True,
-        use_incremental_refinement=True,
-
-        decreasing_transitions_must_be_good=True,
     )
 
     exps["small2"] = update_dict(
@@ -60,7 +56,6 @@ def experiments():
             's3-0.pddl',
             'training2.pddl',
         ],
-        use_incremental_refinement=False,
     )
 
     exps["debug"] = update_dict(
@@ -74,7 +69,6 @@ def experiments():
         feature_generator=debug_features,
         # d2l_policy=debug_policy,
         print_denotations=True,
-        use_incremental_refinement=False,
 
         test_policy_instances=all_test_instances(),
         # test_policy_instances=[

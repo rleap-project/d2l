@@ -9,7 +9,6 @@ def experiments():
         test_domain="domain.pddl",
         feature_namer=visitall_names,
         pipeline="d2l_pipeline",
-        maxsat_encoding="d2l",
         num_states="all",
         concept_generator=None,
         parameter_generator=None,
@@ -37,7 +36,6 @@ def experiments():
         distance_feature_max_complexity=8,
         use_equivalence_classes=True,
         # use_feature_dominance=True,
-        use_incremental_refinement=True,
     )
 
     exps["debug"] = update_dict(
@@ -58,7 +56,6 @@ def experiments():
         # cond_feature_max_complexity=8,
         use_equivalence_classes=True,
         # use_feature_dominance=True,
-        # use_incremental_refinement=True,
         print_denotations=True,
 
         feature_generator=debug_features,

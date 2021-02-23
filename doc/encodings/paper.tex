@@ -64,7 +64,7 @@
 
 \newcommand{\numtasks}[1]{\small{(#1)}}
 
-\newcommand{\badtx}{\ensuremath{\mathrm{BAD}}}
+\newcommand{\badtx}{\ensuremath{\mathrm{D}}}
 
 \setcounter{secnumdepth}{0} %May be changed to 1 or 2 if section numbers are desired.
 
@@ -124,15 +124,11 @@ class} are good or bad. When exploiting this notion of equivalence (which is imp
 the CNF generator), then every mention below to SAT variable $Good(s, s')$ needs to be read as $Good(s_{\star}, s_{\star}')$,
 where $(s_{\star}, s_{\star}')$ is the \emph{representative} transition of the equivalence class to which $(s, s')$ belongs.
 
-\paragraph{``Bad'' transitions.}
-We use \badtx{} to denote the set of transitions that have been determined at preprocessing as necessarily
-\emph{not} good.
-At the moment, this set contains all transitions that go from an alive to an unsolvable state and, if using
-equivalence relations, all those other transitions in whose equivalence class there is some other ``bad'' transition.
+\paragraph{Dead transitions.}
+We use \badtx{} to denote the set of transitions that lead from one alive state to an unsolvable state.
+If using equivalence relations, \badtx{} also includes all those other transitions in whose equivalence class
+there is some other dead transition (computed as a fixpoint).
 
-
-\paragraph{Feature dominance.}
-Work In Progress.\footnote{This is implemented, but needs to be adapted to the equivalence classes improvement.}
 
 \newpage
 
@@ -159,50 +155,22 @@ Work In Progress.\footnote{This is implemented, but needs to be adapted to the e
 %\end{itemize}
 
 
-\subsection{Hard Constraints}
+\subsection{Base Constraints}
 
-\smallpar{C1}
+\smallpar{C1 (Optional)}
+Goals are distinguishable from non-goals.
+\begin{align}
+\bigvee_{f \in D1(s, s')} Select(f),&\;\; \text{for $s$ goal, $s$ not a goal}
+\end{align}
+
+
+\smallpar{C2}
 The policy has to be complete with respect to all alive states:
 \begin{align}
 \bigvee_{s' \text{ s.t. } (s, s') \in T \setminus \badtx} Good(s, s'),&\;\; \text{for $s$ alive.}
 \end{align}
 
-
-\smallpar{C2} $V$ is always descending along Good transitions:
-\begin{align}
- Good(s, s') \land V(s', d) \rightarrow \bigvee_{d < k \leq D} V(s, k),&\;\; \text{for $s, s'$ alive, $(s, s') \not\in \badtx$, $d \in [1, D)$.} \\
- V(s', D) \rightarrow \neg Good(s, s'),&\;\; \text{for $s, s'$ alive, $(s, s') \not\in \badtx$.} \tag{\theequation${}^\prime$}
-\end{align}
-
-
-\smallpar{C3 (Optional)} All descending transitions must be considered Good:
-\begin{align}
- V(s, d) \land V(s', d') \rightarrow Good(s, s'),&\;\; \text{for $s, s'$ alive, $(s, s') \not\in \badtx$, $1 \leq d' < d \leq D$,} \\
- Good(s, s'),&\;\; \text{for $s$ alive, $s'$ goal.} \tag{\theequation${}^\prime$}
-\end{align}
-
-%\smallpar{C4-5} Any upper bound on $V(s)$ (for $s$ not a goal) needs to be justified:
-%\begin{align}
-% V(s) \leq d+1 \rightarrow \bigvee_{\substack{
-% s' \text{ goal child of } s\\
-% (s, s') \not\in \badtx}} Good(s, s') \lor
-% \bigvee_{\substack{
-% s' \text{ alive child of } s\\
-% (s, s') \not\in \badtx}} GV(s, s', d),&
-% \;\; \text{for $s$ alive, $d \in [0, D)$.} \\
-% \neg V(s) \leq 0,&\;\; \text{for $s$ not a goal.}
-%\end{align}
-
 \smallpar{C3-4}
-Variables $V(s, d)$ define a function that is total over the set of alive states,
-and such that $V(s)$ is within lower bound $V^*(s)$ and upper bound $\delta \cdot V^*(s)$:
-\begin{align}
- \bigvee_{V^*(s) \leq d \leq \delta \cdot V^*(s)} V(s,d),&\;\; \text{for $s$ alive.} \\
- \neg V(s, d) \lor \neg V(s, d')&\;\; \text{for $s$ alive, $1 \leq d < d' \leq D$.}
-\end{align}
-
-
-\smallpar{C5-6}
 Good transitions can be distinguished from bad transitions.
 Let $(s, s')$ and $(t, t')$ be \emph{representative} transitions
 of two different equivalence classes such that $(s, s') \not\in \badtx$
@@ -217,21 +185,42 @@ of two different equivalence classes such that $(s, s') \not\in \badtx$
 
 \noindent where $Dist(s, s', t, t')$ is shorthand for $\bigvee_{f \in D1\&2(s, s', t, t')} Select(f)$.
 
+\subsection{Acyclicity Constraints}
 
-\smallpar{C7 (Optional)}
-Goals are distinguishable from non-goals.
+\subsubsection{Option 1: Topological Sort}
+
+
+\smallpar{C5}
+Variables $V(s, d)$ define a function that is total over the set of alive states,
+and such that $V(s)$ is within lower bound $V^*(s)$ and upper bound $\delta \cdot V^*(s)$:
 \begin{align}
-\bigvee_{f \in D1(s, s')} Select(f),&\;\; \text{for $s$ goal, $s$ not a goal}
+ \bigvee_{V^*(s) \leq d \leq \delta \cdot V^*(s)} V(s,d),&\;\; \text{for $s$ alive.} \\
+ \neg V(s, d) \lor \neg V(s, d')&\;\; \text{for $s$ alive, $1 \leq d < d' \leq D$.} \tag{\theequation${}^\prime$}
 \end{align}
 
-\smallpar{C8 (Optional)}
-All selected features need to have some Good transition that takes them to $0$:
+
+\smallpar{C6}
+$V$ is always descending along Good transitions:
 \begin{align}
- Selected(f) \rightarrow \bigvee_{(s, s') \in Z(f)} Good(s, s'),&\;\; \text{for $f$ in pool}
+ Good(s, s') \land V(s', d) \rightarrow \bigvee_{d < k \leq D} V(s, k),&\;\; \text{for $s, s'$ alive, $(s, s') \not\in \badtx$, $d \in [1, D)$.} \\
+ V(s', D) \rightarrow \neg Good(s, s'),&\;\; \text{for $s, s'$ alive, $(s, s') \not\in \badtx$.} \tag{\theequation${}^\prime$}
 \end{align}
 
-\noindent where $Z(f)$ is the set transitions starting in an alive state that change the denotation of $f$ from something
-larger than 0 to 0.
+
+%\smallpar{C4-5} Any upper bound on $V(s)$ (for $s$ not a goal) needs to be justified:
+%\begin{align}
+% V(s) \leq d+1 \rightarrow \bigvee_{\substack{
+% s' \text{ goal child of } s\\
+% (s, s') \not\in \badtx}} Good(s, s') \lor
+% \bigvee_{\substack{
+% s' \text{ alive child of } s\\
+% (s, s') \not\in \badtx}} GV(s, s', d),&
+% \;\; \text{for $s$ alive, $d \in [0, D)$.} \\
+% \neg V(s) \leq 0,&\;\; \text{for $s$ not a goal.}
+%\end{align}
+
+
+\subsubsection{AC2. ASP}
 
 
 \subsection{Soft Constraints}

@@ -9,7 +9,6 @@ def experiments():
         test_domain="domain.pddl",
         feature_namer=floortile_names,
         pipeline="d2l_pipeline",
-        maxsat_encoding="d2l",
         num_states="all",
         concept_generator=None,
         parameter_generator=None,
@@ -36,7 +35,6 @@ def experiments():
         parameter_generator=None,
         use_equivalence_classes=True,
         # use_feature_dominance=True,
-        use_incremental_refinement=True,
     )
 
     return exps

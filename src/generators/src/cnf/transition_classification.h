@@ -2,28 +2,46 @@
 #pragma once
 
 #include <common/helpers.h>
-#include "generator.h"
-#include "types.h"
+#include <cnf/sample.h>
+#include <cnf/generator.h>
+#include <cnf/types.h>
+#include <cnf/solver.h>
 
 #include <numeric>
 
 
 namespace sltp::cnf {
 
-class D2LEncoding : public CNFEncoding {
+//! A map between feature IDs and transition IDs) and
+//! the CNF variable IDs that tell us whether features are selected in the solution and transitions are labeled as
+//! good in the solution
+struct VariableMapping {
+    //! A map from each feature index to the SAT variable ID of Selected(f)
+    std::vector<cnfvar_t> selecteds;
+
+    //! A map from transition IDs to SAT variable IDs:
+    std::unordered_map<unsigned, cnfvar_t> goods;
+
+    explicit VariableMapping(unsigned nfeatures) : selecteds(nfeatures, std::numeric_limits<uint32_t>::max())
+    {}
+};
+
+
+class D2LEncoding {
 public:
     enum class transition_type : bool {
         alive_to_solvable,
         alive_to_dead
     };
 
-    D2LEncoding(const TrainingSet& sample, const Options& options) :
-            CNFEncoding(sample, options),
+    D2LEncoding(const StateSpaceSample& sample, const Options& options) :
+            sample_(sample),
+            options(options),
+            nf_(sample.matrix().num_features()),
             transition_ids_(),
             transition_ids_inv_(),
             class_representatives_(),
             from_transition_to_eq_class_(),
-            types_(),
             necessarily_bad_transitions_(),
             feature_ids()
     {
@@ -39,7 +57,8 @@ public:
     }
 
 
-    sltp::cnf::CNFGenerationOutput write(CNFWriter& wr, const std::vector<transition_pair>& transitions_to_distinguish);
+
+    std::pair<cnf::CNFGenerationOutput, VariableMapping> write(CNFWriter& wr);
 
     inline unsigned get_transition_id(state_id_t s, state_id_t t) const { return transition_ids_.at(state_pair(s, t)); }
 
@@ -56,12 +75,12 @@ public:
     }
 
     inline int get_vstar(unsigned s) const {
-        int vstar = tr_set_.transitions().vstar(s);
+        int vstar = sample_.transitions_.vstar(s);
         return vstar < 0 ? -1 : vstar;
     }
 
     inline int get_max_v(unsigned s) const {
-        int vstar = tr_set_.transitions().vstar(s);
+        int vstar = get_vstar(s);
         return vstar < 0 ? -1 : std::ceil(options.v_slack * vstar);
     }
 
@@ -69,36 +88,40 @@ public:
         // return 20;
         // D will be the maximum over the set of alive states of the upper bounds on V_pi
         unsigned D = 0;
-        for (const auto s:all_alive()) {
+        for (const auto s:sample_.alive_states()) {
             auto max_v_s = get_max_v(s);
             if (max_v_s > D) D = max_v_s;
         }
         return D;
     }
 
-    using flaw_index_t = std::unordered_map<transition_id_t, std::vector<transition_id_t>>;
-    bool check_existing_solution_for_flaws(flaw_index_t& flaws) const;
-
     //! Whether the two given transitions are distinguishable through the given features alone
     bool are_transitions_d1d2_distinguishable(
             state_id_t s, state_id_t sprime, state_id_t t, state_id_t tprime, const std::vector<unsigned>& features) const;
 
-    CNFGenerationOutput refine_theory(CNFWriter& wr);
+    DNFPolicy generate_dnf_from_solution(const VariableMapping& variables, const SatSolution& solution);
 
 protected:
-    // A mapping from pairs of state to the assigned transition id
+    //! The transition sample data
+    const StateSpaceSample& sample_;
+
+    //! The CNF encoding options
+    const Options& options;
+
+    //! The number of features in the encoding
+    const std::size_t nf_;
+
+    //! A mapping from pairs of state to the assigned transition id
     std::unordered_map<state_pair, unsigned, boost::hash<state_pair>> transition_ids_;
-    // The reverse mapping
+
+    //! The reverse mapping
     std::vector<state_pair> transition_ids_inv_;
 
-    // A list of transition IDs that are the representative of their class
+    //! A list of transition IDs that are the representative of their class
     std::vector<unsigned> class_representatives_;
 
-    // A mapping from the ID of the transition to the ID of its equivalence class
+    //! A mapping from the ID of the transition to the ID of its equivalence class
     std::vector<unsigned> from_transition_to_eq_class_;
-
-    // A mapping from the ID of the transition to its transition type
-    std::vector<transition_type> types_;
 
     std::unordered_set<unsigned> necessarily_bad_transitions_;
 
@@ -108,25 +131,9 @@ protected:
     //!
     void compute_equivalence_relations();
 
-    //! Return a list with the IDs of those features that are not dominated by other features
-    std::vector<unsigned> prune_dominated_features();
-
-
-    //! Return DT(f), the set of pairs of transitions that are distinguished by the given feature f
-    std::vector<transition_pair> compute_dt(unsigned f);
-
-    std::vector<transition_pair> compute_transitions_to_distinguish(
-            bool load_transitions_from_previous_iteration, const flaw_index_t& flaws) const;
+    void report_eq_classes() const;
 
     std::vector<transition_pair> distinguish_all_transitions() const;
-
-    void store_transitions_to_distinguish(const std::vector<transition_pair> &transitions) const;
-
-    std::vector<transition_pair> load_transitions_to_distinguish() const;
-
-    std::vector<transition_pair> generate_t0_transitions(unsigned m=40) const;
-
-    void report_eq_classes() const;
 };
 
 } // namespaces

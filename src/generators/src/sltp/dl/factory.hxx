@@ -2,7 +2,7 @@
 #pragma once
 
 #include <sltp/dl/types.hxx>
-#include <sltp/utils.hxx>
+#include <common/utils.h>
 
 #include <ctime>
 #include <iostream>
@@ -50,7 +50,7 @@ struct SampleDenotationProperties {
 
 //! A cache from features to their sample denotations
 using feature_cache_t = std::unordered_map<
-        feature_sample_denotation_t, const Feature*, utils::container_hash<feature_sample_denotation_t>>;
+        feature_sample_denotation_t, const Feature*, sltp::utils::container_hash<feature_sample_denotation_t>>;
 
 class Factory {
 protected:
