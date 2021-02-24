@@ -69,6 +69,8 @@ Options parse_options(int argc, const char **argv) {
 
         ("acyclicity", po::value<std::string>()->default_value("topological"),
          "The acyclicity encoding to be used (options: {topological, reachability, asp}).")
+
+        ("encodings_dir", po::value<std::string>(), "The directory where the ASP encodings are.")
     ;
 
 
@@ -98,7 +100,7 @@ Options parse_options(int argc, const char **argv) {
     options.refinement_batch_size = vm["refinement-batch-size"].as<unsigned>();
     options.seed = vm["seed"].as<unsigned>();
     options.validate_features = parse_id_list(vm["validate-features"].as<std::string>());
-
+    options.encodings_dir = vm["encodings_dir"].as<std::string>();
     options.acyclicity = vm["acyclicity"].as<std::string>();
     if (options.acyclicity != "reachability" && options.acyclicity != "asp" && options.acyclicity != "topological") {
         throw po::validation_error(po::validation_error::invalid_option_value, "acyclicity");

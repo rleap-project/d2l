@@ -166,6 +166,8 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
 
         # The acyclicity encoding to be used
         acyclicity="topological",
+
+        encodings_dir=os.path.join(os.path.dirname(SLTP_SRC_DIR), "encodings"),
     )
 
     parameters = {**defaults, **kwargs}  # Copy defaults, overwrite with user-specified parameters
