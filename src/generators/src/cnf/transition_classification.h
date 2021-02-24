@@ -56,7 +56,8 @@ public:
         compute_equivalence_relations();
     }
 
-
+    sltp::cnf::CNFGenerationOutput generate_asp_instance_1(std::ofstream& os);
+    sltp::cnf::CNFGenerationOutput generate_asp_instance_10(std::ofstream& os);
 
     std::pair<cnf::CNFGenerationOutput, VariableMapping> write(CNFWriter& wr);
 
@@ -99,9 +100,13 @@ public:
     bool are_transitions_d1d2_distinguishable(
             state_id_t s, state_id_t sprime, state_id_t t, state_id_t tprime, const std::vector<unsigned>& features) const;
 
-    DNFPolicy generate_dnf_from_solution(const VariableMapping& variables, const SatSolution& solution);
+    DNFPolicy generate_dnf_from_solution(const VariableMapping& variables, const SatSolution& solution) const;
 
-protected:
+    DNFPolicy generate_dnf(const std::vector<unsigned>& goods, const std::vector<unsigned>& selecteds) const;
+    DNFPolicy generate_dnf(const std::vector<std::pair<unsigned, unsigned>>& goods, const std::vector<unsigned>& selecteds) const;
+
+
+        protected:
     //! The transition sample data
     const StateSpaceSample& sample_;
 

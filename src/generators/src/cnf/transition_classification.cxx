@@ -15,10 +15,10 @@ namespace sltp::cnf {
 
 using feature_value_t = FeatureMatrix::feature_value_t;
 
-sltp::cnf::transition_denotation compute_transition_denotation(feature_value_t s_f, feature_value_t sprime_f) {
+transition_denotation compute_transition_denotation(feature_value_t s_f, feature_value_t sprime_f) {
     int type_s = (int) sprime_f - (int) s_f; // <0 if DEC, =0 if unaffected, >0 if INC
     int sign = (type_s > 0) ? 1 : ((type_s < 0) ? -1 : 0); // Get the sign
-    return sltp::cnf::transition_denotation(bool(s_f > 0), sign);
+    return transition_denotation(bool(s_f > 0), sign);
 }
 
 
@@ -117,6 +117,151 @@ void D2LEncoding::report_eq_classes() const {
     }
 }
 
+
+CNFGenerationOutput D2LEncoding::generate_asp_instance_1(std::ofstream& os) {
+    const auto& mat = sample_.matrix();
+    const unsigned max_d = compute_D();
+
+    os << "#const maxd=" << max_d << "." << std::endl;
+    os << "#const delta=" << options.v_slack << "." << std::endl;
+    os << std::endl;
+
+    os << "state(0.." << mat.num_states() << ")." << std::endl;
+    os << "feature(0.." << mat.num_features() << ")." << std::endl;
+    os << std::endl;
+
+    for (unsigned s = 0; s < mat.num_states(); ++s) {
+        if (mat.is_deadend(s)) {
+            os << "dead(" << s << ")." << std::endl;
+        }
+        else if (mat.goal(s)) {
+            os << "goal(" << s << ")." << std::endl;
+        }
+        else {
+            os << "alive(" << s << ")." << std::endl;
+            os << "vstar(" << s << ", " << get_vstar(s) << ")." << std::endl;
+        }
+
+        for (unsigned sprime:sample_.successors(s)) {
+            os << "transition(" << s << ", " << sprime << ")." << std::endl;
+        }
+    }
+    os << std::endl;
+
+    for (unsigned f = 0; f < mat.num_features(); ++f) {
+        for (unsigned s = 0; s < mat.num_states(); ++s) {
+            os << "val(" << f << ", " << s << ", " << mat.entry(s, f) << ")." << std::endl;
+        }
+    }
+    os << std::endl;
+
+
+    for (unsigned f = 0; f < mat.num_features(); ++f) {
+        os << "weight(" << f << ", " << sample_.feature_weight(f) << ")." << std::endl;
+    }
+    os << std::endl;
+
+    return CNFGenerationOutput::Success;
+}
+
+
+CNFGenerationOutput D2LEncoding::generate_asp_instance_10(std::ofstream& os) {
+    unsigned n_bad_transitions = 0;
+    unsigned n_separation_clauses = 0;
+    unsigned n_goal_clauses = 0;
+
+    const auto& mat = sample_.matrix();
+
+//    os << "state(0.." << mat.num_states() << ")." << std::endl;
+    os << "%% We have a total of " << mat.num_features() << " features" << std::endl;
+    os << "feature(0.." << mat.num_features()-1 << ")." << std::endl;
+    os << std::endl;
+
+    os << "%% There are " << sample_.states_.size() << " in the sample" << std::endl;
+    for (auto s:sample_.states_) os << "sampled(" << s << "). ";
+    os << std::endl << std::endl;
+
+    os << "%% Sample description" << std::endl;
+    for (auto s = 0; s < mat.num_states(); ++s) {
+        if (!sample_.in_sample(s)) continue;
+
+        if (mat.is_deadend(s)) {
+            os << "dead(" << s << ")." << std::endl;
+        }
+        else if (mat.goal(s)) {
+            os << "goal(" << s << ")." << std::endl;
+        }
+        else {
+            os << "alive(" << s << ")." << std::endl;
+
+            for (unsigned sprime:sample_.successors(s)) {
+                os << "transition(" << s << ", " << sprime << ")." << std::endl;
+                const auto& [t, tprime] = get_state_pair(get_class_representative(s, sprime));
+                os << "repr(" << s << ", " << sprime << ", " << t << ", " << tprime << " )." << std::endl;
+            }
+        }
+    }
+    os << std::endl;
+
+
+    if (options.distinguish_goals) {
+        os << "%% Goal distinguishability (" << sample_.goal_states().size() << " goals):" << std::endl;
+        for (unsigned s:sample_.goal_states()) {
+            for (unsigned t:sample_.nongoal_states()) {
+
+                const auto d1feats = compute_d1_distinguishing_features(sample_, s, t);
+                if (d1feats.empty()) {
+                    undist_goal_warning(s, t);
+                    return CNFGenerationOutput::UnsatTheory;
+                }
+
+                os << ":-";
+                for (unsigned i=0, m=d1feats.size(); i<m; ++i) {
+                    os << "not sel(" << d1feats[i];
+                    if (i < m-1) os << "), ";
+                }
+                os << ")." << std::endl;
+                n_goal_clauses += 1;
+            }
+        }
+        os << std::endl;
+    }
+
+    os << "%% Bad transitions: " << std::endl;
+    for (const auto tx1:class_representatives_) {
+        if (is_necessarily_bad(tx1)) {
+            const auto& [s, sprime] = get_state_pair(tx1);
+            os << ":- good(" << s << ", " << sprime << ")." << std::endl;
+            n_bad_transitions += 1;
+        }
+    }
+    os << std::endl;
+
+
+    auto transitions_to_distinguish = distinguish_all_transitions();
+    os << "%% Distinguishability constraints for " << transitions_to_distinguish.size() << " pairs of transitions" << std::endl;
+    for (const auto& tpair:transitions_to_distinguish) {
+        assert (!is_necessarily_bad(tpair.tx1));
+        const auto& [s, sprime] = get_state_pair(tpair.tx1);
+        const auto& [t, tprime] = get_state_pair(tpair.tx2);
+
+        os << ":- good(" << s << ", " << sprime << "), not good(" << t << ", " << tprime << ")";
+        for (feature_t f:compute_d1d2_distinguishing_features(feature_ids, sample_, s, sprime, t, tprime)) {
+            os << ", " << "not sel(" << f << ")";
+        }
+        os << "." << std::endl;
+        n_separation_clauses += 1;
+    }
+    os << std::endl;
+
+    os << "%% Feature weights" << std::endl;
+    for (unsigned f = 0; f < mat.num_features(); ++f) {
+        os << "weight(" << f << ", " << sample_.feature_weight(f) << ")." << std::endl;
+    }
+    os << std::endl;
+
+    return CNFGenerationOutput::Success;
+}
 
 
 std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::write(CNFWriter& wr)
@@ -322,12 +467,8 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::write(CNFWrite
               << " pairs of transitions" << std::endl;
     for (const auto& tpair:transitions_to_distinguish) {
         assert (!is_necessarily_bad(tpair.tx1));
-        const auto& tx1pair = get_state_pair(tpair.tx1);
-        const auto s = tx1pair.first;
-        const auto sprime = tx1pair.second;
-        const auto& tx2pair = get_state_pair(tpair.tx2);
-        const auto t = tx2pair.first;
-        const auto tprime = tx2pair.second;
+        const auto& [s, sprime] = get_state_pair(tpair.tx1);
+        const auto& [t, tprime] = get_state_pair(tpair.tx2);
 
         cnfclause_t clause{Wr::lit(variables.goods.at(tpair.tx1), false)};
 
@@ -394,7 +535,7 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::write(CNFWrite
                             + n_v_function_clauses + n_separation_clauses
                             + n_goal_clauses + n_reachability_clauses);
 
-    return {sltp::cnf::CNFGenerationOutput::Success, variables};
+    return {CNFGenerationOutput::Success, variables};
 }
 
 std::vector<transition_pair> D2LEncoding::distinguish_all_transitions() const {
@@ -404,29 +545,19 @@ std::vector<transition_pair> D2LEncoding::distinguish_all_transitions() const {
     for (const auto tx1:class_representatives_) {
         if (is_necessarily_bad(tx1)) continue;
         for (const auto tx2:class_representatives_) {
-            transitions_to_distinguish.emplace_back(tx1, tx2);
+            if (tx1 != tx2) {
+                transitions_to_distinguish.emplace_back(tx1, tx2);
+            }
         }
     }
     return transitions_to_distinguish;
 }
 
 
-DNFPolicy D2LEncoding::generate_dnf_from_solution(const VariableMapping& variables, const SatSolution& solution) {
-    // Let's parse the relevant bits of the CNF solution:
-    std::vector<unsigned> selecteds, goods;
-    for (unsigned f=0; f < variables.selecteds.size(); ++f) {
-        auto varid = variables.selecteds[f];
-        if (varid>0 && solution.assignment.at(varid)) selecteds.push_back(f);
-    }
-
-    for (const auto& [txid, varid]:variables.goods) {
-        if (varid>0 && solution.assignment.at(varid)) goods.push_back(txid);
-    }
-
+DNFPolicy D2LEncoding::generate_dnf(const std::vector<std::pair<unsigned, unsigned>>& goods, const std::vector<unsigned>& selecteds) const {
     DNFPolicy dnf(selecteds);
-    for (const auto& tx:goods) {
+    for (const auto& [s, sprime]:goods) {
         DNFPolicy::term_t clause;
-        const auto& [s, sprime] = get_state_pair(tx);
 
         for (const auto& f:selecteds) {
             const auto& fs = sample_.matrix().entry(s, f);
@@ -439,6 +570,31 @@ DNFPolicy D2LEncoding::generate_dnf_from_solution(const VariableMapping& variabl
         dnf.terms.insert(clause);
     }
     return dnf;
+}
+
+
+DNFPolicy D2LEncoding::generate_dnf(const std::vector<unsigned>& goods, const std::vector<unsigned>& selecteds) const {
+    std::vector<std::pair<unsigned, unsigned>> pairs;
+    pairs.reserve(goods.size());
+    for (const auto& tx:goods) {
+        pairs.push_back(get_state_pair(tx));
+    }
+    return generate_dnf(pairs, selecteds);
+}
+
+
+DNFPolicy D2LEncoding::generate_dnf_from_solution(const VariableMapping& variables, const SatSolution& solution) const {
+    // Let's parse the relevant bits of the CNF solution:
+    std::vector<unsigned> selecteds, goods;
+    for (unsigned f=0; f < variables.selecteds.size(); ++f) {
+        auto varid = variables.selecteds[f];
+        if (varid>0 && solution.assignment.at(varid)) selecteds.push_back(f);
+    }
+
+    for (const auto& [txid, varid]:variables.goods) {
+        if (varid>0 && solution.assignment.at(varid)) goods.push_back(txid);
+    }
+    return generate_dnf(goods, selecteds);
 }
 
 bool D2LEncoding::are_transitions_d1d2_distinguishable(

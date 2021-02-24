@@ -70,7 +70,7 @@ public:
             matrix_(matrix), transitions_(transitions), states_(states.begin(), states.end())
     {
         // Let's classify the states for easier access
-        for (unsigned s:states) {
+        for (unsigned s:states_) {
             if (is_alive(s)) alive_states_.push_back(s);
             if (is_goal(s)) goal_states_.push_back(s);
             else nongoal_states_.push_back(s);
@@ -115,9 +115,8 @@ public:
         return transitions_.successors(s);
     }
 
-    
-    unsigned nstates_entire_sample() const {
-        return transitions_.num_states();
+    const TransitionSample& full_training_set() const {
+        return transitions_;
     }
 
     StateSpaceSample* add_states(const std::vector<unsigned>& states) const {
@@ -128,7 +127,7 @@ public:
 
     friend std::ostream& operator<<(std::ostream &os, const StateSpaceSample& o) { return o.print(os); }
     std::ostream& print(std::ostream &os) const {
-        os << "Sample [sz=" << states_.size() << "]: " << std::endl;
+        os << "Sample [sz=" << states_.size() << "]: ";
         for (const auto& s:states_) os << s << ", ";
         os << std::endl;
         return os;
@@ -138,10 +137,10 @@ public:
 StateSpaceSample* sample_initial_states(std::mt19937& rng, const TrainingSet& trset, unsigned n);
 
 std::vector<unsigned>
-find_flaws(std::mt19937& rng, const DNFPolicy& dnf, const StateSpaceSample& sample, unsigned batch_size);
+find_flaws(std::mt19937& rng, const DNFPolicy& dnf, const StateSpaceSample& sample, unsigned batch_size, bool verbose);
 
 std::vector<unsigned>
-test_policy(std::mt19937& rng, const DNFPolicy& dnf, const StateSpaceSample& sample, unsigned batch_size);
+test_policy(std::mt19937& rng, const DNFPolicy& dnf, const StateSpaceSample& sample, unsigned batch_size, bool verbose);
 
 void print_classifier(const sltp::FeatureMatrix& matrix, const DNFPolicy& dnf, const std::string& filename);
 
