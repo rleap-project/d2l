@@ -161,8 +161,8 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
         initial_sample_size=50,
         refinement_batch_size=20,
 
-        # Run in verbose mode to get more output, e.g. to help debugging
-        verbose=False,
+        # The level of verbosity - higher value means more verbosity
+        verbosity=0,
 
         # The acyclicity encoding to be used
         acyclicity="topological",

@@ -21,8 +21,8 @@ struct Options {
     //! dominated features and reduce the size of the encoding.
     bool use_feature_dominance;
 
-    //! Whether to be more verbose in the generation of the encoding
-    bool verbose;
+    //! The level of verbosity - higher value means more verbosity
+    unsigned verbosity;
 
     //! The slack value for the maximum allowed value for V_\pi(s) = slack * V^*(s)
     unsigned v_slack;

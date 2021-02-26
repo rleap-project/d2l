@@ -36,7 +36,8 @@ Options parse_options(int argc, const char **argv) {
 
     description.add_options()
         ("help,h", "Display this help message and exit.")
-        ("verbose,v", "Show extra debugging messages.")
+        ("verbose,v",  po::value<unsigned>()->default_value(0),
+                "The level of verbosity - higher value means more verbosity.")
 
         ("workspace,w", po::value<std::string>()->required(),
          "Directory where the input files (feature matrix, transition sample) reside, "
@@ -93,7 +94,7 @@ Options parse_options(int argc, const char **argv) {
     }
 
     options.workspace = vm["workspace"].as<std::string>();
-    options.verbose = vm.count("verbose") > 0;
+    options.verbosity = vm["verbosity"].as<unsigned>();
     options.use_equivalence_classes = vm.count("use-equivalence-classes") > 0;
     options.distinguish_goals = vm.count("distinguish-goals") > 0;
     options.v_slack = vm["v_slack"].as<unsigned>();

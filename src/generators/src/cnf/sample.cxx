@@ -130,7 +130,7 @@ std::vector<unsigned> StateSampler::sample_flaws(const DNFPolicy& dnf, unsigned 
     }
 
     std::cout << "[0]  ";
-    if (verbose) std::cout << "Flaw list: " << std::endl; for (auto f:flaws) std::cout << f << ", "; std::cout << std::endl;
+    if (verbosity) std::cout << "Flaw list: " << std::endl; for (auto f:flaws) std::cout << f << ", "; std::cout << std::endl;
 
     // Check (3)
     detect_cycles(dnf, trset, batch_size, states_to_check, flaws);
@@ -139,7 +139,7 @@ std::vector<unsigned> StateSampler::sample_flaws(const DNFPolicy& dnf, unsigned 
     flaws.resize(std::min(flaws.size(), (std::size_t) batch_size));
 
     std::cout << "[1]  ";
-    if (verbose) std::cout << "Flaw list: " << std::endl; for (auto f:flaws) std::cout << f << ", "; std::cout << std::endl;
+    if (verbosity) std::cout << "Flaw list: " << std::endl; for (auto f:flaws) std::cout << f << ", "; std::cout << std::endl;
 
     return flaws;
 }

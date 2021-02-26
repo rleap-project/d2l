@@ -179,16 +179,16 @@ int run(const Options& options) {
     // Read input training set
     std::cout << "Parsing training data... " << std::endl;
     sltp::TrainingSet trset(
-            read_feature_matrix(options.workspace, options.verbose),
-            read_transition_data(options.workspace, options.verbose),
+            read_feature_matrix(options.workspace, options.verbosity),
+            read_transition_data(options.workspace, options.verbosity),
             read_input_sample(options.workspace));
     std::cout << "Done. Training sample: " << trset << std::endl;
 
-    if (options.verbose) {
+    if (options.verbosity) {
         std::cout << "Sampling " << options.initial_sample_size << " alive states at random" << std::endl;
     }
 
-    auto sampler = select_sampler(options.sampling_strategy, rng, trset, options.verbose);
+    auto sampler = select_sampler(options.sampling_strategy, rng, trset, options.verbosity);
 
     auto sample = std::unique_ptr<StateSpaceSample>(sampler->sample_initial_states(options.initial_sample_size));
 
@@ -196,7 +196,7 @@ int run(const Options& options) {
 
     for (unsigned it=1; true; ++it) {
         std::cout << std::endl << std::endl << "###  STARTING ITERATION " << it << "  ###" << std::endl;
-        if (options.verbose) std::cout << *sample << std::endl;
+        if (options.verbosity) std::cout << *sample << std::endl;
 
         auto strategy = choose_strategy(options);
 

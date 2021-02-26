@@ -140,12 +140,12 @@ class StateSampler {
 protected:
     std::mt19937& rng;
     const TrainingSet& trset;
-    bool verbose;
+    unsigned verbosity;
 
 
 public:
-    StateSampler(std::mt19937& rng, const TrainingSet& trset, bool verbose)
-        : rng(rng), trset(trset), verbose(verbose)
+    StateSampler(std::mt19937& rng, const TrainingSet& trset, unsigned verbosity)
+        : rng(rng), trset(trset), verbosity(verbosity)
     {}
 
     virtual StateSpaceSample* sample_initial_states(unsigned n) = 0;
@@ -161,8 +161,8 @@ protected:
 
 class RandomSampler : public StateSampler {
 public:
-    RandomSampler(std::mt19937& rng, const TrainingSet& trset, bool verbose)
-        : StateSampler(rng, trset, verbose)
+    RandomSampler(std::mt19937& rng, const TrainingSet& trset, unsigned verbosity)
+        : StateSampler(rng, trset, verbosity)
     {}
 
     StateSpaceSample* sample_initial_states(unsigned n) override;
@@ -174,8 +174,8 @@ protected:
 
 class GoalDistanceSampler : public StateSampler {
 public:
-    GoalDistanceSampler(std::mt19937& rng, const TrainingSet& trset, bool verbose)
-            : StateSampler(rng, trset, verbose)
+    GoalDistanceSampler(std::mt19937& rng, const TrainingSet& trset, unsigned verbosity)
+            : StateSampler(rng, trset, verbosity)
     {}
 
     StateSpaceSample* sample_initial_states(unsigned n) override;
@@ -187,9 +187,9 @@ protected:
     std::vector<unsigned> randomize_and_sort_alive_states(unsigned n = std::numeric_limits<unsigned>::max());
 };
 
-inline std::unique_ptr<StateSampler> select_sampler(const std::string& strategy, std::mt19937& rng, const TrainingSet& trset, bool verbose) {
-    if (strategy == "random") return std::make_unique<RandomSampler>(rng, trset, verbose);
-    else if (strategy == "goal") return std::make_unique<GoalDistanceSampler>(rng, trset, verbose);
+inline std::unique_ptr<StateSampler> select_sampler(const std::string& strategy, std::mt19937& rng, const TrainingSet& trset, unsigned verbosity) {
+    if (strategy == "random") return std::make_unique<RandomSampler>(rng, trset, verbosity);
+    else if (strategy == "goal") return std::make_unique<GoalDistanceSampler>(rng, trset, verbosity);
     else throw std::runtime_error("Unknown state sampling strategy " + strategy);
 }
 
