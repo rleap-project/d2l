@@ -119,14 +119,12 @@ public:
     std::vector<const Concept*> generate_concepts(Cache &cache, const Sample &sample, const std::clock_t& start_time);
 
     void generate_comparison_features(
-            const std::vector<const Feature*>& base_features,
             Cache& cache,
             const Sample& sample,
             const TransitionSample& transitions,
             feature_cache_t& seen_denotations);
 
     void generate_conditional_features(
-            const std::vector<const Feature*>& base_features,
             Cache& cache,
             const Sample& sample,
             const TransitionSample& transitions,

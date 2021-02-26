@@ -20,12 +20,12 @@ private:
 
 protected:
     const unsigned long id_;
-    int complexity_;
+    unsigned complexity_;
 
 public:
     explicit DLBaseElement(int complexity) : id_(global_id++), complexity_(complexity) { }
 
-    [[nodiscard]] int complexity() const { return complexity_; }
+    [[nodiscard]] unsigned complexity() const { return complexity_; }
 
     [[nodiscard]] unsigned long id() const { return id_; }
 
@@ -86,7 +86,7 @@ public:
     const sample_denotation_t* denotation(Cache &cache, const Sample &sample) const override {
         const auto m = sample.num_states();
 
-        auto res = new sample_denotation_t();
+        auto* res = new sample_denotation_t();
         res->reserve(m);
         for (int i = 0; i < m; ++i) {
             res->emplace_back(denotation(cache, sample, sample.state(i)));
@@ -129,7 +129,7 @@ public:
     const sample_denotation_t* denotation(Cache &cache, const Sample &sample) const override {
         const auto m = sample.num_states();
 
-        auto res = new sample_denotation_t();
+        auto* res = new sample_denotation_t();
         res->reserve(m);
         for (int i = 0; i < m; ++i) {
             res->emplace_back(denotation(cache, sample, sample.state(i)));
@@ -166,7 +166,7 @@ public:
 
     const sample_denotation_t* denotation(Cache &cache, const Sample &sample) const override {
         const auto m = sample.num_states();
-        auto res = new sample_denotation_t();
+        auto* res = new sample_denotation_t();
         res->reserve(m);
         for (int i = 0; i < m; ++i) {
             const auto n = sample.num_objects(i);
@@ -194,7 +194,7 @@ public:
     const sample_denotation_t* denotation(Cache &cache, const Sample &sample) const override {
         const auto m = sample.num_states();
 
-        auto res = new sample_denotation_t();
+        auto* res = new sample_denotation_t();
         res->reserve(m);
         for (int i = 0; i < m; ++i) {
             state_denotation_t std(sample.num_objects(i), false);
@@ -216,7 +216,6 @@ protected:
 public:
     AndConcept(const Concept *concept1, const Concept *concept2) :
             Concept(1 + concept1->complexity() + concept2->complexity()),
-//        Concept(1 + concept1->complexity() * concept2->complexity()),
             concept1_(concept1),
             concept2_(concept2) {
     }
@@ -230,7 +229,7 @@ public:
         const sample_denotation_t& sd_sub1 = cache.find_sample_denotation(*concept1_, m);
         const sample_denotation_t& sd_sub2 = cache.find_sample_denotation(*concept2_, m);
 
-        auto res = new sample_denotation_t();
+        auto* res = new sample_denotation_t();
         res->reserve(m);
         for( int i = 0; i < m; ++i ) {
             const auto n = sample.num_objects(i);
@@ -267,14 +266,14 @@ public:
         const auto m = sample.num_states();
         const sample_denotation_t& sd_sub1 = cache.find_sample_denotation(*concept_, m);
 
-        auto res = new sample_denotation_t();
+        auto *res = new sample_denotation_t();
         res->reserve(m);
-        for (int i = 0; i < m; ++i) {
+        for (unsigned i = 0; i < m; ++i) {
             const auto n = sample.num_objects(i);
             const auto& std_sub1 = sd_sub1.get(i, n);
 
             state_denotation_t nsd(n, false);
-            for (int j = 0; j < n; ++j) nsd[j] = !std_sub1[j];
+            for (unsigned j = 0; j < n; ++j) nsd[j] = !std_sub1[j];
             res->emplace_back(cache.find_or_insert_state_denotation(nsd));
         }
         return res;
@@ -306,9 +305,9 @@ public:
         const sample_denotation_t& sd_sub1 = cache.find_sample_denotation(*concept_, m);
         const sample_denotation_t& sd_sub2 = cache.find_sample_denotation(*role_, m);
 
-        auto res = new sample_denotation_t();
+        auto *res = new sample_denotation_t();
         res->reserve(m);
-        for( int i = 0; i < m; ++i ) {
+        for( unsigned i = 0; i < m; ++i ) {
             const auto n = sample.num_objects(i);
             const auto& c_den = sd_sub1.get(i, n);
             const auto& r_den = sd_sub2.get(i, n*n);
@@ -357,7 +356,7 @@ public:
         const sample_denotation_t& sd_sub1 = cache.find_sample_denotation(*concept_, m);
         const sample_denotation_t& sd_sub2 = cache.find_sample_denotation(*role_, m);
 
-        auto res = new sample_denotation_t();
+        auto* res = new sample_denotation_t();
         res->reserve(m);
         for( int i = 0; i < m; ++i ) {
             const auto n = sample.num_objects(i);
@@ -409,7 +408,7 @@ public:
         const sample_denotation_t& sd_sub1 = cache.find_sample_denotation(*r1_, m);
         const sample_denotation_t& sd_sub2 = cache.find_sample_denotation(*r2_, m);
 
-        auto res = new sample_denotation_t();
+        auto *res = new sample_denotation_t();
         res->reserve(m);
         for( int i = 0; i < m; ++i ) {
             const auto n = sample.num_objects(i);
@@ -458,7 +457,7 @@ public:
     const sample_denotation_t* denotation(Cache &cache, const Sample &sample) const override {
         const auto m = sample.num_states();
 
-        auto res = new sample_denotation_t();
+        auto* res = new sample_denotation_t();
         res->reserve(m);
         for( int i = 0; i < m; ++i ) {
             res->emplace_back(denotation(cache, sample, sample.state(i)));
@@ -530,7 +529,7 @@ public:
         const auto m = sample.num_states();
         const sample_denotation_t& sd_sub1 = cache.find_sample_denotation(*role_, m);
 
-        auto res = new sample_denotation_t();
+        auto* res = new sample_denotation_t();
         res->reserve(m);
         for (int i = 0; i < m; ++i) {
             const auto n = sample.num_objects(i);
@@ -598,7 +597,7 @@ public:
         const auto m = sample.num_states();
         const sample_denotation_t& sd_sub1 = cache.find_sample_denotation(*role_, m);
 
-        auto res = new sample_denotation_t();
+        auto* res = new sample_denotation_t();
         res->reserve(m);
         for (int i = 0; i < m; ++i) {
             const auto n = sample.num_objects(i);
@@ -652,7 +651,7 @@ public:
         const sample_denotation_t& sd_sub1 = cache.find_sample_denotation(*role_, m);
         const sample_denotation_t& sd_sub2 = cache.find_sample_denotation(*restriction_, m);
 
-        auto res = new sample_denotation_t();
+        auto* res = new sample_denotation_t();
         res->reserve(m);
         for (int i = 0; i < m; ++i) {
             const auto n = sample.num_objects(i);
@@ -702,7 +701,7 @@ public:
         const sample_denotation_t& sd_sub1 = cache.find_sample_denotation(*r1_, m);
         const sample_denotation_t& sd_sub2 = cache.find_sample_denotation(*r2_, m);
 
-        auto res = new sample_denotation_t();
+        auto* res = new sample_denotation_t();
         res->reserve(m);
         for (int i = 0; i < m; ++i) {
             const auto n = sample.num_objects(i);
@@ -731,7 +730,7 @@ public:
     virtual ~Feature() = default;
     [[nodiscard]] virtual const Feature* clone() const = 0;
 
-    [[nodiscard]] virtual int complexity() const = 0;
+    [[nodiscard]] virtual unsigned complexity() const = 0;
     [[nodiscard]] virtual int value(const Cache &cache, const Sample &sample, const State &state) const = 0;
     [[nodiscard]] virtual std::string as_str() const = 0;
 
@@ -758,7 +757,7 @@ public:
         return new NullaryAtomFeature(*this);
     }
 
-    [[nodiscard]] int complexity() const override { // Nullary atoms have complexity 0 by definition
+    [[nodiscard]] unsigned complexity() const override { // Nullary atoms have complexity 0 by definition
         return 1;
     }
 
@@ -795,7 +794,7 @@ public:
         return new BooleanFeature(concept_);
     }
 
-    [[nodiscard]] int complexity() const override {
+    [[nodiscard]] unsigned complexity() const override {
         return concept_->complexity();
     }
 
@@ -829,7 +828,7 @@ public:
         return new NumericalFeature(concept_);
     }
 
-    [[nodiscard]] int complexity() const override {
+    [[nodiscard]] unsigned complexity() const override {
         return concept_->complexity();
     }
 
@@ -874,7 +873,7 @@ public:
         return f;
     }
 
-    int complexity() const override {
+    unsigned complexity() const override {
         return 1 + start_->complexity() + end_->complexity() + role_->complexity();
     }
     int value(const Cache &cache, const Sample &sample, const State &state) const override;
@@ -901,7 +900,7 @@ public:
         return new ConditionalFeature(condition_, body_);
     }
 
-    [[nodiscard]] int complexity() const override {
+    [[nodiscard]] unsigned complexity() const override {
         return 1 + condition_->complexity() + body_->complexity();
     }
 
@@ -939,7 +938,7 @@ public:
         return new DifferenceFeature(f1, f2);
     }
 
-    [[nodiscard]] int complexity() const override {
+    [[nodiscard]] unsigned complexity() const override {
         return 1 + f1->complexity() + f2->complexity();
     }
 

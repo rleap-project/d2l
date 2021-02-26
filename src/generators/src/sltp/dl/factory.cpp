@@ -179,13 +179,13 @@ void Factory::generate_features(
     }
 
     // create comparison features here so that only cardinality features are used to build them
-    generate_comparison_features(features_, cache, sample, transitions, seen_denotations);
+    generate_comparison_features(cache, sample, transitions, seen_denotations);
 
     // create distance features
     generate_distance_features(concepts, cache, sample, transitions, seen_denotations);
 
     // create conditional features from boolean conditions and numeric bodies
-    generate_conditional_features(features_, cache, sample, transitions, seen_denotations);
+    generate_conditional_features(cache, sample, transitions, seen_denotations);
 
     print_feature_count();
 }
@@ -346,11 +346,11 @@ const Predicate* Factory::get_role_predicate(const Role* r) {
     throw std::runtime_error("Unknown role type");
 }
 
-void Factory::output_feature_info(std::ostream &os, const Cache &cache, const Sample &sample) const {
+void Factory::output_feature_info(std::ostream &os, const Cache& /*cache*/, const Sample& /*sample*/) const {
     auto num_features = features_.size();
 
     // Line #1: feature names
-    for( int i = 0; i < num_features; ++i ) {
+    for( unsigned i = 0; i < num_features; ++i ) {
         const Feature &feature = *features_[i];
         os << feature.as_str();
         if( 1 + i < num_features ) os << "\t";
@@ -358,7 +358,7 @@ void Factory::output_feature_info(std::ostream &os, const Cache &cache, const Sa
     os << std::endl;
 
     // Line #2: feature complexities
-    for( int i = 0; i < num_features; ++i ) {
+    for( unsigned i = 0; i < num_features; ++i ) {
         const Feature &feature = *features_[i];
         os << feature.complexity();
         if( 1 + i < num_features ) os << "\t";
@@ -366,7 +366,7 @@ void Factory::output_feature_info(std::ostream &os, const Cache &cache, const Sa
     os << std::endl;
 
     // Line #3: feature types (0: boolean; 1: numeric)
-    for( int i = 0; i < num_features; ++i ) {
+    for( unsigned i = 0; i < num_features; ++i ) {
         const Feature* feature = features_[i];
         os << (feature->is_boolean() ? 0 : 1);
         if( 1 + i < num_features ) os << "\t";
@@ -374,7 +374,7 @@ void Factory::output_feature_info(std::ostream &os, const Cache &cache, const Sa
     os << std::endl;
 
     // Line #4: whether feature is goal feature (0: No; 1: yes)
-    for( int i = 0; i < num_features; ++i ) {
+    for( unsigned i = 0; i < num_features; ++i ) {
         auto it = goal_features_.find(i);
         os << (it == goal_features_.end() ? 0 : 1);
         if( 1 + i < num_features ) os << "\t";
@@ -513,11 +513,11 @@ std::ostream& Factory::report_dl_data(std::ostream &os) const {
     os << std::endl;
 
     os << "All concepts (by layer) under complexity " << options.complexity_bound << ": " << std::endl;
-    for( int layer = 0; layer < concepts_.size(); ++layer ) {
+    for( unsigned layer = 0; layer < concepts_.size(); ++layer ) {
         os << "    Layer " << layer << " (sz=" << concepts_[layer].size() << "): ";
-        for( int i = 0; i < int(concepts_[layer].size()); ++i ) {
+        for( unsigned i = 0; i < concepts_[layer].size(); ++i ) {
             os << concepts_[layer][i]->fullstr();
-            if( 1 + i < int(concepts_[layer].size()) ) os << ", ";
+            if( 1 + i < concepts_[layer].size() ) os << ", ";
         }
         os << std::endl;
     }
@@ -596,7 +596,6 @@ void Factory::print_feature_count() const {
 }
 
 void Factory::generate_conditional_features(
-        const std::vector<const Feature*>& base_features,
         Cache& cache,
         const Sample& sample,
         const TransitionSample& transitions,
@@ -626,7 +625,6 @@ void Factory::generate_conditional_features(
 }
 
 void Factory::generate_comparison_features(
-        const std::vector<const Feature*>& base_features,
         Cache& cache,
         const Sample& sample,
         const TransitionSample& transitions,
@@ -936,11 +934,11 @@ std::vector<const Concept*> Factory::generate_goal_concepts_and_roles(Cache &cac
 
 void Factory::output_feature_matrix(std::ostream &os, const Cache &cache, const Sample &sample) const {
     auto num_features = features_.size();
-    for( int i = 0; i < sample.num_states(); ++i ) {
+    for( unsigned i = 0; i < sample.num_states(); ++i ) {
         const State &state = sample.state(i);
 
         // one line per state with the numeric denotation of all features
-        for( int j = 0; j < num_features; ++j ) {
+        for( unsigned j = 0; j < num_features; ++j ) {
             const Feature &feature = *features_[j];
             os << feature.value(cache, sample, state);
             if( 1 + j < num_features ) os << " ";
