@@ -129,8 +129,10 @@ std::vector<unsigned> StateSampler::sample_flaws(const DNFPolicy& dnf, unsigned 
         if (flaws.size()>=batch_size) break;
     }
 
-    std::cout << "[0]  ";
-    if (verbosity) std::cout << "Flaw list: " << std::endl; for (auto f:flaws) std::cout << f << ", "; std::cout << std::endl;
+    if (verbosity>1) {
+        std::cout << "[0]  ";
+        std::cout << "Flaw list: " << std::endl; for (auto f:flaws) std::cout << f << ", "; std::cout << std::endl;
+    }
 
     // Check (3)
     detect_cycles(dnf, trset, batch_size, states_to_check, flaws);
@@ -138,8 +140,11 @@ std::vector<unsigned> StateSampler::sample_flaws(const DNFPolicy& dnf, unsigned 
     // Remove any excedent of flaws to conform to the required amount
     flaws.resize(std::min(flaws.size(), (std::size_t) batch_size));
 
-    std::cout << "[1]  ";
-    if (verbosity) std::cout << "Flaw list: " << std::endl; for (auto f:flaws) std::cout << f << ", "; std::cout << std::endl;
+
+    if (verbosity>1) {
+        std::cout << "[1]  ";
+        std::cout << "Flaw list: " << std::endl; for (auto f:flaws) std::cout << f << ", "; std::cout << std::endl;
+    }
 
     return flaws;
 }
@@ -196,7 +201,7 @@ void print_classifier(const sltp::FeatureMatrix& matrix, const DNFPolicy& dnf, c
 
     os.close();
     ostxt.close();
-    std::cout << "DNF transition-classifier saved in " << filename << ".dnf and in " << filename << ".txt" << std::endl;
+    std::cout << "DNF transition-classifier saved in " << filename << ".txt" << std::endl;
 }
 
 

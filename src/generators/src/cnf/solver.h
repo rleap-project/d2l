@@ -27,8 +27,8 @@ struct ASPSolution {
 };
 
 
-SatSolution solve_cnf(const sltp::cnf::Options& options);
+SatSolution solve_cnf(const std::string& cnf_filename, const std::string& output_filename, bool verbose);
 
-ASPSolution solve_asp(const std::string& domain_filename, const std::string& instance_filename, const std::string& output_filename);
+ASPSolution solve_asp(const std::string& domain_filename, const std::string& instance_filename, const std::string& output_filename, bool verbose);
 
 }

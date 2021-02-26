@@ -11,17 +11,20 @@
 
 namespace sltp::cnf {
 
-SatSolution solve_cnf(const Options& options) {
-    auto command = "open-wbo_static " + options.workspace + "/theory.wsat > " + options.workspace + "/maxsat_solver_run.log";
-    std::cout << "Calling: " << command << std::endl;
-    auto res = system((command).c_str());
-    UNUSED(res);
-//    if (res != 0) {
-//        throw std::runtime_error("Maxsat solver exited with return value of " + std::to_string(res));
-//    }
-    std::cout << "OpenWBO returned with exit code " << res << std::endl;
+int call(const std::string& cmd, bool verbose) {
+    if (verbose) {
+        std::cout << "Calling: " << cmd << std::endl;
+    }
+    auto res = system((cmd).c_str());
+    if (verbose) {
+        std::cout << "Call returned with exit code " << res << std::endl;
+    }
+    return res;
+}
 
-    auto solutionf = utils::get_ifstream(options.workspace + "/maxsat_solver_run.log");
+SatSolution solve_cnf(const std::string& cnf_filename, const std::string& output_filename, bool verbose) {
+    call("open-wbo_static " + cnf_filename + " > " + output_filename, verbose);
+    auto solutionf = utils::get_ifstream(output_filename);
     std::string line;
 
     SatSolution solution;
@@ -55,18 +58,9 @@ SatSolution solve_cnf(const Options& options) {
 }
 
 
-ASPSolution solve_asp(const std::string& domain_filename, const std::string& instance_filename, const std::string& output_filename) {
-
-//    auto command = "clingo " + domain_filename + " " + instance_filename + " > " + output_filename;
-//    auto command = "clingo " + domain_filename + " " + instance_filename + " | tee " + output_filename;
-    auto command = "clingo -V0 --outf=1 " + domain_filename + " " + instance_filename + " | tee " + output_filename;
-    std::cout << "Calling: " << command << std::endl;
-    auto res = system((command).c_str());
-    std::cout << "Clingo returned with exit code " << res << std::endl;
-    if (res != 0) {
-        throw std::runtime_error("Maxsat solver exited with return value of " + std::to_string(res));
-    }
-
+ASPSolution solve_asp(const std::string& domain_filename, const std::string& instance_filename, const std::string& output_filename, bool verbose) {
+//    call("clingo " + domain_filename + " " + instance_filename + " > " + output_filename, options.verbosity>1);
+    call("clingo -V0 --outf=1 " + domain_filename + " " + instance_filename + " | tee " + output_filename, verbose);
     auto solutionf = utils::get_ifstream(output_filename);
     std::string line;
     std::vector<std::string> atoms;

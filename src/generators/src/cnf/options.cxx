@@ -36,7 +36,7 @@ Options parse_options(int argc, const char **argv) {
 
     description.add_options()
         ("help,h", "Display this help message and exit.")
-        ("verbose,v",  po::value<unsigned>()->default_value(0),
+        ("verbosity,v",  po::value<unsigned>()->default_value(0),
                 "The level of verbosity - higher value means more verbosity.")
 
         ("workspace,w", po::value<std::string>()->required(),

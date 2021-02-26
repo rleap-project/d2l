@@ -89,10 +89,12 @@ void D2LEncoding::compute_equivalence_relations() {
     }
 
     // Print some stats
-    std::cout << "Number of transitions/equivalence classes: " << transition_ids_.size()
-              << "/" << class_representatives_.size() << std::endl;
-    std::cout << "Number of necessarily bad transitions/classes: " << necessarily_bad_transitions_.size()
-              << "/" << necessarily_bad_classes.size() << std::endl;
+    if (options.verbosity > 0) {
+        std::cout << "Number of transitions/equivalence classes: " << transition_ids_.size()
+                  << "/" << class_representatives_.size() << std::endl;
+        std::cout << "Number of necessarily bad transitions/classes: " << necessarily_bad_transitions_.size()
+                  << "/" << necessarily_bad_classes.size() << std::endl;
+    }
 
 //    report_eq_classes();
 }
@@ -298,9 +300,11 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::write(CNFWrite
     unsigned n_reachability_clauses = 0;
     unsigned n_goal_clauses = 0;
 
-    std::cout << "Generating CNF encoding for " << sample_.alive_states().size() << " alive states, "
-              <<  transition_ids_.size() << " alive-to-solvable and alive-to-dead transitions and "
-              << class_representatives_.size() << " transition equivalence classes" << std::endl;
+    if (options.verbosity>0) {
+        std::cout << "Generating CNF encoding for " << sample_.alive_states().size() << " alive states, "
+                  <<  transition_ids_.size() << " alive-to-solvable and alive-to-dead transitions and "
+                  << class_representatives_.size() << " transition equivalence classes" << std::endl;
+    }
 
     const unsigned max_d = compute_D();
 
@@ -381,11 +385,13 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::write(CNFWrite
 
 
     // From this point on, no more variables will be created. Print total count.
-    std::cout << "A total of " << wr.nvars() << " variables were created" << std::endl;
-    std::cout << "\tSelect(f): " << variables.selecteds.size() << std::endl;
-    std::cout << "\tGood(s, s'): " << variables.goods.size() << std::endl;
-    std::cout << "\tV(s, d): " << vs.size() << std::endl;
-    std::cout << "\tReach(s, s'): " << reach.size() << std::endl;
+    if (options.verbosity>0) {
+        std::cout << "A total of " << wr.nvars() << " variables were created" << std::endl;
+        std::cout << "\tSelect(f): " << variables.selecteds.size() << std::endl;
+        std::cout << "\tGood(s, s'): " << variables.goods.size() << std::endl;
+        std::cout << "\tV(s, d): " << vs.size() << std::endl;
+        std::cout << "\tReach(s, s'): " << reach.size() << std::endl;
+    }
 
     // Check our variable count is correct
     assert(wr.nvars() == variables.selecteds.size() + variables.goods.size() + vs.size() + reach.size());
@@ -474,8 +480,10 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::write(CNFWrite
 
     // Clauses (6), (7):
     auto transitions_to_distinguish = distinguish_all_transitions();
-    std::cout << "Posting distinguishability constraints for " << transitions_to_distinguish.size()
-              << " pairs of transitions" << std::endl;
+    if (options.verbosity>0) {
+        std::cout << "Posting distinguishability constraints for " << transitions_to_distinguish.size()
+                  << " pairs of transitions" << std::endl;
+    }
     for (const auto& tpair:transitions_to_distinguish) {
         assert (!is_necessarily_bad(tpair.tx1));
         const auto& [s, sprime] = get_state_pair(tpair.tx1);
@@ -520,12 +528,12 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::write(CNFWrite
     if (!options.validate_features.empty()) {
         // If we only want to validate a set of features, we just force the Selected(f) to be true for them,
         // plus we don't really need any soft constraints.
-        std::cout << "Enforcing " << feature_ids.size() << " feature selections and ignoring soft constraints" << std::endl;
+//        std::cout << "Enforcing " << feature_ids.size() << " feature selections and ignoring soft constraints" << std::endl;
         for (unsigned f:feature_ids) {
             wr.cl({Wr::lit(variables.selecteds[f], true)});
         }
     } else {
-        std::cout << "Posting (weighted) soft constraints for " << variables.selecteds.size() << " features" << std::endl;
+//        std::cout << "Posting (weighted) soft constraints for " << variables.selecteds.size() << " features" << std::endl;
         for (unsigned f:feature_ids) {
             wr.cl({Wr::lit(variables.selecteds[f], false)}, sample_.feature_weight(f));
         }
@@ -533,19 +541,20 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::write(CNFWrite
 
     n_selected_clauses += feature_ids.size();
 
-    // Print a breakdown of the clauses
-    std::cout << "A total of " << wr.nclauses() << " clauses were created" << std::endl;
-    std::cout << "\tPolicy completeness [1]: " << n_good_tx_clauses << std::endl;
-    std::cout << "\tTransition separation [5,6]: " << n_separation_clauses << std::endl;
-    std::cout << "\tV descending along good transitions [X]: " << n_descending_clauses << std::endl;
-    std::cout << "\tV is total function within bounds [X]: " << n_v_function_clauses << std::endl;
-    std::cout << "\tGoal separation [X]: " << n_goal_clauses << std::endl;
-    std::cout << "\tReachability [X]: " << n_reachability_clauses << std::endl;
-    std::cout << "\t(Weighted) Select(f): " << n_selected_clauses << std::endl;
-    assert(wr.nclauses() == n_selected_clauses + n_good_tx_clauses + n_descending_clauses
-                            + n_v_function_clauses + n_separation_clauses
-                            + n_goal_clauses + n_reachability_clauses);
-
+    if (options.verbosity>0) {
+        // Print a breakdown of the clauses
+        std::cout << "A total of " << wr.nclauses() << " clauses were created" << std::endl;
+        std::cout << "\tPolicy completeness [1]: " << n_good_tx_clauses << std::endl;
+        std::cout << "\tTransition separation [5,6]: " << n_separation_clauses << std::endl;
+        std::cout << "\tV descending along good transitions [X]: " << n_descending_clauses << std::endl;
+        std::cout << "\tV is total function within bounds [X]: " << n_v_function_clauses << std::endl;
+        std::cout << "\tGoal separation [X]: " << n_goal_clauses << std::endl;
+        std::cout << "\tReachability [X]: " << n_reachability_clauses << std::endl;
+        std::cout << "\t(Weighted) Select(f): " << n_selected_clauses << std::endl;
+        assert(wr.nclauses() == n_selected_clauses + n_good_tx_clauses + n_descending_clauses
+                                + n_v_function_clauses + n_separation_clauses
+                                + n_goal_clauses + n_reachability_clauses);
+    }
     return {CNFGenerationOutput::Success, variables};
 }
 

@@ -43,7 +43,9 @@ generate_maxsat_cnf(const StateSpaceSample& sample, const cnf::Options& options)
     // Now that we have finished printing all clauses of the encoding and have a final count of vars and clauses,
     // we add those relevant info to the final DIMACS file, and also iterate through the temp file replacing the value
     // of TOP where appropriate.
-    std::cout << "Writing final DIMACS file..." << std::endl;
+    if (options.verbosity>1) {
+        std::cout << "Writing final DIMACS file..." << std::endl;
+    }
     auto dimacs = sltp::utils::get_ofstream(options.workspace + "/theory.wsat");
     auto t = std::time(nullptr);
     auto tm = *std::localtime(&t);
@@ -64,8 +66,8 @@ generate_maxsat_cnf(const StateSpaceSample& sample, const cnf::Options& options)
     // Once done, we can remove the temporary file
     remove(tmpfilename.c_str());
     float total_time = sltp::utils::read_time_in_seconds() - start_time;
-    std::cout << "CNF Generation Time: " << total_time << std::endl;
-    std::cout << "CNF Theory: " << writer.nvars() << " vars + " << writer.nclauses() << " clauses" << std::endl;
+    std::cout << "CNF [" << writer.nvars() << " vars, " << writer.nclauses()
+              << " clauses] generated in " << total_time << " sec." << std::endl;
     return {output, generator, variables};
 }
 
@@ -108,7 +110,8 @@ public:
 
         // Else try solving the encoding
         float solt0 = sltp::utils::read_time_in_seconds();
-        auto solution = solve_cnf(options);
+
+        auto solution = solve_cnf(options.workspace + "/theory.wsat", options.workspace + "/maxsat_solver_run.log", options.verbosity>1);
         auto tsolution = sltp::utils::read_time_in_seconds() - solt0;
         time.solution_time += tsolution;
 
@@ -117,7 +120,7 @@ public:
             return {CNFGenerationOutput::UnsatTheory, DNFPolicy()};
         }
 
-        std::cout << "Solver found cost-" << solution.cost << " solution in " << tsolution << "sec." << std::endl;
+        std::cout << "Solution with cost " << solution.cost << " found in " << tsolution << "sec." << std::endl;
         auto dnf = encoder.generate_dnf_from_solution(variables, solution);
 //            dnf = minimize_dnf();
         return {CNFGenerationOutput::Success, dnf};
@@ -148,7 +151,8 @@ public:
         auto solution = solve_asp(
                 options.encodings_dir + "/encoding10.lp",
                 instance,
-                options.workspace + "/clingo_output.log");
+                options.workspace + "/clingo_output.log",
+                options.verbosity>1);
         auto tsolution = sltp::utils::read_time_in_seconds() - solt0;
         time.solution_time += tsolution;
 
@@ -156,7 +160,7 @@ public:
             std::cout << "Theory detected as UNSAT by solver." << std::endl;
             return {CNFGenerationOutput::UnsatTheory, DNFPolicy()};
         }
-        std::cout << "Solver found cost-" << solution.cost << " solution in " << tsolution << "sec." << std::endl;
+        std::cout << "Solution with cost " << solution.cost << " found in " << tsolution << "sec." << std::endl;
 
         auto dnf = generator.generate_dnf(solution.goods, solution.selecteds);
 //            dnf = minimize_dnf();
@@ -195,7 +199,12 @@ int run(const Options& options) {
     CNFGenerationOutput output;
 
     for (unsigned it=1; true; ++it) {
-        std::cout << std::endl << std::endl << "###  STARTING ITERATION " << it << "  ###" << std::endl;
+        if (options.verbosity>0) {
+            std::cout << std::endl << std::endl << "###  STARTING ITERATION " << it << "  ###" << std::endl;
+        } else {
+            std::cout << std::endl << "Starting iteration " << it << std::endl;
+        }
+
         if (options.verbosity) std::cout << *sample << std::endl;
 
         auto strategy = choose_strategy(options);
@@ -203,26 +212,28 @@ int run(const Options& options) {
         const auto& [output, dnf] = strategy->run(options, *sample, time);
         if (output != CNFGenerationOutput::Success) break;
 
-        print_features(*sample, dnf);
+        if (options.verbosity>0) {
+            print_features(*sample, dnf);
+        }
 
         auto flaws = sampler->sample_flaws(dnf, options.refinement_batch_size);
 //        auto flaws = test_policy(rng, dnf, *sample, options.refinement_batch_size);
         if (flaws.empty()) {
-            std::cout << "Iteration #" << it << " found solution with no flaws" << std::endl;
+            std::cout << "Solution found in iteration #" << it << " is correct!" << std::endl;
             print_classifier(sample->matrix(), dnf, options.workspace + "/classifier");
             break;
         }
 
 //        print_classifier(sample->matrix(), dnf, options.workspace + "/classifier_" + std::to_string(it));
-        std::cout << "Iteration #" << it << " found " << flaws.size() << " flaws" << std::endl;
+        std::cout << "Solution found in iteration #" << it << " has " << flaws.size() << " flaws" << std::endl;
         sample = std::unique_ptr<StateSpaceSample>(sample->add_states(flaws));
 
     }
 
-    std::cout << "Total times across all iterations:" << std::endl;
-    std::cout << "\tCNF Generation: " << time.generation_time << std::endl;
-    std::cout << "\tMaxSAT Solver: " << time.solution_time << std::endl;
-    std::cout << "\tTOTAL: " << sltp::utils::read_time_in_seconds() - start_time << std::endl;
+    std::cout << "Total times: ";
+    std::cout << "Theory generation: " << time.generation_time;
+    std::cout << ", Solver: " << time.solution_time;
+    std::cout << ", TOTAL: " << sltp::utils::read_time_in_seconds() - start_time << std::endl;
 
     return static_cast<std::underlying_type_t<CNFGenerationOutput>>(output);
 }
