@@ -168,6 +168,7 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
         acyclicity="topological",
 
         encodings_dir=os.path.join(os.path.dirname(SLTP_SRC_DIR), "encodings"),
+        sampling_strategy="random"
     )
 
     parameters = {**defaults, **kwargs}  # Copy defaults, overwrite with user-specified parameters

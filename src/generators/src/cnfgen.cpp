@@ -187,7 +187,10 @@ int run(const Options& options) {
     if (options.verbose) {
         std::cout << "Sampling " << options.initial_sample_size << " alive states at random" << std::endl;
     }
-    auto sample = std::unique_ptr<StateSpaceSample>(sample_initial_states(rng, trset, options.initial_sample_size));
+
+    auto sampler = select_sampler(options.sampling_strategy, rng, trset, options.verbose);
+
+    auto sample = std::unique_ptr<StateSpaceSample>(sampler->sample_initial_states(options.initial_sample_size));
 
     CNFGenerationOutput output;
 
@@ -202,7 +205,7 @@ int run(const Options& options) {
 
         print_features(*sample, dnf);
 
-        auto flaws = find_flaws(rng, dnf, *sample, options.refinement_batch_size, options.verbose);
+        auto flaws = sampler->sample_flaws(dnf, options.refinement_batch_size);
 //        auto flaws = test_policy(rng, dnf, *sample, options.refinement_batch_size);
         if (flaws.empty()) {
             std::cout << "Iteration #" << it << " found solution with no flaws" << std::endl;

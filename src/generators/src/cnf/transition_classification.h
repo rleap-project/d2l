@@ -76,8 +76,7 @@ public:
     }
 
     inline int get_vstar(unsigned s) const {
-        int vstar = sample_.transitions_.vstar(s);
-        return vstar < 0 ? -1 : vstar;
+        return sample_.transitions_.vstar(s);
     }
 
     inline int get_max_v(unsigned s) const {

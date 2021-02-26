@@ -16,22 +16,6 @@ std::vector<unsigned> randomize_int_sequence(std::mt19937& rng, unsigned n) {
     return allints;
 }
 
-StateSpaceSample* sample_initial_states(std::mt19937& rng, const sltp::TrainingSet& trset, unsigned n) {
-    const auto& transitions = trset.transitions();
-    const auto& matrix = trset.matrix();
-
-    auto allstates = randomize_int_sequence(rng, transitions.num_states());
-
-    // Collect the first n alive states in the random order in allstates.
-    std::vector<unsigned> sampled;
-    for (const auto& s:allstates) {
-        if (transitions.is_alive(s)) sampled.push_back(s);
-        if (sampled.size() >= n) break;
-    }
-
-    return new StateSpaceSample(matrix, transitions, sampled);
-}
-
 
 bool evaluate_dnf(unsigned s, unsigned sprime, const DNFPolicy &dnf, const sltp::FeatureMatrix& matrix) {
     for (const auto& term:dnf.terms) {
@@ -53,57 +37,26 @@ bool evaluate_dnf(unsigned s, unsigned sprime, const DNFPolicy &dnf, const sltp:
 }
 
 
-int select_action(unsigned s, const DNFPolicy& dnf, const StateSpaceSample& sample) {
-    for (unsigned sprime:sample.successors(s)) {
-        if (evaluate_dnf(s, sprime, dnf, sample.matrix())) {
+int select_action(unsigned s, const DNFPolicy& dnf, const TrainingSet& trset) {
+    for (unsigned sprime:trset.transitions().successors(s)) {
+        if (evaluate_dnf(s, sprime, dnf, trset.matrix())) {
             return (int) sprime;
         }
     }
     return -1;
 }
 
-std::vector<unsigned>
-find_flaws(std::mt19937& rng, const DNFPolicy& dnf, const StateSpaceSample& sample, unsigned batch_size, bool verbose) {
-    std::vector<unsigned> flaws;
 
-    // We want to check the following over the  entire training set:
-    //   (1) All alive states s have some outgoing transition (s, _) labeled as good
-    //   (2) There is no alive-to-unsolvable transition labeled as good
-    //   (3) There is no cycle among Good transitions
-
-    // We randomize the order in which we check alive states
-    auto alive = sample.full_training_set().all_alive(); // Make a non-const copy that we can shuffle
-    std::shuffle(alive.begin(), alive.end(), rng);
-
-    for (unsigned s:alive) {
-        // Check (1)
-        if (select_action(s, dnf, sample) == -1) {
-            //std::cout << "No transition defined as good for state " << s << ", adding it to flaw list" << std::endl;
-            flaws.push_back(s);
-        }
-
-        // Check (2)
-        for (unsigned sprime:sample.successors(s)) {
-            bool is_good = evaluate_dnf(s, sprime, dnf, sample.matrix());
-            if (is_good && sample.is_unsolvable(sprime)) {
-                flaws.push_back(s);
-                break;
-            }
-        }
-
-        if (flaws.size()>=batch_size) break;
-    }
-
-    // Check (3)
-    const unsigned N = sample.full_training_set().num_states();
+void detect_cycles(const DNFPolicy& dnf, const TrainingSet& trset, unsigned batch_size, const std::vector<unsigned>& alive, std::vector<unsigned>& flaws) {
+    const unsigned N = trset.transitions().num_states();
 
     using graph_t = boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS>;
     graph_t graph(N);
 
     // Build graph
     for (unsigned s:alive) {
-        for (unsigned sprime:sample.successors(s)) {
-            if (sample.is_alive(sprime) && evaluate_dnf(s, sprime, dnf, sample.matrix())) {
+        for (unsigned sprime:trset.transitions().successors(s)) {
+            if (trset.transitions().is_alive(sprime) && evaluate_dnf(s, sprime, dnf, trset.matrix())) {
                 boost::add_edge(s, sprime, graph);
             }
         }
@@ -124,88 +77,91 @@ find_flaws(std::mt19937& rng, const DNFPolicy& dnf, const StateSpaceSample& samp
         if (flaws.size()>=batch_size) break;
     }
 
-//    for (auto i = 0; i < component.size(); ++i) std::cout << "Vertex " << i << " in CC " << component[i] << std::endl;
+    //    for (auto i = 0; i < component.size(); ++i) std::cout << "Vertex " << i << " in CC " << component[i] << std::endl;
+}
+
+std::vector<unsigned> StateSampler::randomize_all_alive_states(unsigned n) {
+    auto alive = trset.transitions().all_alive(); // Make a non-const copy that we can shuffle
+    std::shuffle(alive.begin(), alive.end(), rng);
+    alive.resize(std::min(alive.size(), (std::size_t) n));
+    return alive;
+}
+
+StateSpaceSample* RandomSampler::sample_initial_states(unsigned n) {
+    return new StateSpaceSample(trset.matrix(), trset.transitions(), randomize_all_alive_states(n));
+}
+
+
+std::vector<unsigned> RandomSampler::sample_flaws(const DNFPolicy& dnf, unsigned batch_size) {
+    // We randomize the order in which we check alive states
+    return sample_flaws(dnf, batch_size, randomize_all_alive_states());
+}
+
+
+StateSpaceSample* GoalDistanceSampler::sample_initial_states(unsigned n) {
+    return new StateSpaceSample(trset.matrix(), trset.transitions(), randomize_and_sort_alive_states(n));
+}
+
+
+std::vector<unsigned> StateSampler::sample_flaws(const DNFPolicy& dnf, unsigned batch_size, const std::vector<unsigned>& states_to_check) {
+    std::vector<unsigned> flaws;
+
+    // We want to check the following over the  entire training set:
+    //   (1) All alive states s have some outgoing transition (s, _) labeled as good
+    //   (2) There is no alive-to-unsolvable transition labeled as good
+    //   (3) There is no cycle among Good transitions
+    for (unsigned s:states_to_check) {
+        // Check (1)
+        if (select_action(s, dnf, trset) == -1) {
+            //std::cout << "No transition defined as good for state " << s << ", adding it to flaw list" << std::endl;
+            flaws.push_back(s);
+        }
+
+        // Check (2)
+        for (unsigned sprime:trset.transitions().successors(s)) {
+            bool is_good = evaluate_dnf(s, sprime, dnf, trset.matrix());
+            if (is_good && trset.transitions().is_unsolvable(sprime)) {
+                flaws.push_back(s);
+                break;
+            }
+        }
+
+        if (flaws.size()>=batch_size) break;
+    }
+
+    std::cout << "[0]  ";
+    if (verbose) std::cout << "Flaw list: " << std::endl; for (auto f:flaws) std::cout << f << ", "; std::cout << std::endl;
+
+    // Check (3)
+    detect_cycles(dnf, trset, batch_size, states_to_check, flaws);
 
     // Remove any excedent of flaws to conform to the required amount
     flaws.resize(std::min(flaws.size(), (std::size_t) batch_size));
 
+    std::cout << "[1]  ";
     if (verbose) std::cout << "Flaw list: " << std::endl; for (auto f:flaws) std::cout << f << ", "; std::cout << std::endl;
 
     return flaws;
 }
 
 
-std::vector<unsigned>
-test_policy(std::mt19937& rng, const DNFPolicy& dnf, const StateSpaceSample& sample, unsigned batch_size, bool verbose) {
-    std::vector<unsigned> flaws;
-    std::vector<unsigned> roots;
-
-    const auto states = randomize_int_sequence(rng, sample.full_training_set().num_states());
-    for (unsigned s:states) {
-        if (!sample.is_alive(s)) continue;
-        roots.push_back(s);
-    }
-
-    for (const auto& root:roots) {
-        unsigned current = root;
-
-        std::unordered_set<unsigned> closed{current};
-        std::vector<unsigned> path{current};
-
-        while (!sample.is_goal(current)) {
-            auto next = select_action(current, dnf, sample);
-//            std::cout << "Policy advises transition (" << current << ", " << next << ")" << std::endl;
-
-            if (next == -1) {
-                // The policy is not defined on state "current"
-//                std::cout << "Policy not defined on state " << current << std::endl;
-                flaws.push_back(current);
-                break;
-            }
-
-            if (sample.is_unsolvable(next)) {
-                // The policy lead us into an unsolvable state
-//                std::cout << "Policy reaches unsolvable state " << next << std::endl;
-                flaws.push_back(current);
-                break;
-            }
-
-            if (!closed.insert(next).second) {
-                // We found a loop - mark all states in the loop as flaws
-//                std::cout << "Policy reached loop on state " << next << std::endl;
-                auto start = std::find(path.begin(), path.end(), next);
-                flaws.insert(flaws.end(), start, path.end());
-
-//                std::cout << "Loop: ";
-//                for (auto it = std::find(path.begin(), path.end(), next); it != path.end(); ++it) {
-//                    std::cout << *it << ", ";
-//                }
-//                std::cout << std::endl;
-
-                break;
-            }
-
-            // The state is previously unseen
-            path.push_back(next);
-//            std::cout << "Path so far: ";
-//            for (auto s:path) {
-//                std::cout << s << ", ";
-//            }
-//            std::cout << std::endl;
-            current = next;
-        }
-
-//        std::cout << std::endl;
-//        std::cout << std::endl;
-        if (flaws.size()>=batch_size) break;
-    }
-
-//    std::cout << "Flaw list: " << std::endl;
-//    for (auto f:flaws) std::cout << f << ", ";
-//    std::cout << std::endl;
-
-    return flaws;
+std::vector<unsigned> GoalDistanceSampler::randomize_and_sort_alive_states(unsigned n) {
+    auto sample = randomize_all_alive_states();
+    // Sort states in ascending order of their min-distance to the goal V*(s)
+    std::sort(sample.begin(), sample.end(), [&](const auto& lhs, const auto& rhs) {
+        return trset.transitions_.vstar(lhs) < trset.transitions_.vstar(rhs);
+    });
+    sample.resize(std::min(sample.size(), (std::size_t) n));
+    return sample;
 }
+
+
+std::vector<unsigned> GoalDistanceSampler::sample_flaws(const DNFPolicy& dnf, unsigned batch_size) {
+    // We look for samples in order of increasing distance to goal.
+    return sample_flaws(dnf, batch_size, randomize_and_sort_alive_states());
+}
+
+
 
 
 std::string print_term(const sltp::FeatureMatrix& matrix, const DNFPolicy::term_t& term, bool txt) {

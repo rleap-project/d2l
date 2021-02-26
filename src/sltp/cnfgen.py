@@ -25,6 +25,7 @@ def invoke_cpp_module(config, data, validate_features=None):
     args += ["--verbose"] if config.verbose else []
     args += ["--acyclicity", str(config.acyclicity)]
     args += ["--encodings_dir", str(config.encodings_dir)]
+    args += ["--sampling_strategy", str(config.sampling_strategy)]
     retcode = execute([cmd] + args)
 
     return {  # Let's map the numeric code returned by the c++ app into an ExitCode object

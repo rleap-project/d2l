@@ -134,14 +134,64 @@ public:
     }
 };
 
-StateSpaceSample* sample_initial_states(std::mt19937& rng, const TrainingSet& trset, unsigned n);
-
-std::vector<unsigned>
-find_flaws(std::mt19937& rng, const DNFPolicy& dnf, const StateSpaceSample& sample, unsigned batch_size, bool verbose);
-
-std::vector<unsigned>
-test_policy(std::mt19937& rng, const DNFPolicy& dnf, const StateSpaceSample& sample, unsigned batch_size, bool verbose);
-
 void print_classifier(const sltp::FeatureMatrix& matrix, const DNFPolicy& dnf, const std::string& filename);
+
+class StateSampler {
+protected:
+    std::mt19937& rng;
+    const TrainingSet& trset;
+    bool verbose;
+
+
+public:
+    StateSampler(std::mt19937& rng, const TrainingSet& trset, bool verbose)
+        : rng(rng), trset(trset), verbose(verbose)
+    {}
+
+    virtual StateSpaceSample* sample_initial_states(unsigned n) = 0;
+
+    virtual std::vector<unsigned> sample_flaws(const DNFPolicy& dnf, unsigned batch_size) = 0;
+
+
+protected:
+    std::vector<unsigned> randomize_all_alive_states(unsigned n = std::numeric_limits<unsigned>::max());
+    std::vector<unsigned> sample_flaws(const DNFPolicy& dnf, unsigned batch_size, const std::vector<unsigned>& states_to_check);
+
+};
+
+class RandomSampler : public StateSampler {
+public:
+    RandomSampler(std::mt19937& rng, const TrainingSet& trset, bool verbose)
+        : StateSampler(rng, trset, verbose)
+    {}
+
+    StateSpaceSample* sample_initial_states(unsigned n) override;
+    std::vector<unsigned> sample_flaws(const DNFPolicy& dnf, unsigned batch_size) override;
+
+protected:
+    using StateSampler::sample_flaws;
+};
+
+class GoalDistanceSampler : public StateSampler {
+public:
+    GoalDistanceSampler(std::mt19937& rng, const TrainingSet& trset, bool verbose)
+            : StateSampler(rng, trset, verbose)
+    {}
+
+    StateSpaceSample* sample_initial_states(unsigned n) override;
+    std::vector<unsigned> sample_flaws(const DNFPolicy& dnf, unsigned batch_size) override;
+
+protected:
+    using StateSampler::sample_flaws;
+
+    std::vector<unsigned> randomize_and_sort_alive_states(unsigned n = std::numeric_limits<unsigned>::max());
+};
+
+inline std::unique_ptr<StateSampler> select_sampler(const std::string& strategy, std::mt19937& rng, const TrainingSet& trset, bool verbose) {
+    if (strategy == "random") return std::make_unique<RandomSampler>(rng, trset, verbose);
+    else if (strategy == "goal") return std::make_unique<GoalDistanceSampler>(rng, trset, verbose);
+    else throw std::runtime_error("Unknown state sampling strategy " + strategy);
+}
+
 
 }

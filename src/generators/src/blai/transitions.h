@@ -58,7 +58,10 @@ public:
     std::size_t num_states() const { return num_states_; }
     std::size_t num_transitions() const { return num_transitions_; }
 
-    int vstar(unsigned sid) const { return vstar_.at(sid); }
+    int vstar(unsigned sid) const {
+        auto vstar = vstar_.at(sid);
+        return vstar < 0 ? -1 : vstar;
+    }
 
     const std::vector<unsigned>& successors(unsigned s) const {
         return trdata_.at(s);

@@ -169,6 +169,7 @@ CNFGenerationOutput D2LEncoding::generate_asp_instance_10(std::ofstream& os) {
     unsigned n_bad_transitions = 0;
     unsigned n_separation_clauses = 0;
     unsigned n_goal_clauses = 0;
+    unsigned nrules = 0;
 
     const auto& mat = sample_.matrix();
 
@@ -198,8 +199,10 @@ CNFGenerationOutput D2LEncoding::generate_asp_instance_10(std::ofstream& os) {
                 os << "transition(" << s << ", " << sprime << ")." << std::endl;
                 const auto& [t, tprime] = get_state_pair(get_class_representative(s, sprime));
                 os << "repr(" << s << ", " << sprime << ", " << t << ", " << tprime << " )." << std::endl;
+                nrules += 1;
             }
         }
+        nrules += 1;
     }
     os << std::endl;
 
@@ -222,6 +225,7 @@ CNFGenerationOutput D2LEncoding::generate_asp_instance_10(std::ofstream& os) {
                 }
                 os << ")." << std::endl;
                 n_goal_clauses += 1;
+                nrules += 1;
             }
         }
         os << std::endl;
@@ -233,6 +237,7 @@ CNFGenerationOutput D2LEncoding::generate_asp_instance_10(std::ofstream& os) {
             const auto& [s, sprime] = get_state_pair(tx1);
             os << ":- good(" << s << ", " << sprime << ")." << std::endl;
             n_bad_transitions += 1;
+            nrules += 1;
         }
     }
     os << std::endl;
@@ -251,14 +256,19 @@ CNFGenerationOutput D2LEncoding::generate_asp_instance_10(std::ofstream& os) {
         }
         os << "." << std::endl;
         n_separation_clauses += 1;
+        nrules += 1;
     }
     os << std::endl;
 
     os << "%% Feature weights" << std::endl;
     for (unsigned f = 0; f < mat.num_features(); ++f) {
         os << "weight(" << f << ", " << sample_.feature_weight(f) << ")." << std::endl;
+        nrules += 1;
     }
     os << std::endl;
+
+    // Print a breakdown of the clauses
+    std::cout << "A total of " << nrules << " ground rules were created" << std::endl;
 
     return CNFGenerationOutput::Success;
 }
@@ -311,7 +321,7 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::write(CNFWrite
         }
     }
 
-
+    unsigned acyclicity_radius = 99999;
     if (options.acyclicity == "topological") {
         // Create variables V(s, d) variables for all alive state s and d in 1..D
         for (const auto s:sample_.alive_states()) {
@@ -439,6 +449,7 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::write(CNFWrite
                 if (is_necessarily_bad(get_transition_id(s, sprime))) continue; // includes alive-to-dead transitions
                 if (!sample_.is_alive(sprime)) continue;
                 if (!sample_.in_sample(sprime)) continue;
+                if (get_vstar(s) > acyclicity_radius) continue;
 
                 const auto good_s_prime = variables.goods.at(get_class_representative(s, sprime));
 

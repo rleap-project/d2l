@@ -36,6 +36,9 @@ struct Options {
     //! The directory where the ASP encodings are
     std::string encodings_dir;
 
+    //! The strategy to sample states when generating the encoding
+    std::string sampling_strategy;
+
     //! An optional list with the a subset of features (feature IDs) that will be, if present, enforced as Selected;
     //! excluding the rest of features from the pool
     std::vector<unsigned> validate_features;
