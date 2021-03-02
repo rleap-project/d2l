@@ -102,46 +102,6 @@ class FeatureMatrix {
             }
         }
 
-        FeatureMatrix resample(const std::unordered_map<unsigned, unsigned>& mapping) const {
-            auto nstates = mapping.size();
-
-            std::unordered_set<unsigned> goals, deadend;
-            for (unsigned s:goals_) {
-                auto it = mapping.find(s);
-                if (it != mapping.end()) goals.insert(it->second);
-            }
-            for (unsigned s:deadends_) {
-                auto it = mapping.find(s);
-                if (it != mapping.end()) deadend.insert(it->second);
-            }
-
-            FeatureMatrix matrix(nstates, num_features_, goals.size());
-            // Feature data remains unchanged
-            matrix.feature_data_ = feature_data_;
-            matrix.feature_name_to_id_ = feature_name_to_id_;
-            matrix.binary_features_ = binary_features_;
-            matrix.numeric_features_ = numeric_features_;
-
-            // Remap state data
-            matrix.goals_ = goals;
-            matrix.deadends_ = deadend;
-
-            // The mapping [0, n] -> [0, m], for n > m, needs to be surjective and map
-            // to a "gap-free" range
-            std::unordered_map<unsigned, unsigned> inv_mapping;
-            for (const auto& elem:mapping) {
-                assert(elem.second < nstates);
-                inv_mapping.emplace(elem.second, elem.first);
-            }
-            assert(nstates == inv_mapping.size());
-
-            matrix.rowdata_.reserve(nstates);
-            for (unsigned s = 0; s < nstates; ++s) {
-                matrix.rowdata_.push_back(rowdata_.at(inv_mapping.at(s)));
-            }
-
-            return matrix;
-        }
 
         // readers
         void read(std::ifstream &is) {
@@ -157,7 +117,7 @@ class FeatureMatrix {
 
             // read feature costs
             for (unsigned i = 0; i < num_features_; ++i) {
-                unsigned cost;
+                unsigned cost = 0;
                 is >> cost;
                 assert(cost > 0);
                 assert(feature_data_[i].second == 0);
@@ -180,16 +140,16 @@ class FeatureMatrix {
 
             // Read the actual feature matrix data
             rowdata_.reserve(num_states_);
-            feature_value_t value;
+            feature_value_t value = 0;
             for (int i = 0; i < num_states_; ++i) {
-                unsigned s, nentries;
+                unsigned s = 0, nentries = 0;
                 is >> s >> nentries;
                 assert(i == s);  // Make sure states are listed in increasing order
 
                 std::vector<feature_value_t> data(num_features_, 0);
                 for(unsigned j = 0; j < nentries; ++j) {
                     char filler;
-                    unsigned f;
+                    unsigned f = 0;
                     is >> f >> filler >> value;
                     assert(filler == ':');
                     assert(f < num_features_);
@@ -218,7 +178,7 @@ class FeatureMatrix {
         }
 
         static FeatureMatrix read_dump(std::ifstream &is, bool verbose) {
-            unsigned num_states, num_features, num_goals;
+            unsigned num_states = 0, num_features = 0, num_goals = 0;
             is >> num_states >> num_features >> num_goals;
             FeatureMatrix matrix(num_states, num_features, num_goals);
             matrix.read(is);

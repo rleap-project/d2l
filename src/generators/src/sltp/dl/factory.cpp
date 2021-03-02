@@ -365,14 +365,6 @@ void Factory::output_feature_info(std::ostream &os, const Cache& /*cache*/, cons
     }
     os << std::endl;
 
-    // Line #3: feature types (0: boolean; 1: numeric)
-    for( unsigned i = 0; i < num_features; ++i ) {
-        const Feature* feature = features_[i];
-        os << (feature->is_boolean() ? 0 : 1);
-        if( 1 + i < num_features ) os << "\t";
-    }
-    os << std::endl;
-
     // Line #4: whether feature is goal feature (0: No; 1: yes)
     for( unsigned i = 0; i < num_features; ++i ) {
         auto it = goal_features_.find(i);

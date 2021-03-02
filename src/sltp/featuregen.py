@@ -138,7 +138,7 @@ def transform_generator_output(config, sample, matrix_filename, info_filename):
     logging.info("Transforming generator output to numpy format...")
     import numpy as np
 
-    logging.info("Reading feature information from {}".format(info_filename))
+    logging.info(f"Reading feature information from {info_filename}")
     with open(info_filename, "r") as f:
         # Line  # 1: feature names
         names = f.readline().rstrip().split("\t")
@@ -146,20 +146,11 @@ def transform_generator_output(config, sample, matrix_filename, info_filename):
         # Line #2: feature complexities
         complexities = [int(x) for x in f.readline().rstrip().split("\t")]
 
-        # Line #3: feature types (0: boolean; 1: numeric)
-        types = [int(x) for x in f.readline().rstrip().split("\t")]
-
-        # Line #4: whether feature is goal feature (0: No; 1: yes)
-        in_goal_features = [bool(int(x)) for x in f.readline().rstrip().split("\t")]
-        in_goal_features = set(i for i, v in enumerate(in_goal_features, 0) if v)  # Transform into a set of indexes
-
     num_features = len(names)
-    assert num_features == len(complexities) == len(types)
-    num_numeric = sum(types)
-    num_binary = num_features - num_numeric
-    logging.info("Read {} features: {} numeric + {} binary".format(num_features, num_numeric, num_binary))
+    assert num_features == len(complexities)
+    logging.info(f"Read a total of {num_features} features")
 
-    logging.info("Reading denotation matrix from {}".format(matrix_filename))
+    logging.info(f"Reading denotation matrix from {matrix_filename}")
     # Convert features to a numpy array with n rows and m columns, where n=num states, m=num features
 
     with open(matrix_filename, "r") as f:
@@ -173,9 +164,8 @@ def transform_generator_output(config, sample, matrix_filename, info_filename):
             data = line.rstrip().split(' ')
             matrix[i] = [cast_feature_value_to_numpy_value(int(x)) for x in data]
 
-    logging.info("Read denotation matrix with dimensions {}".format(matrix.shape))
+    logging.info(f"Read denotation matrix with dimensions {matrix.shape}")
     print_actual_output(sample, config, names, complexities, matrix)
-    return in_goal_features, len(names)
 
 
 def generate_output_from_handcrafted_features(sample, config, features, model_cache):
@@ -265,22 +255,19 @@ def generate_feature_pool(config, sample):
     if config.feature_generator is not None:
         features = deal_with_serialized_features(language, config.feature_generator, config.serialized_feature_filename)
         generate_output_from_handcrafted_features(sample, config, features, model_cache)
-        return ExitCode.Success, dict(enforced_feature_idxs=[], in_goal_features=[],
-                                      model_cache=model_cache)
+        return ExitCode.Success, dict(enforced_feature_idxs=[], model_cache=model_cache)
 
     if invoke_cpp_generator(config) != 0:
         return ExitCode.FeatureGenerationUnknownError, dict()
 
     # Read off the output of the module and transform it into the numpy matrices to be consumed
     # by the next pipeline step
-    in_goal_features, nfeatures = transform_generator_output(
+    transform_generator_output(
         config, sample,
         os.path.join(config.experiment_dir, "feature-matrix.io"),
         os.path.join(config.experiment_dir, "feature-info.io"),)
 
-    return ExitCode.Success, dict(enforced_feature_idxs=[],
-                                  in_goal_features=in_goal_features,
-                                  model_cache=model_cache)
+    return ExitCode.Success, dict(enforced_feature_idxs=[], model_cache=model_cache)
 
 
 def invoke_cpp_generator(config):
@@ -316,7 +303,7 @@ def deal_with_serialized_features(language, feature_generator, serialized_featur
 def print_feature_matrix(filename, matrix, state_ids, goals, deadends, names, complexities):
     ngoals, nfeatures = len(goals), len(names)
     assert nfeatures == len(complexities) == matrix.shape[1]
-    logging.info("Printing matrix of {} features x {} states to '{}'".format(nfeatures, len(state_ids), filename))
+    logging.info(f"Printing matrix of {nfeatures} features x {len(state_ids)} states to '{filename}'")
 
     with open(filename, 'w') as f:
         # Header row: <#states> <#features> <#goals>

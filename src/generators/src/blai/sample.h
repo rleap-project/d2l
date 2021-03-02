@@ -35,41 +35,6 @@ public:
         return matrix_.is_deadend(s);
     }
 
-    //! Remap the states in the current sample, whose IDs are assumed to span the full range [0..n],
-    //! into a smaller range [0..m] with the m states that are either contained in `selected` or a successor of them
-    /*
-    TrainingSet resample(const std::unordered_set<unsigned>& selected) const {
-
-        // Add all successors of selected states
-        std::set<unsigned> closed; // set must be sorted
-        for (unsigned s:selected) {
-            closed.insert(s);
-            const auto& succ = transitions_.successors(s);
-            closed.insert(succ.begin(), succ.end());
-        }
-
-        // Generate the mapping
-        std::unordered_map<unsigned, unsigned> mapping;
-        unsigned i = 0;
-        for (unsigned s:closed) { // closed is guaranteed to be sorted
-            mapping.emplace(s, i++);
-        }
-
-//        std::cout << "Selected: " << std::endl;
-//        for (unsigned s:selected)  std::cout << s << ", ";
-//        std::cout << std::endl;
-//
-//        std::cout << "Closed: " << std::endl;
-//        for (unsigned s:closed)  std::cout << s << ", ";
-//        std::cout << std::endl;
-//
-//        std::cout << "Mapping: " << std::endl;
-//        for (auto& elem:mapping)  std::cout << elem.first << ": " << elem.second << ", ";
-//        std::cout << std::endl;
-
-        return TrainingSet(matrix_.resample(mapping), transitions_.resample(selected, mapping));
-    }
-     */
 
     friend std::ostream& operator<<(std::ostream &os, const TrainingSet& o) { return o.print(os); }
     std::ostream& print(std::ostream &os) const {
