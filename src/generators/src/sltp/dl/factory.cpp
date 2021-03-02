@@ -364,14 +364,6 @@ void Factory::output_feature_info(std::ostream &os, const Cache& /*cache*/, cons
         if( 1 + i < num_features ) os << "\t";
     }
     os << std::endl;
-
-    // Line #4: whether feature is goal feature (0: No; 1: yes)
-    for( unsigned i = 0; i < num_features; ++i ) {
-        auto it = goal_features_.find(i);
-        os << (it == goal_features_.end() ? 0 : 1);
-        if( 1 + i < num_features ) os << "\t";
-    }
-    os << std::endl;
 }
 
 
