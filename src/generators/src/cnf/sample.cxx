@@ -130,20 +130,20 @@ std::vector<unsigned> StateSampler::sample_flaws(const DNFPolicy& dnf, unsigned 
     }
 
     if (verbosity>1) {
-        std::cout << "[0]  ";
-        std::cout << "Flaw list: " << std::endl; for (auto f:flaws) std::cout << f << ", "; std::cout << std::endl;
+        std::cout << "Flaw list (incompleteness): " << std::endl; for (auto f:flaws) std::cout << f << ", "; std::cout << std::endl;
     }
 
     // Check (3)
-    detect_cycles(dnf, trset, batch_size, states_to_check, flaws);
+    if (flaws.size()<batch_size) {
+        detect_cycles(dnf, trset, batch_size, states_to_check, flaws);
+    }
 
     // Remove any excedent of flaws to conform to the required amount
     flaws.resize(std::min(flaws.size(), (std::size_t) batch_size));
 
 
     if (verbosity>1) {
-        std::cout << "[1]  ";
-        std::cout << "Flaw list: " << std::endl; for (auto f:flaws) std::cout << f << ", "; std::cout << std::endl;
+        std::cout << "Flaw list (loops): " << std::endl; for (auto f:flaws) std::cout << f << ", "; std::cout << std::endl;
     }
 
     return flaws;
@@ -158,6 +158,13 @@ std::vector<unsigned> GoalDistanceSampler::randomize_and_sort_alive_states(unsig
     });
     sample.resize(std::min(sample.size(), (std::size_t) n));
     return sample;
+}
+
+std::unordered_map<unsigned, unsigned>
+GoalDistanceSampler::compute_goal_distance_histogram(const std::vector<unsigned> states) {
+    std::unordered_map<unsigned, unsigned> count;
+    for (auto s:states) count[trset.transitions().vstar(s)]++;
+    return count;
 }
 
 

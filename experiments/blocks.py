@@ -51,6 +51,11 @@ def experiments():
         # use_feature_dominance=True,
 
         # feature_generator=debug_features_clear,
+        # acyclicity="asp",
+        verbosity=1,
+        initial_sample_size=10,
+        refinement_batch_size=20,
+        sampling_strategy="random"
     )
 
     exps["clear_fn"] = update_dict(
@@ -76,6 +81,11 @@ def experiments():
         parameter_generator=blocksworld_parameters_for_on,
         use_equivalence_classes=True,
         # use_feature_dominance=True,
+
+        verbosity=2,
+        initial_sample_size=40,
+        sampling_strategy="goal",
+        # acyclicity="asp",
     )
 
     exps["on_fn"] = update_dict(
@@ -87,35 +97,6 @@ def experiments():
         parameter_generator=blocksworld_parameters_for_on,
         use_equivalence_classes=True,
         # use_feature_dominance=True,
-    )
-
-    exps["4op_5"] = update_dict(
-        strips_base,
-
-        instances=[
-            "probBLOCKS-5-0.pddl"
-        ],
-        test_instances=[
-
-        ],
-        test_policy_instances=all_4op_test_instances(),
-
-        max_concept_size=12,
-        use_equivalence_classes=True,
-        use_feature_dominance=False,
-    )
-
-    exps["4op_debug"] = update_dict(
-        exps["4op_5"],
-
-        instances=[
-            "probBLOCKS-4-0.pddl"
-        ],
-
-        # d2l_policy=debug_policy_4op,
-        feature_generator=debug_features_4op,
-        use_equivalence_classes=True,
-        use_feature_dominance=False,
     )
 
     exps["all_fn_5"] = update_dict(
@@ -153,7 +134,10 @@ def experiments():
         use_equivalence_classes=True,
         use_feature_dominance=False,
 
-        initial_sample_size=100,
+        initial_sample_size=10,
+        # acyclicity="asp",
+        verbosity=1,
+        sampling_strategy="goal"
     )
 
     # Using incompletely-specified goals

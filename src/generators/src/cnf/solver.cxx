@@ -24,6 +24,7 @@ int call(const std::string& cmd, bool verbose) {
 
 SatSolution solve_cnf(const std::string& cnf_filename, const std::string& output_filename, bool verbose) {
     call("open-wbo_static " + cnf_filename + " > " + output_filename, verbose);
+//    call("clasp --quiet=1 --configuration=jumpy  --parse-maxsat " + cnf_filename + " > " + output_filename, verbose);
     auto solutionf = utils::get_ifstream(output_filename);
     std::string line;
 
@@ -44,9 +45,9 @@ SatSolution solve_cnf(const std::string& cnf_filename, const std::string& output
         } else if (code == 'v') {
             std::vector<std::string> literals;
             boost::split(literals, content, boost::is_any_of(" "));
-            solution.assignment.resize(literals.size()+1);  // We'll have IDs going from 1 to literals.size+1
             for (const auto& lit:literals) {
                 int val = boost::lexical_cast<int>(lit);
+                if (std::abs(val)+1>solution.assignment.size()) solution.assignment.resize(std::abs(val)+1);
                 if (val > 0) {
                     solution.assignment.at(val) = true;
                 }

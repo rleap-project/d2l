@@ -30,6 +30,7 @@
 %\usepackage{tikz}
 \usepackage{natbib}
 \usepackage{fancyvrb}
+\usepackage{amsfonts}
 
 
 
@@ -132,17 +133,24 @@ there is some other dead transition (computed as a fixpoint).
 
 \newpage
 
+\subsection{Hyperparameters}
+\begin{itemize}
+ \item $\delta \in \mathbb{N}_+$
+ \item $\rho  \in \mathbb{N}_+$
+\end{itemize}
+
+
 \subsection{Variables}
 
 \subsubsection{Main Variables}
 \begin{itemize}
  \item $Good(s, s')$ for $s$ alive, $s'$ solvable and $(s, s') \not\in \badtx$.
 
- \item $V(s, d)$ for $s$ alive, and $d \in [0, D]$, where $D = \max_{s} \delta \cdot V^*(s)$,
- with intended denotation $V(s)=d$.
- Note that for states $s$ that are a goal, we know $V(s)=0$,
- and for states $s$ that are unsolvable, we know that $V(s) \neq d$ for all $d$.
- Thus, we can restrict SAT variables $V(s, d)$ to those states $s$ that are alive.
+ \item
+ Let $R = \setst{s}{0 < V^*(s) \leq \rho}$ be the set of states that are at distance at most $\rho$ from some goal.
+ We have variables $V(s, d)$ for $s \in R$ and $d \in [0, D]$, where $D = \delta \cdot \max_{s \in R} V^*(s)$.
+ The intended meaning is to have a potential function $V(s)$ that ensures acyclicity of good edges up to a certain
+ distance to the goal. Note that by definition $R$ only contains alive states.
 
  \item $Select(f)$, for each feature $f$ in the feature pool.
 \end{itemize}
@@ -187,14 +195,14 @@ of two different equivalence classes such that $(s, s') \not\in \badtx$
 
 \subsection{Acyclicity Constraints}
 
-\subsubsection{Option 1: Topological Sort}
+\subsubsection{Option 1: Goal Distance}
 
 
 \smallpar{C5}
 Variables $V(s, d)$ define a function that is total over the set of alive states,
 and such that $V(s)$ is within lower bound $V^*(s)$ and upper bound $\delta \cdot V^*(s)$:
 \begin{align}
- \bigvee_{V^*(s) \leq d \leq \delta \cdot V^*(s)} V(s,d),&\;\; \text{for $s$ alive.} \\
+ \bigvee_{V^*(s) \leq d \leq \delta \cdot V^*(s)} V(s,d),&\;\; \text{for $s \in R$.} \\
  \neg V(s, d) \lor \neg V(s, d')&\;\; \text{for $s$ alive, $1 \leq d < d' \leq D$.} \tag{\theequation${}^\prime$}
 \end{align}
 
@@ -203,7 +211,7 @@ and such that $V(s)$ is within lower bound $V^*(s)$ and upper bound $\delta \cdo
 $V$ is always descending along Good transitions:
 \begin{align}
  Good(s, s') \land V(s', d) \rightarrow \bigvee_{d < k \leq D} V(s, k),&\;\; \text{for $s, s'$ alive, $(s, s') \not\in \badtx$, $d \in [1, D)$.} \\
- V(s', D) \rightarrow \neg Good(s, s'),&\;\; \text{for $s, s'$ alive, $(s, s') \not\in \badtx$.} \tag{\theequation${}^\prime$}
+ V(s', D) \rightarrow \neg Good(s, s'),&\;\; \text{for $s, s' \in R$.} \tag{\theequation${}^\prime$}
 \end{align}
 
 

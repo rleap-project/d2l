@@ -181,10 +181,13 @@ public:
     StateSpaceSample* sample_initial_states(unsigned n) override;
     std::vector<unsigned> sample_flaws(const DNFPolicy& dnf, unsigned batch_size) override;
 
+    std::vector<unsigned> randomize_and_sort_alive_states(unsigned n = std::numeric_limits<unsigned>::max());
+
+    std::unordered_map<unsigned, unsigned> compute_goal_distance_histogram(const std::vector<unsigned> states);
+
+
 protected:
     using StateSampler::sample_flaws;
-
-    std::vector<unsigned> randomize_and_sort_alive_states(unsigned n = std::numeric_limits<unsigned>::max());
 };
 
 inline std::unique_ptr<StateSampler> select_sampler(const std::string& strategy, std::mt19937& rng, const TrainingSet& trset, unsigned verbosity) {

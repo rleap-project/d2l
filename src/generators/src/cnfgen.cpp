@@ -192,6 +192,15 @@ int run(const Options& options) {
         std::cout << "Sampling " << options.initial_sample_size << " alive states at random" << std::endl;
     }
 
+/////////////
+//    GoalDistanceSampler gds(rng, trset, options.verbosity);
+//    auto count = gds.compute_goal_distance_histogram(trset.transitions().all_alive());
+////    for (const auto& [v, c]:count) std::cout << v << ": " << c << std::endl;
+//    for (unsigned v=count.size(); v>0; --v) std::cout << v << ": " << count.at(v) << std::endl;
+//
+//    throw std::runtime_error("DONE");
+/////////////
+
     auto sampler = select_sampler(options.sampling_strategy, rng, trset, options.verbosity);
 
     auto sample = std::unique_ptr<StateSpaceSample>(sampler->sample_initial_states(options.initial_sample_size));

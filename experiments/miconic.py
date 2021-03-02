@@ -48,6 +48,12 @@ def experiments():
         parameter_generator=None,
         use_equivalence_classes=True,
         # use_feature_dominance=True,
+
+
+        initial_sample_size=100,
+        # acyclicity="asp",
+        verbosity=1,
+        sampling_strategy="goal"
     )
 
     exps["small2"] = update_dict(

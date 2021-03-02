@@ -41,6 +41,12 @@ def experiments():
         use_equivalence_classes=True,
         # use_feature_dominance=True,
         # print_denotations=True,
+
+        initial_sample_size=100,
+        # acyclicity="asp",
+        verbosity=1,
+        sampling_strategy="goal"
+
     )
 
     return exps
