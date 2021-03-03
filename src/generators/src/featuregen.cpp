@@ -39,9 +39,9 @@ sltp::dl::Options parse_options(int argc, const char **argv) {
             ("comparison-features", "Use comparison features of the type F1 < F2")
 
             ("generate-goal-concepts", "Whether to automatically generate goal-distinguishing concepts and roles.")
-
             ("print-denotations", "Whether print the denotations of all generated features.")
-            ;
+            ("print_hstar", "Print hstar value as a feature matrix column.")
+    ;
 
     po::variables_map vm;
 
@@ -69,25 +69,8 @@ sltp::dl::Options parse_options(int argc, const char **argv) {
     options.comparison_features = vm.count("comparison-features") > 0;
     options.generate_goal_concepts = vm.count("generate-goal-concepts") > 0;
     options.print_denotations = vm.count("print-denotations") > 0;
+    options.print_hstar = vm.count("print_hstar") > 0;
     return options;
-}
-
-void output_results(const sltp::dl::Options &options,
-                    const sltp::dl::Factory &factory,
-                    const sltp::Sample &sample,
-                    const sltp::dl::Cache &cache) {
-
-    // Print feature matrix
-    string output(options.workspace + "/feature-matrix.io");
-    ofstream output_file(output);
-    if( output_file.fail() ) throw runtime_error("Could not open filename '" + output + "'");
-    factory.output_feature_matrix(output_file, cache, sample);
-
-    // Print feature metadata
-    output = options.workspace + "/feature-info.io";
-    ofstream infofile(output);
-    if( infofile.fail() ) throw runtime_error("Could not open filename '" + output + "'");
-    factory.output_feature_info(infofile, cache, sample);
 }
 
 int main(int argc, const char **argv) {
@@ -115,7 +98,11 @@ int main(int argc, const char **argv) {
 //    factory.report_dl_data(cout);
     factory.log_all_concepts_and_features(concepts, cache, sample, options.workspace, options.print_denotations);
 
-    output_results(options, factory, sample, cache);
+    // Print output feature matrix
+    string output(options.workspace + "/feature-matrix.io");
+    ofstream output_file(output);
+    if( output_file.fail() ) throw runtime_error("Could not open filename '" + output + "'");
+    factory.output_feature_matrix(output_file, cache, sample, transitions, options.print_hstar);
 
     return 0;
 }

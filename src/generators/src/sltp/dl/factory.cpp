@@ -346,26 +346,6 @@ const Predicate* Factory::get_role_predicate(const Role* r) {
     throw std::runtime_error("Unknown role type");
 }
 
-void Factory::output_feature_info(std::ostream &os, const Cache& /*cache*/, const Sample& /*sample*/) const {
-    auto num_features = features_.size();
-
-    // Line #1: feature names
-    for( unsigned i = 0; i < num_features; ++i ) {
-        const Feature &feature = *features_[i];
-        os << feature.as_str();
-        if( 1 + i < num_features ) os << "\t";
-    }
-    os << std::endl;
-
-    // Line #2: feature complexities
-    for( unsigned i = 0; i < num_features; ++i ) {
-        const Feature &feature = *features_[i];
-        os << feature.complexity();
-        if( 1 + i < num_features ) os << "\t";
-    }
-    os << std::endl;
-}
-
 
 void Factory::generate_distance_features(
         const std::vector<const Concept*>& concepts, Cache &cache,
@@ -916,17 +896,44 @@ std::vector<const Concept*> Factory::generate_goal_concepts_and_roles(Cache &cac
     return goal_concepts;
 }
 
-void Factory::output_feature_matrix(std::ostream &os, const Cache &cache, const Sample &sample) const {
+void Factory::output_feature_matrix(std::ostream &os, const Cache &cache, const Sample &sample, const sltp::TransitionSample& transitions, bool print_hstar) const {
     auto num_features = features_.size();
-    for( unsigned i = 0; i < sample.num_states(); ++i ) {
+    unsigned nfeatures_to_print = print_hstar ? num_features+1 : num_features;
+
+    os << ";; Feature matrix of " << nfeatures_to_print << " features times " << sample.num_states() << " states."
+       << " Format: all space-separated values. Line 0: Header line. Line 1: Feature names; Line 2: Feature complexities; Line i, 3<=i<=n: Feature valuation in state #i"
+       << std::endl;
+
+    // Line #1: feature names
+    for (unsigned i = 0; i < num_features; ++i) {
+        const Feature &feature = *features_[i];
+        os << feature.as_str();
+        if (1 + i < num_features) os << " ";
+    }
+    if (print_hstar) os << " hstar";
+    os << std::endl;
+
+    // Line #2: feature complexities
+    for (unsigned i = 0; i < num_features; ++i) {
+        const Feature &feature = *features_[i];
+        os << feature.complexity();
+        if (1 + i < num_features) os << " ";
+    }
+    if (print_hstar) os << " -1";
+    os << std::endl;
+
+
+    // Next: one line per state with the numeric denotation of all features
+    for (unsigned i = 0; i < sample.num_states(); ++i) {
         const State &state = sample.state(i);
 
-        // one line per state with the numeric denotation of all features
-        for( unsigned j = 0; j < num_features; ++j ) {
+        for (unsigned j = 0; j < num_features; ++j) {
             const Feature &feature = *features_[j];
             os << feature.value(cache, sample, state);
-            if( 1 + j < num_features ) os << " ";
+            if (1 + j < num_features) os << " ";
         }
+
+        if (print_hstar) os << " " << transitions.vstar(i);
         os << std::endl;
     }
 }
