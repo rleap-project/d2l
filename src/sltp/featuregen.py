@@ -2,6 +2,7 @@ import logging
 
 import os
 import stat
+import sys
 from collections import defaultdict
 
 from tarski.dl import PrimitiveConcept, UniversalConcept, NullaryAtom, NominalConcept, GoalConcept, GoalRole, \
@@ -13,6 +14,19 @@ from .features import parse_all_instances, compute_models, InstanceInformation
 from .util.command import execute
 from .util.serialization import unserialize_feature
 from .returncodes import ExitCode
+
+MAX_FEATURE_VALUE = 65535
+
+
+def cast_feature_value(value):
+    """ Cast a given feature value into a value that is suitable for the C++ backend """
+    if value == sys.maxsize or value == 2147483647:  # std::numeric_limits<int>::max(). Yes, this is not portable :-)
+        return MAX_FEATURE_VALUE
+
+    if value < 0 or value >= MAX_FEATURE_VALUE:  # Max value reserved to denote infty.
+        raise RuntimeError(f'Feature value "{value}" is not valid')
+
+    return value
 
 
 def run(config, data, rng):
@@ -152,7 +166,7 @@ def transform_generator_output(config, sample, matrix_filename):
         # One line per state with the numeric denotation of all features
         matrix = []
         for line in f:
-            matrix.append([int(x) for x in line.rstrip().split(' ')])
+            matrix.append([cast_feature_value(int(x)) for x in line.rstrip().split(' ')])
 
     state_ids = sample.get_sorted_state_ids()
     print_feature_matrix(config.feature_matrix_filename, matrix, state_ids, sample.goals, sample.deadends, names, complexities)
@@ -166,7 +180,7 @@ def generate_output_from_handcrafted_features(sample, config, features, model_ca
     for i, (sid, atoms) in enumerate(sample.states.items(), start=0):
         assert i == sid
         model = model_cache.get_feature_model(sid)
-        matrix.append([int(model.denotation(f)) for f in features])
+        matrix.append([cast_feature_value(int(model.denotation(f))) for f in features])
 
     # These next 3 lines just to print the denotation of all features
     if config.print_denotations:
