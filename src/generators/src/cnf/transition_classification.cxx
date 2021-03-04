@@ -13,9 +13,7 @@
 namespace sltp::cnf {
 
 
-using feature_value_t = FeatureMatrix::feature_value_t;
-
-transition_denotation compute_transition_denotation(feature_value_t s_f, feature_value_t sprime_f) {
+transition_denotation compute_transition_denotation(FeatureMatrix::feature_value_t s_f, FeatureMatrix::feature_value_t sprime_f) {
     int type_s = (int) sprime_f - (int) s_f; // <0 if DEC, =0 if unaffected, >0 if INC
     int sign = (type_s > 0) ? 1 : ((type_s < 0) ? -1 : 0); // Get the sign
     return transition_denotation(bool(s_f > 0), sign);
