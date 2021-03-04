@@ -55,7 +55,9 @@ def experiments():
         verbosity=1,
         initial_sample_size=10,
         refinement_batch_size=20,
-        sampling_strategy="random"
+        sampling_strategy="random",
+
+        # print_hstar_in_feature_matrix=True,
     )
 
     exps["clear_fn"] = update_dict(
@@ -83,9 +85,11 @@ def experiments():
         # use_feature_dominance=True,
 
         verbosity=2,
-        initial_sample_size=40,
-        sampling_strategy="goal",
+        # initial_sample_size=40,
+        # sampling_strategy="goal",
         # acyclicity="asp",
+
+        # print_hstar_in_feature_matrix=True,
     )
 
     exps["on_fn"] = update_dict(

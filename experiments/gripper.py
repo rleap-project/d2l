@@ -37,6 +37,7 @@ def experiments():
         parameter_generator=None,
         use_equivalence_classes=True,
         # use_feature_dominance=True,
+        # print_hstar_in_feature_matrix=True,
     )
 
     return exps

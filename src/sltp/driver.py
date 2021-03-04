@@ -4,7 +4,6 @@ import multiprocessing
 import os
 import resource
 import sys
-import numpy as np
 
 from .returncodes import ExitCode
 from .errors import CriticalPipelineError
@@ -145,7 +144,16 @@ class StepRunner:
         self.setup(config.quiet)
 
         data = Bunch(load(config.experiment_dir, self.required_data)) if self.required_data else None
-        rng = np.random.RandomState(config.random_seed)  # ATM we simply create a RNG in each subprocess
+        # The old strategy based on numpy.random.RandomState objects was problematic, first because
+        # the object seems to be in deprecation (https://numpy.org/doc/stable/reference/random/legacy.html),
+        # and also because we allow the user to run subsets of pipeline steps, in which case the sequence
+        # of random numbers that she will get will not always be the same. To illustrate, if I run steps 1 and 2,
+        # both invoking the RNG, step 2 will not see the same sequence of random numbers than if I run step 2 in
+        # isolation, because the RNG is seeded once at the beginning. A better strategy would be to store the
+        # RNG state between pipeline steps.
+        # However, because at the moment we're not using the RNG from Python, I'm leaving the implementation of all
+        # this to the future, if necessary.
+        rng = None
 
         try:
             exitcode, output = self.target(config=config, data=data, rng=rng)

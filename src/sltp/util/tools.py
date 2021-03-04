@@ -1,8 +1,6 @@
 import itertools
 from collections import defaultdict
 
-import numpy as np
-
 from tarski.dl import Feature, ConceptCardinalityFeature, EmpiricalBinaryConcept, FeatureValueChange, \
     NullaryAtomFeature, MinDistanceFeature
 
@@ -215,8 +213,14 @@ def generate_effect(feature, qchange):
     return ActionEffect(feature, change)
 
 
+def sign(x):
+    if x < 0:
+        return -1
+    return 0 if x == 0 else 1
+
+
 def generate_qualitative_effects_from_transition(features, m0, m1):
-    qchanges = [np.sign(m1.denotation(f) - m0.denotation(f)) for f in features]
+    qchanges = [sign(m1.denotation(f) - m0.denotation(f)) for f in features]
 
     # Generate the action effects only from those changes which are not NIL
     return frozenset(generate_effect(f, c) for f, c in zip(features, qchanges) if c != 0)

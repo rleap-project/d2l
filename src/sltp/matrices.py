@@ -3,13 +3,9 @@ along with some other related output necessary for subsequent steps in the pipel
 import itertools
 import logging
 import math
-import sys
-
-import numpy as np
 
 
 PRUNE_DUPLICATE_FEATURES = True
-NP_FEAT_VALUE_TYPE = np.int8  # Keep it allowing negative values, so that we can subtract without overflow!
 
 
 def next_power_of_two(x):
@@ -17,19 +13,6 @@ def next_power_of_two(x):
     if x == 0:
         return 0
     return 2 ** (math.ceil(math.log2(x)))
-
-
-def cast_feature_value_to_numpy_value(value):
-    """ Cast a given feature value into a suitable numpy value, if possible, or raise error if not """
-    assert value >= 0
-    max_ = np.iinfo(NP_FEAT_VALUE_TYPE).max
-    if value == sys.maxsize or value == 2147483647:  # std::numeric_limits<int>::max(). Yes, this is not portable :-)
-        return max_
-
-    if value >= max_:  # Max value reserved to denote infty.
-        raise RuntimeError("Cannot cast feature value {} into numpy value".format(value))
-
-    return value
 
 
 def print_feature_info(config, features):

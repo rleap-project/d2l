@@ -7,7 +7,7 @@ from collections import defaultdict
 from tarski.dl import PrimitiveConcept, UniversalConcept, NullaryAtom, NominalConcept, GoalConcept, GoalRole, \
     EmptyConcept, GoalNullaryAtom
 
-from .matrices import NP_FEAT_VALUE_TYPE, cast_feature_value_to_numpy_value, log_feature_denotations
+from .matrices import log_feature_denotations
 from .models import DLModel
 from .features import parse_all_instances, compute_models, InstanceInformation
 from .util.command import execute
@@ -134,54 +134,39 @@ def print_sample_info(sample, infos, model_cache, all_predicates, all_functions,
         open(nominals_fn, 'w').close()  # Just write an empty file
 
 
-def transform_generator_output(config, sample, matrix_filename, info_filename):
-    logging.info("Transforming generator output to numpy format...")
-    import numpy as np
+def transform_generator_output(config, sample, matrix_filename):
+    logging.info(f"Reading feature denotation matrix from {matrix_filename}")
 
-    logging.info(f"Reading feature information from {info_filename}")
-    with open(info_filename, "r") as f:
-        # Line  # 1: feature names
-        names = f.readline().rstrip().split("\t")
+    with open(matrix_filename, "r") as f:
+        # Line #0: comment line, simply ignore
+        f.readline()
+
+        # Line #1: feature names
+        names = f.readline().rstrip().split(" ")
 
         # Line #2: feature complexities
-        complexities = [int(x) for x in f.readline().rstrip().split("\t")]
+        complexities = [int(x) for x in f.readline().rstrip().split(" ")]
 
-    num_features = len(names)
-    assert num_features == len(complexities)
-    logging.info(f"Read a total of {num_features} features")
+        assert len(names) == len(complexities)
 
-    logging.info(f"Reading denotation matrix from {matrix_filename}")
-    # Convert features to a numpy array with n rows and m columns, where n=num states, m=num features
-
-    with open(matrix_filename, "r") as f:
-        num_states = sum(1 for _ in f)
-
-    matrix = np.empty(shape=(num_states, num_features), dtype=NP_FEAT_VALUE_TYPE)
-
-    with open(matrix_filename, "r") as f:
         # One line per state with the numeric denotation of all features
-        for i, line in enumerate(f, start=0):
-            data = line.rstrip().split(' ')
-            matrix[i] = [cast_feature_value_to_numpy_value(int(x)) for x in data]
+        matrix = []
+        for line in f:
+            matrix.append([int(x) for x in line.rstrip().split(' ')])
 
-    logging.info(f"Read denotation matrix with dimensions {matrix.shape}")
-    print_actual_output(sample, config, names, complexities, matrix)
+    state_ids = sample.get_sorted_state_ids()
+    print_feature_matrix(config.feature_matrix_filename, matrix, state_ids, sample.goals, sample.deadends, names, complexities)
 
 
 def generate_output_from_handcrafted_features(sample, config, features, model_cache):
-    import numpy as np
-    num_features = len(features)
-    num_states = len(sample.states)
-
     names = [str(f) for f in features]
     complexities = [f.complexity() for f in features]
-    matrix = np.empty(shape=(num_states, num_features), dtype=NP_FEAT_VALUE_TYPE)
+    matrix = []
 
     for i, (sid, atoms) in enumerate(sample.states.items(), start=0):
         assert i == sid
         model = model_cache.get_feature_model(sid)
-        denotations = [model.denotation(f) for f in features]
-        matrix[i] = [cast_feature_value_to_numpy_value(int(x)) for x in denotations]
+        matrix.append([int(model.denotation(f)) for f in features])
 
     # These next 3 lines just to print the denotation of all features
     if config.print_denotations:
@@ -189,13 +174,9 @@ def generate_output_from_handcrafted_features(sample, config, features, model_ca
         models = {sid: model_cache.get_feature_model(sid) for sid in sample.states}
         log_feature_denotations(state_ids, features, models, config.feature_denotation_filename, None)
 
-    print_actual_output(sample, config, names, complexities, matrix)
-    return [], len(names)
-
-
-def print_actual_output(sample, config, names, complexities, matrix):
     state_ids = sample.get_sorted_state_ids()
     print_feature_matrix(config.feature_matrix_filename, matrix, state_ids, sample.goals, sample.deadends, names, complexities)
+    return [], len(names)
 
 
 def generate_debug_scripts(target_dir, exe, arguments):
@@ -260,12 +241,8 @@ def generate_feature_pool(config, sample):
     if invoke_cpp_generator(config) != 0:
         return ExitCode.FeatureGenerationUnknownError, dict()
 
-    # Read off the output of the module and transform it into the numpy matrices to be consumed
-    # by the next pipeline step
-    transform_generator_output(
-        config, sample,
-        os.path.join(config.experiment_dir, "feature-matrix.io"),
-        os.path.join(config.experiment_dir, "feature-info.io"),)
+    # Read off the output of the module and transform it into the matrices to be consumed by the next pipeline step
+    transform_generator_output(config, sample, os.path.join(config.experiment_dir, "feature-matrix.io"))
 
     return ExitCode.Success, dict(enforced_feature_idxs=[], model_cache=model_cache)
 
@@ -280,6 +257,7 @@ def invoke_cpp_generator(config):
            + (f" --comparison-features" if config.comparison_features else "") \
            + (f" --generate-goal-concepts" if config.generate_goal_concepts else "") \
            + (f" --print-denotations" if config.print_denotations else "") \
+           + (f" --print_hstar" if config.print_hstar_in_feature_matrix else "") \
            + f" --workspace {config.experiment_dir}"
     args = args.split()
     generate_debug_scripts(config.experiment_dir, cmd, args)
@@ -302,24 +280,24 @@ def deal_with_serialized_features(language, feature_generator, serialized_featur
 
 def print_feature_matrix(filename, matrix, state_ids, goals, deadends, names, complexities):
     ngoals, nfeatures = len(goals), len(names)
-    assert nfeatures == len(complexities) == matrix.shape[1]
-    logging.info(f"Printing matrix of {nfeatures} features x {len(state_ids)} states to '{filename}'")
+    assert nfeatures == len(complexities)
+    logging.info(f"Printing feature matrix with shape ({len(matrix)}, {len(names)}) to '{filename}'")
 
     with open(filename, 'w') as f:
         # Header row: <#states> <#features> <#goals>
-        print("{} {} {}".format(len(state_ids), nfeatures, ngoals), file=f)
+        print(f"{len(state_ids)} {nfeatures} {ngoals}", file=f)
 
         # Line #2:: <list of feature names>
-        print("{}".format(" ".join(name.replace(" ", "") for name in names)), file=f)
+        print(" ".join(name.replace(" ", "") for name in names), file=f)
 
         # Line #3: <list of feature costs>
-        print("{}".format(" ".join(str(c) for c in complexities)), file=f)
+        print(" ".join(str(c) for c in complexities), file=f)
 
         # Line #4: <list of goal state IDs>
-        print("{}".format(" ".join(map(str, goals))), file=f)
+        print(" ".join(map(str, goals)), file=f)
 
         # Line #5: <list of expanded state IDs>
-        print("{}".format(" ".join(map(str, deadends))), file=f)
+        print(" ".join(map(str, deadends)), file=f)
 
         # next lines: one per each state with format: <state-index> <#features-in-state> <list-features>
         # each feature has format: <feature-index>:<value>
