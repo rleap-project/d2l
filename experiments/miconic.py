@@ -55,6 +55,43 @@ def experiments():
         verbosity=1,
         sampling_strategy="goal"
     )
+    
+    exps["small-sd2l"] = update_dict(
+        base,
+        instances=[
+            # 's2-0.pddl',
+            # 's2-1.pddl',
+            # 's2-2.pddl',
+            # 's2-3.pddl',
+            # 's3-0.pddl',
+            #'s4-0.pddl',
+            #'training2.pddl'#, #(updated with a new origin passenger)
+            's7-0.pddl'
+        ],
+        test_instances=[
+        ],
+        test_policy_instances=all_test_instances(),
+
+        acyclicity="sd2l",
+		n_features=4,
+        max_concept_size=8,
+        distance_feature_max_complexity=8,
+        #initial_sample_size=999999,
+        initial_sample_size=10,
+        consistency_bound=10,
+        optimal_steps=0,
+        v_slack=2,
+        closed=False,
+        verbose=False,
+
+        parameter_generator=None,
+        use_equivalence_classes=True,
+        # use_feature_dominance=True,
+        use_incremental_refinement=True,
+
+        decreasing_transitions_must_be_good=True,
+    )
+    
 
     exps["small2"] = update_dict(
         exps["small"],

@@ -36,6 +36,33 @@ def experiments():
         use_equivalence_classes=True,
         # use_feature_dominance=True,
     )
+    
+    exps["small-sd2l"] = update_dict(
+        base,
+        instances=["training_5x5.pddl"],
+        # instances=["instance_5.pddl", "instance_4_blocked.pddl"],
+        test_instances=[],
+        test_policy_instances=all_test_instances(),
+
+        acyclicity="sd2l",
+
+		n_features=2,
+        max_concept_size=8,
+        distance_feature_max_complexity=8,
+        #initial_sample_size=999999,
+        initial_sample_size=10,
+        consistency_bound=10,
+        optimal_steps=0,
+        v_slack=2,
+        closed=False,
+        verbose=False,
+        parameter_generator=no_parameter,
+        # parameter_generator=None
+        use_equivalence_classes=True,
+        # use_feature_dominance=True,
+        use_incremental_refinement=True,
+    )
+    
 
     exps["debug"] = update_dict(exps["small"], feature_generator=debug_features)
 

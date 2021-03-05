@@ -127,8 +127,8 @@ def experiments():
         distance_feature_max_complexity=8,
         #initial_sample_size=999999,
         initial_sample_size=10,
-        consistency_bound=10,
-        optimal_steps=0,
+        consistency_bound=0,
+        optimal_steps=100,
         v_slack=2,
         closed=False,
 
@@ -201,6 +201,7 @@ def experiments():
             f"test_atomic_{n}_{i}.pddl" for n in range(10, 31) for i in range(0, 5)
         ],
 
+        acyclicity="sd2l",
         n_features=3,
         max_concept_size=8,
         distance_feature_max_complexity=8,

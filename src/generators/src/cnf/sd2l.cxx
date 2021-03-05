@@ -266,25 +266,47 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> SD2LEncoding::generate(CNFW
         }
     }
 
-    //for( const auto s : sample_.alive_states()){
-    /*std::set< unsigned > v_states;
-    for( const auto s : sample_.alive_states() ){
-        v_states.insert( s );
-        for( const auto s_prime : sample_.successors(s) ){
-            v_states.insert( s_prime );
-            if( s == 3069 or s == 3323 or s == 3325)
-                std::cout << s_prime << " " << get_vstar(s_prime) << " " << get_max_v(s_prime) << std::endl;
-        }
-    }*/
-    for( const auto s : sample_.alive_states()){
-        int min_vs = get_vstar(s);
-        int max_vs = get_max_v(s);
-
+    /*for( const auto s : sample_.alive_states()){
+        //int min_vs = get_vstar(s);
+        //int max_vs = get_max_v(s);
         for( unsigned d = 1; d <= max_d; d++ ) {
             const auto v_s_d = wr.var("V(" + std::to_string(s) + ", " + std::to_string(d) + ")");
             v_vars.emplace(std::make_pair(s, d), v_s_d);
             n_v_vars++;
             varmapstream << v_s_d << " " << s << " " << d << std::endl;
+        }
+    }*/
+
+    // Create variables V(s, d) variables for all alive state s and d in 1..D
+    for (const auto s:sample_.alive_states()) {
+        const auto min_vs = get_vstar(s);
+        const auto max_vs = get_max_v(s);
+        assert(max_vs > 0 && max_vs <= max_d && min_vs <= max_vs);
+
+        cnfclause_t within_range_clause;
+
+        // TODO Note that we could be more efficient here and create only variables V(s,d) for those values of d that
+        //  are within the bounds below. I'm leaving that as a future optimization, as it slightly complicates the
+        //  formulation of constraints C2
+        for (unsigned d = 1; d <= max_d; ++d) {
+            const auto v_s_d = wr.var("V(" + std::to_string(s) + ", " + std::to_string(d) + ")");
+            v_vars.emplace(std::make_pair(s, d), v_s_d);
+//                std::cout << s << ", " << d << std::endl;
+
+            if (d >= min_vs && d <= max_vs) {
+                within_range_clause.push_back(Wr::lit(v_s_d, true));
+            }
+        }
+
+        // Add clauses (4), (5)
+        wr.cl(within_range_clause);
+        cl_counter[6] += 1;
+
+        for (unsigned d = 1; d <= max_d; ++d) {
+            for (unsigned dprime = d+1; dprime <= max_d; ++dprime) {
+                wr.cl({Wr::lit(v_vars.at({s, d}), false), Wr::lit(v_vars.at({s, dprime}), false)});
+                cl_counter[6] += 1;
+            }
         }
     }
 
@@ -400,41 +422,6 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> SD2LEncoding::generate(CNFW
         wr.cl({ wr.lit(variables.goods.at(repr ), false ) });
     }
     c2_repr.clear();
-
-    // C2.b & C2.c For s, s', t solvable and t' unsolvable, force a D2(s,s',t,t')
-    /*for( const auto t : sample_.alive_states()){
-        for( const auto t_prime : sample_.successors(t) ){
-            if( sample_.is_solvable(t_prime) ) continue;
-            const auto t_tx = get_transition_id(t,t_prime);
-            const auto t_repr = get_representative_id( t_tx );
-
-            if( t_tx != t_repr ) continue;
-
-            for( const auto s : sample_.alive_states()){
-                for (const auto s_prime : sample_.successors(s)) {
-                    if( !sample_.is_solvable(s_prime) ) continue;
-                    const auto s_tx = get_transition_id(s,s_prime);
-                    const auto s_repr = get_representative_id( s_tx );
-
-                    if( s_tx != s_repr ) continue;
-
-                    cnfclause_t clause;
-                    clause.push_back( wr.lit( variables.good_vars.at(s_repr), false ) );
-                    clause.push_back( wr.lit( variables.good_vars.at(t_repr), true ) );
-
-                    for (feature_t f:compute_d1d2_distinguishing_features(feature_ids, sample_, s, s_prime, t, t_prime)) {
-                        clause.push_back(Wr::lit(variables.selecteds.at(f), true));
-                    }
-
-                    wr.cl( clause );
-                    cl_counter[2]++;
-                }
-            }
-            // C2.c -Good(t,t') for t solvable and t' unsolvable
-            wr.cl( {wr.lit( variables.good_vars.at( t_repr ), false )} );
-            cl_counter[2]++;
-        }
-    }*/
 
     // C3. For each state s, post a constraint OR_{s' child of s} Good(s, s')
     if (options.verbosity>0) std::cout << "Encoding clause C3..." << std::endl;
@@ -649,7 +636,33 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> SD2LEncoding::generate(CNFW
     // C6 V^*(s) <= V(s) <= delta * V^*(s) and V(s') < V(s) for V^*(s) <= K
     if (options.verbosity>0) std::cout << "Encoding clause C6..." << std::endl;
 
-    for (const auto s : sample_.alive_states()) {
+    for (const auto s:sample_.alive_states()) {
+        for (const auto sprime:sample_.successors(s)) {
+            if (is_necessarily_bad(get_transition_id(s, sprime))) continue; // includes alive-to-dead transitions
+            if (!sample_.is_alive(sprime)) continue;
+            if (!sample_.in_sample(sprime)) continue;
+            if (get_vstar(s) > K ) continue;
+
+            const auto good_s_prime = variables.goods.at(get_class_representative(s, sprime));
+
+            for (unsigned dprime=1; dprime < max_d; ++dprime) {
+                // (2) Good(s, s') and V(s',dprime) -> V(s) > dprime
+                cnfclause_t clause{Wr::lit(good_s_prime, false),
+                                   Wr::lit(v_vars.at({sprime, dprime}), false)};
+
+                for (unsigned d = dprime + 1; d <= max_d; ++d) {
+                    clause.push_back(Wr::lit(v_vars.at({s, d}), true));
+                }
+                wr.cl(clause);
+                ++cl_counter[6];
+            }
+
+            // (2') Border condition: V(s', D) implies -Good(s, s')
+            wr.cl({Wr::lit(v_vars.at({sprime, max_d}), false), Wr::lit(good_s_prime, false)});
+            cl_counter[6]++;
+        }
+    }
+    /*for (const auto s : sample_.alive_states()) {
         int min_vs = get_vstar(s);
         int max_vs = get_max_v(s);
 
@@ -662,7 +675,8 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> SD2LEncoding::generate(CNFW
             cl_counter[6]++;
         }
 
-        for( int d = min_vs; d <= max_d; d++ ) {
+        //for( int d = min_vs; d <= max_d; d++ ) {
+        for( int d = 1; d <= max_d; d++ ) {
             for( int d_prime = d+1; d_prime <= max_d; d_prime++ ){
                 wr.cl({
                               wr.lit(v_vars.at(std::make_pair(s, (unsigned)d)), false),
@@ -675,8 +689,9 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> SD2LEncoding::generate(CNFW
         if (min_vs > K) continue;
 
         for ( const auto s_prime : sample_.successors(s)) {
-            int min_vsp = get_vstar(s_prime);
-            int max_vsp = get_max_v(s_prime);
+            //int min_vsp = get_vstar(s_prime);
+            //int max_vsp = get_max_v(s_prime);
+            if (is_necessarily_bad(get_transition_id(s, s_prime))) continue; // includes alive-to-dead transitions
             if( !sample_.is_alive(s_prime) ) continue;
             if( !sample_.in_sample(s_prime) ) continue;
             //if( min_vsp > K ) continue;
@@ -692,7 +707,7 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> SD2LEncoding::generate(CNFW
             cl_counter[6]++;
 
             // Good(s,s') -> V(s') < V(s)
-            for (int d_prime = min_vsp; d_prime < max_d; ++d_prime) {
+            for (int d_prime = 1; d_prime < max_d; ++d_prime) {
                 // (2) Good(s, s') and V(s',dprime) -> V(s) > dprime
                 cnfclause_t clause{Wr::lit(good_s_sp, false),
                                    Wr::lit(v_vars.at(std::make_pair(s_prime, (unsigned)d_prime)), false)};
@@ -704,7 +719,7 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> SD2LEncoding::generate(CNFW
                 ++cl_counter[6];
             }
         }
-    }
+    }*/
 
     // C7 Last k-steps must be optimal
     if(options.verbosity>0) std::cout << "Encoding clause C7..." << std::endl;
@@ -745,8 +760,8 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> SD2LEncoding::generate(CNFW
     std::cout << "\tPolicy completeness [3]: " << cl_counter[3] << std::endl;
     std::cout << "\tPolicy is terminating (preliminaries) [4]: " << cl_counter[4] << std::endl;
     std::cout << "\tPolicy is terminating [5]: " << cl_counter[5] << std::endl;
-    std::cout << "\tV consistency for V^*(s)<=K: " << cl_counter[6] << std::endl;
-    std::cout << "\tOptimality clauses [6]: " << cl_counter[7] << std::endl;
+    std::cout << "\tV consistency for V^*(s)<=K [6]: " << cl_counter[6] << std::endl;
+    std::cout << "\tOptimality clauses [7]: " << cl_counter[7] << std::endl;
 
     assert(wr.nclauses() == cl_counter[1] + cl_counter[2] + cl_counter[3] + cl_counter[4] + cl_counter[5] + cl_counter[6] + cl_counter[7] );
 

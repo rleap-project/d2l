@@ -41,7 +41,41 @@ def experiments():
         use_equivalence_classes=True,
         # use_feature_dominance=True,
     )
+    
+    exps["small-sd2l"] = update_dict(
+        base,
+        # instances=['sample{:02d}.pddl'.format(i) for i in range(1, 5)],
+        instances=[
+            # 'sample_mini.pddl',
+            'sample01.pddl',
+            'sample02.pddl',
+            # 'sample03.pddl',
 
+            # 'child-snack_pfile01-2.pddl'  # STATE SPACE TOO LARGE
+        ],
+        test_instances=[
+            # 'child-snack_pfile01-2.pddl',
+        ],
+        test_policy_instances=all_test_instances(),
+
+		acyclicity="sd2l",
+
+        # create_goal_features_automatically=True,
+        n_features=5,
+        max_concept_size=8,
+        distance_feature_max_complexity=8,
+        #initial_sample_size=999999,
+        initial_sample_size=10,
+        consistency_bound=10,
+        optimal_steps=0,
+        v_slack=2,
+        closed=False,
+        verbose=False,
+        use_equivalence_classes=True,
+        # use_feature_dominance=True,
+        use_incremental_refinement=True
+    )
+    
     return exps
 
 
