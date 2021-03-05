@@ -177,6 +177,10 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
         closed=True,
 
         print_hstar_in_feature_matrix=False,
+
+        # ???
+        optimal_steps=0,
+        consistency_bound=10,
     )
 
     parameters = {**defaults, **kwargs}  # Copy defaults, overwrite with user-specified parameters
