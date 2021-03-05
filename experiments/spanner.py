@@ -64,16 +64,17 @@ def experiments():
         ] + all_test_instances(),
 
         acyclicity="sd2l",
+        sampling_strategy="goal",
         
         n_features=3,
         max_concept_size=8,
         distance_feature_max_complexity=8,
         #initial_sample_size=999999,
-        initial_sample_size=10,
+        #initial_sample_size=10,
         v_slack=2,
-        verbose=False,
         consistency_bound=10,
         optimal_steps=2,
+        verbosity=2,
         use_equivalence_classes=True,
     )
     

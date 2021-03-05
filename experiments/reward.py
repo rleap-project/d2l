@@ -46,21 +46,18 @@ def experiments():
 
         acyclicity="sd2l",
 
+        sampling_strategy="goal",
 		n_features=2,
         max_concept_size=8,
         distance_feature_max_complexity=8,
         #initial_sample_size=999999,
-        initial_sample_size=10,
+        #initial_sample_size=10,
         consistency_bound=10,
         optimal_steps=2,
         v_slack=2,
-        closed=False,
-        verbose=False,
         parameter_generator=no_parameter,
-        # parameter_generator=None
+        verbosity=2,
         use_equivalence_classes=True,
-        # use_feature_dominance=True,
-        use_incremental_refinement=True,
     )
     
 

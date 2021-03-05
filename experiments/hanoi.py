@@ -61,15 +61,18 @@ def experiments():
             'p07.pddl',
             'p08.pddl',
         ],
+        
+        acyclicity="sd2l",
 
 		n_features=4,
+        sampling_strategy="goal",
         max_concept_size=8,
         distance_feature_max_complexity=8,
-        initial_sample_size=10,
+        #initial_sample_size=10,
         consistency_bound=10,
         optimal_steps=2,
         v_slack=2,
-        verbose=False,
+        verbosity=2,
         use_equivalence_classes=True,
     )
 

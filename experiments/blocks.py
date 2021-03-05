@@ -67,19 +67,17 @@ def experiments():
         
         acyclicity="sd2l",
 
+        sampling_strategy="goal",
         n_features=3,
         max_concept_size=8,
         #initial_sample_size=999999,
-        initial_sample_size=10,
+        #initial_sample_size=10,
         consistency_bound=10,
         optimal_steps=2,
         v_slack=2,
-        closed=False,
         parameter_generator=blocksworld_parameters_for_clear,
+        verbosity=2,
         use_equivalence_classes=True,
-        # use_feature_dominance=True,
-
-        # feature_generator=debug_features_clear,
     )
 
     exps["clear_fn"] = update_dict(
@@ -122,19 +120,19 @@ def experiments():
         test_policy_instances=all_on_test_instancess(),
 
         acyclicity="sd2l",
+        sampling_strategy="goal",
         n_features=4,
         max_concept_size=8,
         distance_feature_max_complexity=8,
         #initial_sample_size=999999,
-        initial_sample_size=10,
+        #initial_sample_size=10,
         consistency_bound=10,
         optimal_steps=2,
         v_slack=2,
-        closed=False,
-
-        parameter_generator=blocksworld_parameters_for_on,
+        verbosity=2,
         use_equivalence_classes=True,
-        # use_feature_dominance=True,
+
+        parameter_generator=blocksworld_parameters_for_on
     )
 
     exps["on_fn"] = update_dict(
@@ -202,18 +200,17 @@ def experiments():
         ],
 
         acyclicity="sd2l",
+        sampling_strategy="goal",
         n_features=3,
         max_concept_size=8,
         distance_feature_max_complexity=8,
-        initial_sample_size=10,
+        #initial_sample_size=10,
         consistency_bound=10,
         optimal_steps=2,
         v_slack=2,
-        closed=False,
-
         # feature_generator=debug_features_at,
+        verbosity=2,
         use_equivalence_classes=True,
-        use_feature_dominance=False,
     )
 
     # Using incompletely-specified goals
