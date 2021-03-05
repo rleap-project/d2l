@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include <cnf/transition_classification.h>
+#include <cnf/d2l.h>
 
 
 namespace sltp::cnf {
