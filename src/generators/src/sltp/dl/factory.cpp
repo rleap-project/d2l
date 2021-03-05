@@ -901,7 +901,7 @@ void Factory::output_feature_matrix(std::ostream &os, const Cache &cache, const 
     unsigned nfeatures_to_print = print_hstar ? num_features+1 : num_features;
 
     os << ";; Feature matrix of " << nfeatures_to_print << " features times " << sample.num_states() << " states."
-       << " Format: all space-separated values. Line 0: Header line. Line 1: Feature names; Line 2: Feature complexities; Line i, 3<=i<=n: Feature valuation in state #i"
+       << " Format: all space-separated values. Line 0: This header line. Line 1: Feature names; Line 2: Feature complexities; Line i, 3<=i<=n: Feature valuation in state #i"
        << std::endl;
 
     // Line #1: feature names

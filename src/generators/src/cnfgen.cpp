@@ -218,7 +218,9 @@ int run(const Options& options) {
 
         auto strategy = choose_strategy(options);
 
-        const auto& [output, dnf] = strategy->run(options, *sample, time);
+        const auto result = strategy->run(options, *sample, time);
+        output = std::get<0>(result);
+        const auto& dnf = std::get<1>(result);
         if (output != CNFGenerationOutput::Success) break;
 
         if (options.verbosity>0) {

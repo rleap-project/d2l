@@ -16,7 +16,7 @@ sltp::TransitionSample read_transition_data(const std::string& workspace, bool v
 
 
 sltp::FeatureMatrix read_feature_matrix(const std::string& workspace, bool verbose) {
-    std::string matrix_filename = workspace + "/feature-matrix.dat";
+    std::string matrix_filename = workspace + "/feature-matrix.io";
     std::cout << sltp::utils::blue() << "reading" << sltp::utils::normal() << " '" << matrix_filename << std::endl;
     auto ifs_matrix = sltp::utils::get_ifstream(matrix_filename);
     auto matrix = sltp::FeatureMatrix::read_dump(ifs_matrix, verbose);

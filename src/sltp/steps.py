@@ -92,7 +92,6 @@ class CPPFeatureGenerationStep(Step):
     def process_config(self, config):
         check_int_parameter(config, "max_concept_size")
 
-        config["feature_matrix_filename"] = compute_info_filename(config, "feature-matrix.dat")
         config["parameter_generator"] = config.get("parameter_generator", None)
         config["concept_denotation_filename"] = compute_info_filename(config, "concept-denotations.txt")
         config["feature_denotation_filename"] = compute_info_filename(config, "feature-denotations.txt")
