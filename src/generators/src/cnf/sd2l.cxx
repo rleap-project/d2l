@@ -406,22 +406,55 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> SD2LEncoding::generate(CNFW
         wr.cl( goal_d1_clauses );
         cl_counter[2]++;
     }
-    aux_c2.clear();
+    //aux_c2.clear();
+    for( const auto t : sample_.alive_states()){
+        for( const auto t_prime : sample_.successors(t) ){
+            if( sample_.is_solvable(t_prime) ) continue;
+            const auto t_tx = get_transition_id(t,t_prime);
+            const auto t_repr = get_representative_id( t_tx );
 
-    // C2.b -Good(s,s') iff s is alive and s' is a dead-end
-    std::set< unsigned > c2_repr;
+            if( t_tx != t_repr ) continue;
+
+            for( const auto s : sample_.alive_states()){
+                for (const auto s_prime : sample_.successors(s)) {
+                    if( !sample_.is_solvable(s_prime) ) continue;
+                    const auto s_tx = get_transition_id(s,s_prime);
+                    const auto s_repr = get_representative_id( s_tx );
+
+                    if( s_tx != s_repr ) continue;
+
+                    cnfclause_t clause;
+                    clause.push_back( wr.lit( variables.goods.at(s_repr), false ) );
+                    clause.push_back( wr.lit( variables.goods.at(t_repr), true ) );
+
+                    for (feature_t f:compute_d1d2_distinguishing_features(feature_ids, sample_, s, s_prime, t, t_prime)) {
+                        clause.push_back(Wr::lit(variables.selecteds.at(f), true));
+                    }
+
+                    wr.cl( clause );
+                    cl_counter[2]++;
+                }
+            }
+            // C2.c -Good(t,t') for t solvable and t' unsolvable
+            wr.cl( {wr.lit( variables.goods.at( t_repr ), false )} );
+            cl_counter[2]++;
+        }
+    }
+    // C3.b -Good(s,s') iff s is alive and s' is a dead-end
+    /*std::set< unsigned > c2_repr;
     for( const auto s : sample_.alive_states() ){
         for( const auto s_prime : sample_.successors(s) ){
-            if( !sample_.is_unsolvable(s_prime) ) continue;
+            //if( !sample_.is_unsolvable(s_prime) ) continue;
             const auto tx = get_transition_id(s,s_prime);
+            if(!is_necessarily_bad(tx) ) continue;
             const auto repr = get_representative_id(tx);
             c2_repr.insert( repr );
         }
     }
     for( const auto repr : c2_repr ){
         wr.cl({ wr.lit(variables.goods.at(repr ), false ) });
-    }
-    c2_repr.clear();
+    }*/
+    //c2_repr.clear();
 
     // C3. For each state s, post a constraint OR_{s' child of s} Good(s, s')
     if (options.verbosity>0) std::cout << "Encoding clause C3..." << std::endl;

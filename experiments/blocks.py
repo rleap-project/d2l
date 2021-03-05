@@ -72,7 +72,7 @@ def experiments():
         #initial_sample_size=999999,
         initial_sample_size=10,
         consistency_bound=10,
-        optimal_steps=0,
+        optimal_steps=2,
         v_slack=2,
         closed=False,
         parameter_generator=blocksworld_parameters_for_clear,
@@ -127,8 +127,8 @@ def experiments():
         distance_feature_max_complexity=8,
         #initial_sample_size=999999,
         initial_sample_size=10,
-        consistency_bound=0,
-        optimal_steps=100,
+        consistency_bound=10,
+        optimal_steps=2,
         v_slack=2,
         closed=False,
 
@@ -207,7 +207,7 @@ def experiments():
         distance_feature_max_complexity=8,
         initial_sample_size=10,
         consistency_bound=10,
-        optimal_steps=0,
+        optimal_steps=2,
         v_slack=2,
         closed=False,
 

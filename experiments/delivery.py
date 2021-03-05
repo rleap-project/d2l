@@ -67,18 +67,10 @@ def experiments():
         #initial_sample_size=999999,
         initial_sample_size=10,
         consistency_bound=10,
-        optimal_steps=0,
+        optimal_steps=2,
         v_slack=2,
-        closed=False,
         verbose=False,
-
-        # feature_generator=debug_features,
-        # d2l_policy=debug_policy,
-
         use_equivalence_classes=True,
-        # use_feature_dominance=True,
-        use_incremental_refinement=True,
-        # print_denotations=True,
     )
 
     return exps

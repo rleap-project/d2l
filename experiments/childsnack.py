@@ -67,7 +67,7 @@ def experiments():
         #initial_sample_size=999999,
         initial_sample_size=10,
         consistency_bound=10,
-        optimal_steps=0,
+        optimal_steps=2,
         v_slack=2,
         closed=False,
         verbose=False,

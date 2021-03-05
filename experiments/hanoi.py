@@ -44,4 +44,33 @@ def experiments():
         # use_feature_dominance=True,
     )
 
+    exps["small-sd2l"] = update_dict(
+        base,
+        instances=[
+            # 'p01.pddl',
+            # 'p02.pddl',
+            'p03.pddl',
+            'p04.pddl',
+            'p05.pddl',
+        ],
+
+        test_policy_instances=[
+            'p04.pddl',
+            'p05.pddl',
+            'p06.pddl',
+            'p07.pddl',
+            'p08.pddl',
+        ],
+
+		n_features=4,
+        max_concept_size=8,
+        distance_feature_max_complexity=8,
+        initial_sample_size=10,
+        consistency_bound=10,
+        optimal_steps=2,
+        v_slack=2,
+        verbose=False,
+        use_equivalence_classes=True,
+    )
+
     return exps
