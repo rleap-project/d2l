@@ -56,6 +56,18 @@ Options parse_options(int argc, const char **argv) {
          "In the D2L encoding, whether we want to exploit the equivalence relation "
          "among transitions given by the feature pool")
 
+        ("closed",
+         "Whether to enforce policy-closedness constraints")
+
+        ("optimal_steps", po::value<unsigned>()->default_value(0),
+         "The upper bound to follow optimal transitions, i.e. Good(s,s') -> V^*(s') < V^*(s) if V^*(s) <= optimal_steps.")
+
+        ("consistency_bound", po::value<unsigned>()->default_value(10),
+          "For each V^*(s) <= consistency-bound, V(s') < V(s) and V^*(s) <= V(s) <= v_slack * V^*(s)")
+
+        ("n_features", po::value<unsigned>()->default_value(0),
+         "The number of features of the policy graph abstraction.")
+
         ("initial-sample-size", po::value<unsigned>()->default_value(100),
          "The number of solvable and dead states initially sampled at random.")
 
@@ -97,6 +109,10 @@ Options parse_options(int argc, const char **argv) {
     options.verbosity = vm["verbosity"].as<unsigned>();
     options.use_equivalence_classes = vm.count("use-equivalence-classes") > 0;
     options.distinguish_goals = vm.count("distinguish-goals") > 0;
+    options.closed = vm.count("closed") > 0;
+    options.optimal_steps = vm["optimal_steps"].as<unsigned>();
+    options.consistency_bound = vm["consistency_bound"].as<unsigned>();
+    options.n_features = vm["n_features"].as<unsigned>();
     options.v_slack = vm["v_slack"].as<unsigned>();
     options.solve = vm["solve"].as<bool>();
     options.initial_sample_size = vm["initial-sample-size"].as<unsigned>();
@@ -106,7 +122,10 @@ Options parse_options(int argc, const char **argv) {
     options.encodings_dir = vm["encodings_dir"].as<std::string>();
     options.sampling_strategy = vm["sampling_strategy"].as<std::string>();
     options.acyclicity = vm["acyclicity"].as<std::string>();
-    if (options.acyclicity != "reachability" && options.acyclicity != "asp" && options.acyclicity != "topological") {
+    if (options.acyclicity != "reachability" &&
+        options.acyclicity != "asp" &&
+        options.acyclicity != "topological" &&
+        options.acyclicity != "sd2l" ) {
         throw po::validation_error(po::validation_error::invalid_option_value, "acyclicity");
     }
 

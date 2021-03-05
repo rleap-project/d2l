@@ -59,6 +59,28 @@ def experiments():
 
         # print_hstar_in_feature_matrix=True,
     )
+    
+    exps["clear-sd2l"] = update_dict(
+        strips_base,
+        instances=["training_clear_5.pddl"],
+        test_policy_instances=all_clear_test_instancess(),
+        
+        acyclicity="sd2l",
+
+        n_features=3,
+        max_concept_size=8,
+        #initial_sample_size=999999,
+        initial_sample_size=10,
+        consistency_bound=10,
+        optimal_steps=0,
+        v_slack=2,
+        closed=False,
+        parameter_generator=blocksworld_parameters_for_clear,
+        use_equivalence_classes=True,
+        # use_feature_dominance=True,
+
+        # feature_generator=debug_features_clear,
+    )
 
     exps["clear_fn"] = update_dict(
         fn_base,
@@ -90,6 +112,29 @@ def experiments():
         # acyclicity="asp",
 
         # print_hstar_in_feature_matrix=True,
+    )
+    
+    exps["on-sd2l"] = update_dict(
+        strips_base,
+        instances=[
+            "training_on_5.pddl",
+        ],
+        test_policy_instances=all_on_test_instancess(),
+
+        acyclicity="sd2l",
+        n_features=4,
+        max_concept_size=8,
+        distance_feature_max_complexity=8,
+        #initial_sample_size=999999,
+        initial_sample_size=10,
+        consistency_bound=10,
+        optimal_steps=0,
+        v_slack=2,
+        closed=False,
+
+        parameter_generator=blocksworld_parameters_for_on,
+        use_equivalence_classes=True,
+        # use_feature_dominance=True,
     )
 
     exps["on_fn"] = update_dict(
@@ -142,6 +187,32 @@ def experiments():
         # acyclicity="asp",
         verbosity=1,
         sampling_strategy="goal"
+    )
+
+    exps["all_at_5-sd2l"] = update_dict(
+        strips_atomic_base,
+        instances=[
+            "training_arbitrary_5_atomic.pddl",
+            "training_arbitrary_5_atomic_tower.pddl"
+        ],
+        test_policy_instances=[
+            "training_arbitrary_5_atomic.pddl",
+        ] + [
+            f"test_atomic_{n}_{i}.pddl" for n in range(10, 31) for i in range(0, 5)
+        ],
+
+        n_features=3,
+        max_concept_size=8,
+        distance_feature_max_complexity=8,
+        initial_sample_size=10,
+        consistency_bound=10,
+        optimal_steps=0,
+        v_slack=2,
+        closed=False,
+
+        # feature_generator=debug_features_at,
+        use_equivalence_classes=True,
+        use_feature_dominance=False,
     )
 
     # Using incompletely-specified goals

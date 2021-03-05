@@ -148,6 +148,9 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
         # The slack value for the maximum allowed value for V_pi(s) = slack * V^*(s)
         v_slack=2,
 
+        # The number of features of the policy graph abstraction
+        n_features=3,
+
         # In the transition-separation encoding, whether to post constraints to ensure distinguishability of goals
         distinguish_goals=False,
 
@@ -164,11 +167,14 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
         # The level of verbosity - higher value means more verbosity
         verbosity=0,
 
-        # The acyclicity encoding to be used
+        # The type of acyclicity encoding to be used: "topological", "asp", "sd2l".
         acyclicity="topological",
 
         encodings_dir=os.path.join(os.path.dirname(SLTP_SRC_DIR), "encodings"),
         sampling_strategy="random",
+
+        # In the SD2L encoding, whether to enforce policy-closedness constraints too
+        closed=True,
 
         print_hstar_in_feature_matrix=False,
     )

@@ -131,10 +131,10 @@ CNFGenerationOutput D2LEncoding::generate_asp_instance_1(std::ofstream& os) {
     os << std::endl;
 
     for (unsigned s = 0; s < mat.num_states(); ++s) {
-        if (mat.is_deadend(s)) {
+        if (!sample_.is_solvable(s)) {
             os << "dead(" << s << ")." << std::endl;
         }
-        else if (mat.goal(s)) {
+        else if (sample_.is_goal(s)) {
             os << "goal(" << s << ")." << std::endl;
         }
         else {
@@ -186,10 +186,10 @@ CNFGenerationOutput D2LEncoding::generate_asp_instance_10(std::ofstream& os) {
     for (auto s = 0; s < mat.num_states(); ++s) {
         if (!sample_.in_sample(s)) continue;
 
-        if (mat.is_deadend(s)) {
+        if (!sample_.is_solvable(s)) {
             os << "dead(" << s << ")." << std::endl;
         }
-        else if (mat.goal(s)) {
+        else if (sample_.is_goal(s)) {
             os << "goal(" << s << ")." << std::endl;
         }
         else {
@@ -274,7 +274,7 @@ CNFGenerationOutput D2LEncoding::generate_asp_instance_10(std::ofstream& os) {
 }
 
 
-std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::write(CNFWriter& wr)
+std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWriter& wr)
 {
     using Wr = CNFWriter;
     const auto& mat = sample_.matrix();

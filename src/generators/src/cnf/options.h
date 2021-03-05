@@ -51,6 +51,18 @@ struct Options {
 
     //! The random seed
     unsigned seed;
+
+    //! The number of features of the policy graph abstraction
+    unsigned n_features;
+
+    //! Whether to enforce policy-closedness constraints
+    bool closed;
+
+    //! The upper bound to follow optimal transitions, i.e. Good(s,s') -> V^*(s') < V^*(s) if V^*(s) <= optimal_steps
+    unsigned optimal_steps;
+
+    //! V consistency when V^*(s) <= K, so that V(s') < V(s) and V^*(s) <= V(s) <= v_slack * V^*(s)
+    unsigned consistency_bound;
 };
 
 Options parse_options(int argc, const char** argv);

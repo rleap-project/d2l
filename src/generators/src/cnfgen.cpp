@@ -17,8 +17,8 @@ using namespace std;
 
 namespace sltp::cnf {
 
-std::tuple<CNFGenerationOutput, D2LEncoding, VariableMapping>
-generate_maxsat_cnf(const StateSpaceSample& sample, const cnf::Options& options) {
+std::tuple<CNFGenerationOutput, VariableMapping>
+generate_maxsat_cnf(D2LEncoding& generator, const StateSpaceSample& sample, const cnf::Options& options) {
     float start_time = sltp::utils::read_time_in_seconds();
 
     // We write the MaxSAT instance progressively as we generate the CNF. We do so into a temporary "*.tmp" file
@@ -29,15 +29,14 @@ generate_maxsat_cnf(const StateSpaceSample& sample, const cnf::Options& options)
     auto allvarsstream = sltp::utils::get_ofstream(options.workspace + "/allvars.wsat");
 
     CNFWriter writer(otmpstream, &allvarsstream);
-    D2LEncoding generator(sample, options);
-    auto [output, variables] = generator.write(writer);
+    auto [output, variables] = generator.generate(writer);
 
     otmpstream.close();
     allvarsstream.close();
 
     if (output == cnf::CNFGenerationOutput::UnsatTheory) {
         std::cerr << utils::warning() << "CNF theory detected UNSAT while generating it" << std::endl;
-        return {output, generator, variables};
+        return {output, variables};
     }
 
     // Now that we have finished printing all clauses of the encoding and have a final count of vars and clauses,
@@ -68,7 +67,7 @@ generate_maxsat_cnf(const StateSpaceSample& sample, const cnf::Options& options)
     float total_time = sltp::utils::read_time_in_seconds() - start_time;
     std::cout << "CNF [" << writer.nvars() << " vars, " << writer.nclauses()
               << " clauses] generated in " << total_time << " sec." << std::endl;
-    return {output, generator, variables};
+    return {output, variables};
 }
 
 
@@ -99,7 +98,8 @@ public:
     std::pair<CNFGenerationOutput, DNFPolicy> run(const Options& options, const StateSpaceSample& sample, TimeStats& time) override {
         // Generate the encoding
         float gent0 = sltp::utils::read_time_in_seconds();
-        const auto& [output, encoder, variables] = generate_maxsat_cnf(sample, options);
+        auto encoder = D2LEncoding::create(sample, options);
+        const auto& [output, variables] = generate_maxsat_cnf(*encoder, sample, options);
         time.generation_time += sltp::utils::read_time_in_seconds() - gent0;
 
         // If encoding already UNSAT, abort
@@ -121,7 +121,7 @@ public:
         }
 
         std::cout << "Solution with cost " << solution.cost << " found in " << tsolution << "sec." << std::endl;
-        auto dnf = encoder.generate_dnf_from_solution(variables, solution);
+        auto dnf = encoder->generate_dnf_from_solution(variables, solution);
 //            dnf = minimize_dnf();
         return {CNFGenerationOutput::Success, dnf};
     }

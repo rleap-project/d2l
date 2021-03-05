@@ -168,8 +168,7 @@ def transform_generator_output(config, sample, matrix_filename):
         for line in f:
             matrix.append([cast_feature_value(int(x)) for x in line.rstrip().split(' ')])
 
-    state_ids = sample.get_sorted_state_ids()
-    print_feature_matrix(config.feature_matrix_filename, matrix, state_ids, sample.goals, sample.deadends, names, complexities)
+    print_feature_matrix(config.feature_matrix_filename, matrix, sample, names, complexities)
 
 
 def generate_output_from_handcrafted_features(sample, config, features, model_cache):
@@ -188,8 +187,7 @@ def generate_output_from_handcrafted_features(sample, config, features, model_ca
         models = {sid: model_cache.get_feature_model(sid) for sid in sample.states}
         log_feature_denotations(state_ids, features, models, config.feature_denotation_filename, None)
 
-    state_ids = sample.get_sorted_state_ids()
-    print_feature_matrix(config.feature_matrix_filename, matrix, state_ids, sample.goals, sample.deadends, names, complexities)
+    print_feature_matrix(config.feature_matrix_filename, matrix, sample, names, complexities)
     return [], len(names)
 
 
@@ -292,26 +290,21 @@ def deal_with_serialized_features(language, feature_generator, serialized_featur
     return features
 
 
-def print_feature_matrix(filename, matrix, state_ids, goals, deadends, names, complexities):
-    ngoals, nfeatures = len(goals), len(names)
+def print_feature_matrix(filename, matrix, sample, names, complexities):
+    state_ids = sample.get_sorted_state_ids()
+    nfeatures = len(names)
     assert nfeatures == len(complexities)
-    logging.info(f"Printing feature matrix with shape ({len(matrix)}, {len(names)}) to '{filename}'")
+    logging.info(f"Printing feature matrix with shape ({len(matrix)}, {nfeatures}) to '{filename}'")
 
     with open(filename, 'w') as f:
-        # Header row: <#states> <#features> <#goals>
-        print(f"{len(state_ids)} {nfeatures} {ngoals}", file=f)
+        # Header row: <#states> <#features>
+        print(f"{len(state_ids)} {nfeatures}", file=f)
 
         # Line #2:: <list of feature names>
         print(" ".join(name.replace(" ", "") for name in names), file=f)
 
         # Line #3: <list of feature costs>
         print(" ".join(str(c) for c in complexities), file=f)
-
-        # Line #4: <list of goal state IDs>
-        print(" ".join(map(str, goals)), file=f)
-
-        # Line #5: <list of expanded state IDs>
-        print(" ".join(map(str, deadends)), file=f)
 
         # next lines: one per each state with format: <state-index> <#features-in-state> <list-features>
         # each feature has format: <feature-index>:<value>

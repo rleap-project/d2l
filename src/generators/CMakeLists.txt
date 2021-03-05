@@ -33,6 +33,7 @@ set(SOURCE_FILES
 set(CNFGEN_SOURCE_FILES
     src/cnfgen.cpp
     src/cnf/transition_classification.cxx
+    src/cnf/sd2l.cxx
     src/cnf/types.cxx
     src/cnf/generator
     src/cnf/cnfwriter.h

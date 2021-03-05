@@ -26,6 +26,10 @@ def invoke_cpp_module(config, data, validate_features=None):
     args += ["--acyclicity", str(config.acyclicity)]
     args += ["--encodings_dir", str(config.encodings_dir)]
     args += ["--sampling_strategy", str(config.sampling_strategy)]
+    args += ["--optimal_steps", str(config.optimal_steps)]
+    args += ["--consistency_bound", str(config.consistency_bound)]
+    args += ["--n_features", str(config.n_features)]
+    args += ["--closed"] if config.closed else []
     retcode = execute([cmd] + args)
 
     return {  # Let's map the numeric code returned by the c++ app into an ExitCode object

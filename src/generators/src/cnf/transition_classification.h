@@ -34,6 +34,8 @@ public:
         alive_to_dead
     };
 
+    static std::unique_ptr<D2LEncoding> create(const StateSpaceSample& sample, const Options& options);
+
     D2LEncoding(const StateSpaceSample& sample, const Options& options) :
             sample_(sample),
             options(options),
@@ -56,10 +58,12 @@ public:
         compute_equivalence_relations();
     }
 
+    virtual ~D2LEncoding() = default;
+
     sltp::cnf::CNFGenerationOutput generate_asp_instance_1(std::ofstream& os);
     sltp::cnf::CNFGenerationOutput generate_asp_instance_10(std::ofstream& os);
 
-    std::pair<cnf::CNFGenerationOutput, VariableMapping> write(CNFWriter& wr);
+    virtual std::pair<cnf::CNFGenerationOutput, VariableMapping> generate(CNFWriter& wr);
 
     inline unsigned get_transition_id(state_id_t s, state_id_t t) const { return transition_ids_.at(state_pair(s, t)); }
 

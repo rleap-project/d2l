@@ -31,10 +31,6 @@ public:
     const TransitionSample& transitions() const { return transitions_; }
     const sltp::Sample& sample() const { return sample_; }
 
-    bool is_deadend(unsigned s) const {
-        return matrix_.is_deadend(s);
-    }
-
 
     friend std::ostream& operator<<(std::ostream &os, const TrainingSet& o) { return o.print(os); }
     std::ostream& print(std::ostream &os) const {
@@ -65,8 +61,9 @@ public:
             << ", states: " << transitions_.num_states()
             << ", transitions: " << transitions_.num_transitions()
             << " (" << num_alive << " alive: " << alive_string << ")"
-            << ", deadends: " << matrix_.deadends().size()
-            << ", goals: " << matrix_.num_goals()
+//          << " (" << transitions_.num_marked_transitions() << " marked)"
+            << ", unsolvable: " << transitions_.num_unsolvable()
+            << ", goals: " << transitions_.all_goals().size()
             << ", features: " << matrix_.num_features()
             << ", est. size: " << std::setprecision(2) << std::fixed << est_size << " MB.]";
         return os;
