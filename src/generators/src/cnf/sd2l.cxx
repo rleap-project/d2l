@@ -292,7 +292,7 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> SD2LEncoding::generate(CNFW
             const auto v_s_d = wr.var("V(" + std::to_string(s) + ", " + std::to_string(d) + ")");
             v_vars.emplace(std::make_pair(s, d), v_s_d);
 //                std::cout << s << ", " << d << std::endl;
-
+            n_v_vars++;
             if (d >= min_vs && d <= max_vs) {
                 within_range_clause.push_back(Wr::lit(v_s_d, true));
             }
