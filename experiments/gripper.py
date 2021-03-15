@@ -38,6 +38,8 @@ def experiments():
         use_equivalence_classes=True,
         # use_feature_dominance=True,
         # print_hstar_in_feature_matrix=True,
+        sampling_strategy="goal",
+        verbosity=2
     )
     
     exps["small-sd2l"] = update_dict(
@@ -49,6 +51,30 @@ def experiments():
         test_policy_instances=[f"prob{i:02d}.pddl" for i in range(3, 21)],
 
         acyclicity="sd2l",
+
+        sampling_strategy="goal",
+		n_features=3,
+        max_concept_size=8,
+        distance_feature_max_complexity=8,
+        v_slack=2,
+        #initial_sample_size=10,
+        #initial_sample_size=999999,
+        consistency_bound=0,
+        optimal_steps=2,
+        # parameter_generator=gripper_parameters,  # Works also, but no real advantage
+        verbosity=2,
+        use_equivalence_classes=True,
+    )
+    
+    exps["small-dtl"] = update_dict(
+        base,
+        # instances=["sample-2balls.pddl", "sample-small.pddl"],
+        instances=["prob01.pddl"],
+        # test_instances=[f"prob{i:02d}.pddl" for i in range(3, 11)],
+        test_instances=[],
+        test_policy_instances=[f"prob{i:02d}.pddl" for i in range(3, 21)],
+
+        acyclicity="dtl",
 
         sampling_strategy="goal",
 		n_features=3,

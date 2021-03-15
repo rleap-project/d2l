@@ -45,6 +45,8 @@ def experiments():
         # comparison_features=True,
         use_equivalence_classes=True,
         # use_feature_dominance=True,
+        sampling_strategy="goal",
+        verbosity=2
     )
 
     exps["small-sd2l"] = update_dict(
@@ -64,6 +66,37 @@ def experiments():
         ] + all_test_instances(),
 
         acyclicity="sd2l",
+        sampling_strategy="goal",
+        
+        n_features=3,
+        max_concept_size=8,
+        distance_feature_max_complexity=8,
+        #initial_sample_size=999999,
+        #initial_sample_size=10,
+        v_slack=2,
+        consistency_bound=0,
+        optimal_steps=2,
+        verbosity=2,
+        use_equivalence_classes=True,
+    )
+
+    exps["small-dtl"] = update_dict(
+        base,
+        pipeline="d2l_pipeline",
+        instances=[
+            "prob-2-2-10.pddl",
+            "prob-4-2-5.pddl",
+            "prob-6_4_10.pddl",
+
+        ],
+        test_instances=[
+        ],
+        test_policy_instances=[
+            "prob-10-10-10-1540903568.pddl",
+            "prob-15-10-8-1540913795.pddl"
+        ] + all_test_instances(),
+
+        acyclicity="dtl",
         sampling_strategy="goal",
         
         n_features=3,

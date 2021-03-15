@@ -52,10 +52,11 @@ def experiments():
 
         # feature_generator=debug_features_clear,
         # acyclicity="asp",
-        verbosity=1,
+        verbosity=2,
         initial_sample_size=10,
         refinement_batch_size=20,
-        sampling_strategy="random",
+        #sampling_strategy="random",
+        sampling_strategy="goal"
 
         # print_hstar_in_feature_matrix=True,
     )
@@ -66,6 +67,26 @@ def experiments():
         test_policy_instances=all_clear_test_instancess(),
         
         acyclicity="sd2l",
+
+        sampling_strategy="goal",
+        n_features=3,
+        max_concept_size=8,
+        #initial_sample_size=999999,
+        #initial_sample_size=10,
+        consistency_bound=0,
+        optimal_steps=2,
+        v_slack=2,
+        parameter_generator=blocksworld_parameters_for_clear,
+        verbosity=2,
+        use_equivalence_classes=True,
+    )
+    
+    exps["clear-dtl"] = update_dict(
+        strips_base,
+        instances=["training_clear_5.pddl"],
+        test_policy_instances=all_clear_test_instancess(),
+        
+        acyclicity="dtl",
 
         sampling_strategy="goal",
         n_features=3,
@@ -106,7 +127,7 @@ def experiments():
 
         verbosity=2,
         # initial_sample_size=40,
-        # sampling_strategy="goal",
+         sampling_strategy="goal",
         # acyclicity="asp",
 
         # print_hstar_in_feature_matrix=True,
@@ -120,6 +141,29 @@ def experiments():
         test_policy_instances=all_on_test_instancess(),
 
         acyclicity="sd2l",
+        sampling_strategy="goal",
+        n_features=4,
+        max_concept_size=8,
+        distance_feature_max_complexity=8,
+        #initial_sample_size=999999,
+        #initial_sample_size=10,
+        consistency_bound=0,
+        optimal_steps=2,
+        v_slack=2,
+        verbosity=2,
+        use_equivalence_classes=True,
+
+        parameter_generator=blocksworld_parameters_for_on
+    )
+    
+    exps["on-dtl"] = update_dict(
+        strips_base,
+        instances=[
+            "training_on_5.pddl",
+        ],
+        test_policy_instances=all_on_test_instancess(),
+
+        acyclicity="dtl",
         sampling_strategy="goal",
         n_features=4,
         max_concept_size=8,
@@ -183,7 +227,7 @@ def experiments():
 
         initial_sample_size=10,
         # acyclicity="asp",
-        verbosity=1,
+        verbosity=2,
         sampling_strategy="goal"
     )
 
@@ -202,6 +246,32 @@ def experiments():
         acyclicity="sd2l",
         sampling_strategy="goal",
         n_features=3,
+        max_concept_size=8,
+        distance_feature_max_complexity=8,
+        #initial_sample_size=10,
+        consistency_bound=0,
+        optimal_steps=2,
+        v_slack=2,
+        # feature_generator=debug_features_at,
+        verbosity=2,
+        use_equivalence_classes=True,
+    )
+    
+    exps["all_at_5-dtl"] = update_dict(
+        strips_atomic_base,
+        instances=[
+            "training_arbitrary_5_atomic.pddl",
+            "training_arbitrary_5_atomic_tower.pddl"
+        ],
+        test_policy_instances=[
+            "training_arbitrary_5_atomic.pddl",
+        ] + [
+            f"test_atomic_{n}_{i}.pddl" for n in range(10, 31) for i in range(0, 5)
+        ],
+
+        acyclicity="dtl",
+        sampling_strategy="goal",
+        n_features=4,
         max_concept_size=8,
         distance_feature_max_complexity=8,
         #initial_sample_size=10,

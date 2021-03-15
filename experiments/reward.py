@@ -35,6 +35,8 @@ def experiments():
         # parameter_generator=None
         use_equivalence_classes=True,
         # use_feature_dominance=True,
+        sampling_strategy="goal",
+        verbosity=2
     )
     
     exps["small-sd2l"] = update_dict(
@@ -45,6 +47,29 @@ def experiments():
         test_policy_instances=all_test_instances(),
 
         acyclicity="sd2l",
+
+        sampling_strategy="goal",
+		n_features=2,
+        max_concept_size=8,
+        distance_feature_max_complexity=8,
+        #initial_sample_size=999999,
+        #initial_sample_size=10,
+        consistency_bound=0,
+        optimal_steps=2,
+        v_slack=2,
+        parameter_generator=no_parameter,
+        verbosity=2,
+        use_equivalence_classes=True,
+    )
+    
+    exps["small-dtl"] = update_dict(
+        base,
+        instances=["training_5x5.pddl"],
+        # instances=["instance_5.pddl", "instance_4_blocked.pddl"],
+        test_instances=[],
+        test_policy_instances=all_test_instances(),
+
+        acyclicity="dtl",
 
         sampling_strategy="goal",
 		n_features=2,

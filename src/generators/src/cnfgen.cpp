@@ -8,6 +8,7 @@
 #include <cnf/options.h>
 #include <cnf/sample.h>
 #include <cnf/d2l.h>
+#include <cnf/encoding_factory.h>
 #include <common/utils.h>
 #include <common/helpers.h>
 #include <cnf/solver.h>
@@ -98,7 +99,7 @@ public:
     std::pair<CNFGenerationOutput, DNFPolicy> run(const Options& options, const StateSpaceSample& sample, TimeStats& time) override {
         // Generate the encoding
         float gent0 = utils::read_time_in_seconds();
-        auto encoder = D2LEncoding::create(sample, options);
+        auto encoder = EncodingFactory::create(sample, options);
         const auto& [output, variables] = generate_maxsat_cnf(*encoder, sample, options);
         time.generation_time += utils::read_time_in_seconds() - gent0;
 
