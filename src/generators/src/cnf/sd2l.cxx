@@ -14,10 +14,10 @@ namespace sltp::cnf {
 
 
 //! Factory method
-std::unique_ptr<D2LEncoding> D2LEncoding::create(const StateSpaceSample& sample, const Options& options) {
+/*std::unique_ptr<D2LEncoding> D2LEncoding::create(const StateSpaceSample& sample, const Options& options) {
     if (options.acyclicity == "sd2l") return std::make_unique<SD2LEncoding>(sample, options);
     return std::make_unique<D2LEncoding>(sample, options);
-}
+}*/
 
 // 2-comp for <=
 void SD2LEncoding::two_comparator(CNFWriter &wr, int &prefix_id, const cnfvar_t &x1, const cnfvar_t &x2, std::vector< cnfvar_t > &y ){
@@ -298,6 +298,8 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> SD2LEncoding::generate(CNFW
             }
         }
 
+        if( min_vs > K ) continue; // Possible bug
+
         // Add clauses (4), (5)
         wr.cl(within_range_clause);
         cl_counter[6] += 1;
@@ -440,6 +442,7 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> SD2LEncoding::generate(CNFW
             cl_counter[2]++;
         }
     }
+
     // C3.b -Good(s,s') iff s is alive and s' is a dead-end
     /*std::set< unsigned > c2_repr;
     for( const auto s : sample_.alive_states() ){

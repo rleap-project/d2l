@@ -40,6 +40,8 @@ def experiments():
         max_concept_size=10,
         use_equivalence_classes=True,
         # use_feature_dominance=True,
+        sampling_strategy="goal",
+        verbosity=2
     )
     
     exps["small-sd2l"] = update_dict(
@@ -59,6 +61,38 @@ def experiments():
         test_policy_instances=all_test_instances(),
 
 		acyclicity="sd2l",
+        sampling_strategy="goal",
+
+        # create_goal_features_automatically=True,
+        n_features=5,
+        max_concept_size=8,
+        distance_feature_max_complexity=8,
+        #initial_sample_size=999999,
+        #initial_sample_size=10,
+        consistency_bound=0,
+        optimal_steps=2,
+        v_slack=2,
+        verbosity=2,
+        use_equivalence_classes=True,
+    )
+    
+    exps["small-dtl"] = update_dict(
+        base,
+        # instances=['sample{:02d}.pddl'.format(i) for i in range(1, 5)],
+        instances=[
+            # 'sample_mini.pddl',
+            'sample01.pddl',
+            'sample02.pddl',
+            'sample03.pddl',
+
+            # 'child-snack_pfile01-2.pddl'  # STATE SPACE TOO LARGE
+        ],
+        test_instances=[
+            # 'child-snack_pfile01-2.pddl',
+        ],
+        test_policy_instances=all_test_instances(),
+
+		acyclicity="dtl",
         sampling_strategy="goal",
 
         # create_goal_features_automatically=True,

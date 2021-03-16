@@ -26,7 +26,6 @@ struct VariableMapping {
     {}
 };
 
-
 class D2LEncoding {
 public:
     enum class transition_type : bool {
@@ -34,7 +33,7 @@ public:
         alive_to_dead
     };
 
-    static std::unique_ptr<D2LEncoding> create(const StateSpaceSample& sample, const Options& options);
+    //static std::unique_ptr<D2LEncoding> create(const StateSpaceSample& sample, const Options& options);
 
     D2LEncoding(const StateSpaceSample& sample, const Options& options) :
             sample_(sample),

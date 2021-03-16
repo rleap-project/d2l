@@ -125,7 +125,8 @@ Options parse_options(int argc, const char **argv) {
     if (options.acyclicity != "reachability" &&
         options.acyclicity != "asp" &&
         options.acyclicity != "topological" &&
-        options.acyclicity != "sd2l" ) {
+        options.acyclicity != "sd2l" &&
+        options.acyclicity != "dtl") {
         throw po::validation_error(po::validation_error::invalid_option_value, "acyclicity");
     }
 

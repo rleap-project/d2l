@@ -52,7 +52,7 @@ def experiments():
     exps["small-sd2l"] = update_dict(
         base,
         instances=[
-        	'instance_3_2_0.pddl',
+        	#'instance_3_2_0.pddl',
             'instance_3_3_0.pddl',  # Use one small instance with three packages
             'instance_4_2_0.pddl',  # And a slightly larger one with two packages
             # 'instance_5_0.pddl',
@@ -62,7 +62,32 @@ def experiments():
         acyclicity="sd2l",
         sampling_strategy="goal",
 
-		n_features=4,
+		n_features=3,
+        max_concept_size=8,
+        distance_feature_max_complexity=14,
+        #initial_sample_size=999999,
+        #initial_sample_size=10,
+        consistency_bound=0,
+        optimal_steps=2,
+        v_slack=2,
+        verbosity=2,
+        use_equivalence_classes=True,
+    )
+    
+    exps["small-dtl"] = update_dict(
+        base,
+        instances=[
+        	#'instance_3_2_0.pddl',
+            'instance_3_3_0.pddl',  # Use one small instance with three packages
+            'instance_4_2_0.pddl',  # And a slightly larger one with two packages
+            # 'instance_5_0.pddl',
+        ],
+        test_policy_instances=all_test_instances(),
+
+        acyclicity="dtl",
+        sampling_strategy="goal",
+
+		n_features=3,
         max_concept_size=8,
         distance_feature_max_complexity=14,
         #initial_sample_size=999999,
