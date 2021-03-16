@@ -1,4 +1,5 @@
 import logging
+from typing import Union
 
 from tarski.grounding.ops import approximate_symbol_fluency
 
@@ -8,7 +9,7 @@ from tarski.syntax.transform.errors import TransformationError
 from tarski.syntax.transform.simplifications import transform_to_ground_atoms
 
 from .language import parse_pddl
-from tarski.dl import compute_dl_vocabulary
+from tarski.dl import compute_dl_vocabulary, Feature
 
 
 def generate_model_cache(domain, instances, sample, parameter_generator):
@@ -177,3 +178,43 @@ class DLModelCache:
 
     def get_feature_model(self, state):
         return FeatureModel(self.models[state])
+
+
+def translate_atom(atom):
+    assert atom[0] == '(' and atom[-1] == ')'
+    return atom[1:-1].split(' ')
+
+
+def translate_state(state, static_atoms):
+    """ Translate a pyperplan-like state into a list with the format required by SLTP's concept denotation processor """
+    return [translate_atom(atom) for atom in state] + list(static_atoms)
+
+
+def generate_model_from_state(model_factory, state, static_atoms):
+    translated = translate_state(state, static_atoms)
+    return FeatureModel(model_factory.create_model(translated))
+
+
+class FeatureInterpreter:
+    def __init__(self, domain_filename, instance_filename, parameter_generator=None):
+        """ Construct a feature interpreter able to interpret D2L features in any state
+        of the given instance and domain.
+
+        The optional `parameter_generator` parameter can be a function mapping Tarski languages
+        to  lists of Tarski constants representing the parameters of the generalized problem.
+        See e.g. the method "blocksworld_parameters_for_on" in the experiments directory.
+        Leave this parameter to None if your features contain no parameters.
+        """
+        self.problem, self.model_factory = create_model_factory(domain_filename, instance_filename, parameter_generator)
+        self.static_atoms, _ = compute_static_atoms(self.problem)
+
+    def interpret(self, state: str, feature: Union[str, Feature]):
+        """ Return the denotation of the given feature in the given state.
+        Both entities can be represented as strings.
+        """
+        from .util.serialization import unserialize_feature
+        model = generate_model_from_state(self.model_factory, state, self.static_atoms)
+        if isinstance(feature, str):
+            feature = unserialize_feature(self.problem.language, feature)
+
+        return model.denotation(feature)

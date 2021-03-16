@@ -1,9 +1,8 @@
 import logging
 import sys
 
-from .models import FeatureModel
 from .separation import TransitionClassificationPolicy, generate_user_provided_policy
-from .features import generate_model_cache, create_model_factory, compute_static_atoms
+from .features import generate_model_cache, create_model_factory, compute_static_atoms, generate_model_from_state
 from .returncodes import ExitCode
 from .sampling import read_transitions_from_files
 
@@ -49,21 +48,6 @@ def _run_pyperplan(pyperplan, domain, instance, create_policy, parameter_generat
 
     # And run pyperplan!
     pyperplan.main(args)
-
-
-def translate_atom(atom):
-    assert atom[0] == '(' and atom[-1] == ')'
-    return atom[1:-1].split(' ')
-
-
-def translate_state(state, static_atoms):
-    """ Translate a pyperplan-like state into a list with the format required by SLTP's concept denotation processor """
-    return [translate_atom(atom) for atom in state] + list(static_atoms)
-
-
-def generate_model_from_state(model_factory, state, static_atoms):
-    translated = translate_state(state, static_atoms)
-    return FeatureModel(model_factory.create_model(translated))
 
 
 def create_pyperplan_policy_based_search(pyperplan, search_policy):
