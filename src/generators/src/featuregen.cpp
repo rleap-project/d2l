@@ -90,10 +90,12 @@ int main(int argc, const char **argv) {
     sltp::dl::Cache cache;
     factory.generate_basis(sample);
 
-    std::vector<const sltp::dl::Concept*> goal_concepts{};
+    std::vector<const sltp::dl::Concept*> goal_concepts;
+    /*
     if (options.generate_goal_concepts) {
         goal_concepts = factory.generate_goal_concepts_and_roles(cache, sample);
     }
+    */
 
     factory.generate_roles(cache, sample);
 

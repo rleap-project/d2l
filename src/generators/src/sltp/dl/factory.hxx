@@ -107,7 +107,7 @@ public:
     // apply one iteration of the concept generation grammar
     // new concepts are left on a new last layer in concepts_
     // new concepts are non-redundant if sample != nullptr
-    int advance_step(Cache &cache, const Sample &sample, const std::clock_t& start_time);
+    std::pair<int, int> advance_step(unsigned target_k, Cache &cache, const Sample &sample, const std::clock_t& start_time, const std::vector<std::vector<const Role*>>& roles_by_complexity);
 
     //! Retrieve the predicate at the basis of a given role (given the current grammar restrictions, there will be
     //! exactly one such predicate
@@ -186,6 +186,8 @@ public:
 
     static bool check_some_transition_pair_distinguished(
             const feature_sample_denotation_t &fsd, const Sample &sample, const TransitionSample &transitions) ;
+
+    int generate_goal_equality_concepts(const Sample& sample, Cache& cache);
 };
 
 } // namespaces

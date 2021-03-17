@@ -669,167 +669,161 @@ int Factory::generate_roles(Cache &cache, const Sample &sample) {
     return roles_.size();
 }
 
+void print_byline(const std::vector<std::vector<const Concept*>>& concepts, bool print_newline=false) {
+    unsigned total = 0;
+    std::string by_complexity;
+    for (unsigned i = 0; i < concepts.size(); ++i) {
+        by_complexity += std::to_string(concepts[i].size());
+        if (i < concepts.size()-1) by_complexity += ", ";
+        total += concepts[i].size();
+    }
+
+    std::cout << "Total concepts so far: " << total << " (" << by_complexity << ")... ";
+    if (print_newline) std::cout << std::endl;
+}
+
+void validate_complexity_buckets(const std::vector<std::vector<const Concept*>>& concepts) {
+    for (unsigned i = 0; i < concepts.size(); ++i) {
+        for (const auto* c:concepts[i]) {
+            if (c->complexity() != i) {
+                throw std::runtime_error("Concept " + c->fullstr() +
+                " is incorrectly classified in complexity-" + std::to_string(i) + " bucket");
+            }
+        }
+    }
+}
+
 std::vector<const Concept*> Factory::generate_concepts(Cache &cache, const Sample &sample, const std::clock_t& start_time) {
-    std::size_t num_concepts = 0;
     bool some_new_concepts = true;
     bool timeout_reached = false;
 
     if (!concepts_.empty()) throw std::runtime_error("Don't invoke Factory::generate_concepts more than once");
+    concepts_.resize(options.complexity_bound+1); // Create k+1 empty buckets
 
     // Start by processing the basis concepts
-    concepts_.emplace_back();
-    for (const auto* concept : basis_concepts_) attempt_insertion(*concept, cache, sample, concepts_.back());
-
-    for( int iteration = 0; some_new_concepts && !timeout_reached; ++iteration ) {
-        std::cout << "Start of iteration " << iteration
-                  << ": #total-concepts=" << num_concepts
-                  << ", #concepts-in-last-layer=" << (concepts_.empty() ? 0 : concepts_.back().size())
-                  << std::endl;
-
-        std::size_t num_concepts_before_step = num_concepts;
-
-        // Let the fun begin:
-        auto num_pruned_concepts = advance_step(cache, sample, start_time);
-        timeout_reached = num_pruned_concepts < 0;
-
-        num_concepts += concepts_.empty() ? 0 : concepts_.back().size();
-        some_new_concepts = num_concepts > num_concepts_before_step;
-
-        std::cout << "Result of iteration " << iteration
-                  << ": #concepts-in-layer=" << concepts_.back().size()
-                  << ", #pruned-concepts=" << num_pruned_concepts
-                  << std::endl;
-//            report_dl_data(std::cout);
+    for (const auto* concept : basis_concepts_) {
+        attempt_insertion(*concept, cache, sample, concepts_.at(concept->complexity()));
     }
 
-    if (concepts_.back().empty()) {  // i.e. we stopped because last iteration was already a fixpoint
-        concepts_.pop_back();
+    // Classify roles by their complexity.
+    std::vector<std::vector<const Role*>> roles_by_complexity(options.complexity_bound+1);
+    for (const auto* r:roles_) roles_by_complexity.at(r->complexity()).push_back(r);
+
+    for (unsigned k=1; k<=options.complexity_bound && some_new_concepts && !timeout_reached; ++k) {
+        std::cout << "Generating concepts for k=" << k << ". ";
+        print_byline(concepts_);
+        validate_complexity_buckets(concepts_); // Make sure complexity buckets are consistent
+
+        // Let the fun begin:
+        const auto [num_pruned, num_generated] = advance_step(k, cache, sample, start_time, roles_by_complexity);
+        timeout_reached = num_pruned < 0;
+
+        // For k=3, we want to generate as well concepts of the style on=on_g that involve goal predicates
+        // (and which we know will have complexity 3 by definition)
+        if (k==3) generate_goal_equality_concepts(sample, cache);
+
+        some_new_concepts = k<2 || num_generated > 0;
+        std::cout << num_generated << " concepts generated, " << num_pruned << " pruned." << std::endl;
+//            report_dl_data(std::cout);
     }
 
     // Important to use this vector from here on, as it is sorted by complexity
     auto all_concepts = consolidate_concepts();
-    assert(all_concepts.size() == num_concepts);
-
-    std::cout << "dl::Factory: #concepts-final=" << num_concepts << std::endl;
+    print_byline(concepts_, true);
     return all_concepts;
 }
 
-int Factory::advance_step(Cache &cache, const Sample &sample, const std::clock_t& start_time) {
+std::pair<int, int> Factory::advance_step(unsigned target_k, Cache &cache, const Sample &sample, const std::clock_t& start_time, const std::vector<std::vector<const Role*>>& roles_by_complexity) {
+    assert(target_k>0);
+
+    // We'll use a little trick to keep both counts in one single vector:
+    // counts[0] will be num of pruned concepts, counts[1] num of actually generated concepts
+    std::vector<unsigned> counts(2);
+    auto& bucket = concepts_.at(target_k);
+
+    // Create negation concepts from any concept which is not already a negation
+    for (const auto* concept:concepts_.at(target_k-1)) {
+        if (!dynamic_cast<const NotConcept*>(concept)) {
+            counts[attempt_insertion(NotConcept(concept), cache, sample, bucket)]++;
+        }
+    }
+
+    // Create existential and universal concepts
+    for (int role_k = 0; role_k <= options.complexity_bound - 2; ++role_k)  {
+        int concept_k = (int)target_k-1-role_k;
+        if (concept_k<0) continue;
+
+        for (const auto *role:roles_by_complexity.at(role_k)) {
+            for (const auto* concept:concepts_.at(concept_k)) {
+                counts[attempt_insertion(ExistsConcept(concept, role), cache, sample, bucket)]++;
+                counts[attempt_insertion(ForallConcept(concept, role), cache, sample, bucket)]++;
+                if (check_timeout(start_time)) return {-1, -1};
+            }
+            if (check_timeout(start_time)) return {-1, -1};
+        }
+        if (check_timeout(start_time)) return {-1, -1};
+    }
+
+    // Create And and Or concepts
+    for (int i = 0; i <= options.complexity_bound-2 && target_k >= i+1; ++i) {
+        int j = (int)target_k - i - 1;
+        assert(j>=0);
+
+        const auto& bucket1 = concepts_.at(i);
+        const auto& bucket2 = concepts_.at(j);
+
+
+        for (unsigned idx1=0; idx1<concepts_.at(i).size(); ++idx1) {
+            // If i=j, i.e. we're combining two concepts in the same bucket (= same complexity),
+            // we want to break symmetries to exploit commutativity of And and Or
+            unsigned start_idx2 = (i==j) ? idx1 + 1 : 0;
+            for (unsigned idx2=start_idx2; idx2<concepts_.at(j).size(); ++idx2) {
+                counts[attempt_insertion(AndConcept(bucket1[idx1], bucket2[idx2]), cache, sample, bucket)]++;
+                if (options.generate_or_concepts) {
+                    counts[attempt_insertion(OrConcept(bucket1[idx1], bucket2[idx2]), cache, sample, bucket)]++;
+                }
+                if (check_timeout(start_time)) return {-1, -1};
+
+            }
+        }
+    }
+
+    return {counts[0], counts[1]};
+}
+
+int Factory::generate_goal_equality_concepts(const Sample& sample, Cache& cache) {
+    // Let's create equal concepts for those pairs of roles (whose number is already fixed at this point)
+    // such that both arise from same predicate and one of them is the "goal version" of the other, e.g.
+    // on and on_g, in blocksworld.
     int num_pruned_concepts = 0;
-
-    // Classify concepts and roles by their complexity - we will use this to minimize complexity checks later
-    std::vector<std::vector<const Role*>> roles_by_complexity(options.complexity_bound+1);
-    std::vector<std::vector<const Concept*>> concepts_in_last_layer_by_complexity(options.complexity_bound+1);
-    std::vector<std::vector<const Concept*>> concepts_in_previous_layers_by_complexity(options.complexity_bound+1);
-
-    for (const auto* r:roles_) roles_by_complexity.at(r->complexity()).push_back(r);  // TODO Do this just once
-    for (const auto* c:concepts_.back()) concepts_in_last_layer_by_complexity.at(c->complexity()).push_back(c);
-
-    for( unsigned layer = 0; layer < concepts_.size()-1; ++layer ) {
-        for (const auto* c:concepts_[layer]) {
-            concepts_in_previous_layers_by_complexity.at(c->complexity()).push_back(c);
-        }
-    }
-
-    // create new concept layer
-    bool is_first_non_basis_iteration = (concepts_.size() == 1);
-    concepts_.emplace_back();
-
-    if (is_first_non_basis_iteration) {
-        // Let's create equal concepts for those pairs of roles (whose number is already fixed at this point)
-        // such that both arise from same predicate and one of them is the "goal version" of the other, e.g.
-        // on and on_g, in blocksworld.
-        for (const auto* r1:roles_) {
-            for (const auto* r2:roles_) {
-                if (dynamic_cast<const RoleDifference*>(r1) || dynamic_cast<const RoleDifference*>(r2)) {
-                    // R=R' Makes no sense when R or R' are already a role difference
-                    continue;
-                }
-                auto name1 = get_role_predicate(r1)->name();
-                auto name2 = get_role_predicate(r2)->name();
-
-                // A hacky way to allow only equal concepts R=R' where R and R' come from the same predicate
-                // and the first one is a goal role
-                if (name1.substr(name1.size()-2) != "_g") continue;
-                if (name1.substr(0, name1.size()-2) != name2) continue;
-
-                EqualConcept eq_concept(r1, r2);
-                // Force the complexity of R=R' to be 1, if both roles are of the same type
-                // This is currently disabled, as the concept-pruning strategy doesn't work as expected when
-                // this is enabled - sometimes concepts with lower complexity get pruned in favor of others
-                // with higher complexity
-                // if (typeid(*r1) == typeid(*r2)) eq_concept.force_complexity(1);
-
-                num_pruned_concepts += !attempt_insertion(eq_concept, cache, sample, concepts_.back());
-
-                if (check_timeout(start_time)) return -1;
+    for (const auto* r1:roles_) {
+        for (const auto* r2:roles_) {
+            if (dynamic_cast<const RoleDifference*>(r1) || dynamic_cast<const RoleDifference*>(r2)) {
+                // R=R' Makes no sense when R or R' are already a role difference
+                continue;
             }
-        }
-    }
+            auto name1 = get_role_predicate(r1)->name();
+            auto name2 = get_role_predicate(r2)->name();
 
-    for (int k = 0; k <= (options.complexity_bound-1); ++k) {
-        for (const auto* concept:concepts_in_last_layer_by_complexity[k]) {
+            // A hacky way to allow only equal concepts R=R' where R and R' come from the same predicate
+            // and the first one is a goal role
+            if (name1.substr(name1.size()-2) != "_g") continue;
+            if (name1.substr(0, name1.size()-2) != name2) continue;
 
-            // Negate concepts in the last layer, only if they are not already negations
-            if (!dynamic_cast<const NotConcept*>(concept)) {
-                num_pruned_concepts += !attempt_insertion(NotConcept(concept), cache, sample, concepts_.back());
-            }
+            EqualConcept eq_concept(r1, r2);
+            // Force the complexity of R=R' to be 1, if both roles are of the same type
+            // This is currently disabled, as the concept-pruning strategy doesn't work as expected when
+            // this is enabled - sometimes concepts with lower complexity get pruned in favor of others
+            // with higher complexity
+            // if (typeid(*r1) == typeid(*r2)) eq_concept.force_complexity(1);
 
-
-            // generate exist and forall combining a role with a concept in the last layer
-            for (int k2 = 0; k2 <= (options.complexity_bound-k-1); ++k2) {
-                for (const auto *role:roles_by_complexity[k2]) {
-                    num_pruned_concepts += !attempt_insertion(ExistsConcept(concept, role), cache, sample, concepts_.back());
-                    num_pruned_concepts += !attempt_insertion(ForallConcept(concept, role), cache, sample, concepts_.back());
-
-                    if (check_timeout(start_time)) return -1;
-                }
-            }
-            if (check_timeout(start_time)) return -1;
-        }
-    }
-
-
-    // generate conjunctions of (a) a concept of the last layer with a concept in some previous layer, and
-    // (b) two concepts of the last layer, avoiding symmetries
-    for (int k = 0; k <= (options.complexity_bound-1); ++k) {
-        for (unsigned i_k = 0; i_k < concepts_in_last_layer_by_complexity[k].size(); ++i_k) {
-            const auto& concept1 = concepts_in_last_layer_by_complexity[k][i_k];
-
-            // (a) a concept of the last layer with a concept in some previous layer
-            for (int k2 = 0; k2 <= (options.complexity_bound-k); ++k2) {
-                for (const auto *concept2:concepts_in_previous_layers_by_complexity[k2]) {
-                    num_pruned_concepts += !attempt_insertion(AndConcept(concept1, concept2), cache, sample, concepts_.back());
-
-                    if (options.generate_or_concepts) {
-                        num_pruned_concepts += !attempt_insertion(OrConcept(concept1, concept2), cache, sample, concepts_.back());
-                    }
-
-                    if (check_timeout(start_time)) return -1;
-                }
-            }
-
-
-            // (b) two concepts of the last layer, avoiding symmetries
-            for (int k2 = k; k2 <= (options.complexity_bound-k); ++k2) {
-                unsigned start_at = (k == k2) ? i_k+1: 0; // Break symmetries within same complexity bucket
-                for (unsigned i_k2 = start_at; i_k2 < concepts_in_last_layer_by_complexity[k2].size(); ++i_k2) {
-                    const auto& concept2 = concepts_in_last_layer_by_complexity[k2][i_k2];
-                    num_pruned_concepts += !attempt_insertion(AndConcept(concept1, concept2), cache, sample, concepts_.back());
-
-                    if (options.generate_or_concepts) {
-                        num_pruned_concepts += !attempt_insertion(OrConcept(concept1, concept2), cache, sample, concepts_.back());
-                    }
-
-                    if (check_timeout(start_time)) return -1;
-                }
-            }
+            num_pruned_concepts += !attempt_insertion(eq_concept, cache, sample, concepts_.at(eq_concept.complexity()));
         }
     }
     return num_pruned_concepts;
 }
 
-
+/*
 std::vector<const Concept*> Factory::generate_goal_concepts_and_roles(Cache &cache, const Sample &sample) {
     std::vector<const Concept*> goal_concepts;
 
@@ -845,7 +839,7 @@ std::vector<const Concept*> Factory::generate_goal_concepts_and_roles(Cache &cac
         if (arity == 0) {
             // No need to do anything here, as the corresponding NullaryAtomFeature will always be generated
             // with complexity 1
-            assert (0); // This will need some refactoring
+            throw std::runtime_error("UNIMPLEMENTED"); // This will need some refactoring
 //                goal_features.push_back(new NullaryAtomFeature(&pred));
 
         } else if (arity == 1) {
@@ -902,6 +896,7 @@ std::vector<const Concept*> Factory::generate_goal_concepts_and_roles(Cache &cac
     }
     return goal_concepts;
 }
+*/
 
 void Factory::output_feature_matrix(std::ostream &os, const Cache &cache, const Sample &sample, const sltp::TransitionSample& transitions) const {
     auto num_features = features_.size();
