@@ -261,6 +261,8 @@ def invoke_cpp_generator(config):
            + (f" --generate-goal-concepts" if config.generate_goal_concepts else "") \
            + (f" --print-denotations" if config.print_denotations else "") \
            + (f" --print_hstar" if config.print_hstar_in_feature_matrix else "") \
+           + (f" --generate_or_concepts" if config.generate_or_concepts else "") \
+           + (f" --infty_feat_as_zero" if config.infty_feat_as_zero else "") \
            + f" --workspace {config.experiment_dir}"
     args = args.split()
     generate_debug_scripts(config.experiment_dir, cmd, args)
