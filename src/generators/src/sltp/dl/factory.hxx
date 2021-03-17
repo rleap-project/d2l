@@ -39,6 +39,8 @@ struct Options {
     bool generate_goal_concepts;
     bool print_denotations;
     bool print_hstar;
+    bool generate_or_concepts;
+    bool infty_feat_as_zero;
 };
 
 //! We use this to store a number of properties of the denotations of concepts
@@ -173,7 +175,7 @@ public:
 
     std::ostream& report_dl_data(std::ostream &os) const;
 
-    void output_feature_matrix(std::ostream &os, const Cache &cache, const Sample &sample, const sltp::TransitionSample& transitions, bool print_hstar) const;
+    void output_feature_matrix(std::ostream &os, const Cache &cache, const Sample &sample, const sltp::TransitionSample& transitions) const;
 
     void log_all_concepts_and_features(const std::vector<const Concept*>& concepts,
                                        const Cache &cache, const Sample &sample,

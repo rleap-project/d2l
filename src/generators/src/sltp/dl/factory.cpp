@@ -441,7 +441,7 @@ std::vector<const Concept*> Factory::consolidate_concepts() const {
     std::vector<const Concept*> all;
     for (const auto& layer:concepts_) all.insert(all.end(), layer.begin(), layer.end());
 
-    std::sort(std::begin(all), std::end(all), [](const Concept* c1, const Concept* c2) {
+    std::stable_sort(std::begin(all), std::end(all), [](const Concept* c1, const Concept* c2) {
         return c1->complexity() < c2->complexity();
     });
 
@@ -802,6 +802,10 @@ int Factory::advance_step(Cache &cache, const Sample &sample, const std::clock_t
                 for (const auto *concept2:concepts_in_previous_layers_by_complexity[k2]) {
                     num_pruned_concepts += !attempt_insertion(AndConcept(concept1, concept2), cache, sample, concepts_.back());
 
+                    if (options.generate_or_concepts) {
+                        num_pruned_concepts += !attempt_insertion(OrConcept(concept1, concept2), cache, sample, concepts_.back());
+                    }
+
                     if (check_timeout(start_time)) return -1;
                 }
             }
@@ -813,6 +817,10 @@ int Factory::advance_step(Cache &cache, const Sample &sample, const std::clock_t
                 for (unsigned i_k2 = start_at; i_k2 < concepts_in_last_layer_by_complexity[k2].size(); ++i_k2) {
                     const auto& concept2 = concepts_in_last_layer_by_complexity[k2][i_k2];
                     num_pruned_concepts += !attempt_insertion(AndConcept(concept1, concept2), cache, sample, concepts_.back());
+
+                    if (options.generate_or_concepts) {
+                        num_pruned_concepts += !attempt_insertion(OrConcept(concept1, concept2), cache, sample, concepts_.back());
+                    }
 
                     if (check_timeout(start_time)) return -1;
                 }
@@ -896,9 +904,9 @@ std::vector<const Concept*> Factory::generate_goal_concepts_and_roles(Cache &cac
     return goal_concepts;
 }
 
-void Factory::output_feature_matrix(std::ostream &os, const Cache &cache, const Sample &sample, const sltp::TransitionSample& transitions, bool print_hstar) const {
+void Factory::output_feature_matrix(std::ostream &os, const Cache &cache, const Sample &sample, const sltp::TransitionSample& transitions) const {
     auto num_features = features_.size();
-    unsigned nfeatures_to_print = print_hstar ? num_features+1 : num_features;
+    unsigned nfeatures_to_print = options.print_hstar ? num_features+1 : num_features;
 
     os << ";; Feature matrix of " << nfeatures_to_print << " features times " << sample.num_states() << " states."
        << " Format: all space-separated values. Line 0: This header line. Line 1: Feature names; Line 2: Feature complexities; Line i, 3<=i<=n: Feature valuation in state #i"
@@ -910,7 +918,7 @@ void Factory::output_feature_matrix(std::ostream &os, const Cache &cache, const 
         os << feature.as_str();
         if (1 + i < num_features) os << " ";
     }
-    if (print_hstar) os << " hstar";
+    if (options.print_hstar) os << " hstar";
     os << std::endl;
 
     // Line #2: feature complexities
@@ -919,7 +927,7 @@ void Factory::output_feature_matrix(std::ostream &os, const Cache &cache, const 
         os << feature.complexity();
         if (1 + i < num_features) os << " ";
     }
-    if (print_hstar) os << " -1";
+    if (options.print_hstar) os << " -1";
     os << std::endl;
 
 
@@ -929,11 +937,13 @@ void Factory::output_feature_matrix(std::ostream &os, const Cache &cache, const 
 
         for (unsigned j = 0; j < num_features; ++j) {
             const Feature &feature = *features_[j];
-            os << feature.value(cache, sample, state);
+            auto val = feature.value(cache, sample, state);
+            if (options.infty_feat_as_zero && val == Feature::infty) val = 0;
+            os << val;
             if (1 + j < num_features) os << " ";
         }
 
-        if (print_hstar) os << " " << transitions.vstar(i);
+        if (options.print_hstar) os << " " << transitions.vstar(i);
         os << std::endl;
     }
 }
@@ -942,7 +952,7 @@ void Factory::output_feature_matrix(std::ostream &os, const Cache &cache, const 
 template <typename T1, typename T2>
 bool Factory::attempt_insertion(const T1& elem, Cache &cache, const Sample &sample, std::vector<const T2*>& container) const {
     if (elem.complexity() > options.complexity_bound) {
-//            std::cout << elem.str() << " superfluous because complexity " << base.complexity() << ">" << options.complexity_bound << std::endl;
+            std::cout << elem.str() << " superfluous because complexity " << elem.complexity() << ">" << options.complexity_bound << std::endl;
         return false;
     }
 
@@ -953,15 +963,14 @@ bool Factory::attempt_insertion(const T1& elem, Cache &cache, const Sample &samp
     if (it != index.end()) {
         // There is in the index some other concept/role with same sample denotation,
         // hence we consider this one redundant
-//              std::cout << elem.str() << " superfluous because complexity "
-//                        << elem.complexity() << ">" << options.complexity_bound << std::endl;
+        std::cout << elem.str() << " redundant with concept with ID: " << it->second << std::endl;
         delete d;
         return false;
 
     } else {
-
         container.push_back(elem.clone());
         assert (container.back()->id() == elem.id());
+        std::cout << elem.fullstr() << " inserted" << std::endl;
         cache.find_or_insert_sample_denotation(*d, elem.id());
         delete d;
         return true;

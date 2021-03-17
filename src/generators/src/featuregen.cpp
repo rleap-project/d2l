@@ -41,6 +41,8 @@ sltp::dl::Options parse_options(int argc, const char **argv) {
             ("generate-goal-concepts", "Whether to automatically generate goal-distinguishing concepts and roles.")
             ("print-denotations", "Whether print the denotations of all generated features.")
             ("print_hstar", "Print hstar value as a feature matrix column.")
+            ("generate_or_concepts", "Generate DL disjunctions.")
+            ("infty_feat_as_zero", "Interpret infinity values of features as zero.")
     ;
 
     po::variables_map vm;
@@ -70,12 +72,14 @@ sltp::dl::Options parse_options(int argc, const char **argv) {
     options.generate_goal_concepts = vm.count("generate-goal-concepts") > 0;
     options.print_denotations = vm.count("print-denotations") > 0;
     options.print_hstar = vm.count("print_hstar") > 0;
+    options.generate_or_concepts = vm.count("generate_or_concepts") > 0;
+    options.infty_feat_as_zero = vm.count("infty_feat_as_zero") > 0;
     return options;
 }
 
 int main(int argc, const char **argv) {
     auto start_time = std::clock();
-    sltp::dl::Options options = parse_options(argc, argv);
+    const sltp::dl::Options options = parse_options(argc, argv);
 
     const sltp::Sample sample = read_input_sample(options.workspace);
     const std::vector<std::string> nominals = read_nominals(options.workspace);
@@ -102,7 +106,7 @@ int main(int argc, const char **argv) {
     string output(options.workspace + "/feature-matrix.io");
     ofstream output_file(output);
     if( output_file.fail() ) throw runtime_error("Could not open filename '" + output + "'");
-    factory.output_feature_matrix(output_file, cache, sample, transitions, options.print_hstar);
+    factory.output_feature_matrix(output_file, cache, sample, transitions);
 
     return 0;
 }

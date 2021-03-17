@@ -176,7 +176,14 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
         # In the SD2L encoding, whether to enforce policy-closedness constraints too
         closed=True,
 
+        # Print hstar value as a feature matrix column.
         print_hstar_in_feature_matrix=False,
+
+        # Generate DL disjunctions
+        generate_or_concepts=False,
+
+        # Interpret infinity values of features as zero
+        infty_feat_as_zero=False,
 
         # ???
         optimal_steps=0,
