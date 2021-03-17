@@ -673,6 +673,13 @@ std::vector<const Concept*> Factory::generate_concepts(Cache &cache, const Sampl
     std::size_t num_concepts = 0;
     bool some_new_concepts = true;
     bool timeout_reached = false;
+
+    if (!concepts_.empty()) throw std::runtime_error("Don't invoke Factory::generate_concepts more than once");
+
+    // Start by processing the basis concepts
+    concepts_.emplace_back();
+    for (const auto* concept : basis_concepts_) attempt_insertion(*concept, cache, sample, concepts_.back());
+
     for( int iteration = 0; some_new_concepts && !timeout_reached; ++iteration ) {
         std::cout << "Start of iteration " << iteration
                   << ": #total-concepts=" << num_concepts
@@ -709,14 +716,6 @@ std::vector<const Concept*> Factory::generate_concepts(Cache &cache, const Sampl
 
 int Factory::advance_step(Cache &cache, const Sample &sample, const std::clock_t& start_time) {
     int num_pruned_concepts = 0;
-    if( concepts_.empty() ) { // On the first iteration, we simply process the basis concepts and return
-        concepts_.emplace_back();
-        for (const auto* concept : basis_concepts_) {
-            num_pruned_concepts += !attempt_insertion(*concept, cache, sample, concepts_.back());
-        }
-        return num_pruned_concepts;
-    }
-
 
     // Classify concepts and roles by their complexity - we will use this to minimize complexity checks later
     std::vector<std::vector<const Role*>> roles_by_complexity(options.complexity_bound+1);
