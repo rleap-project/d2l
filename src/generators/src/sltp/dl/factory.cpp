@@ -678,7 +678,7 @@ void print_byline(const std::vector<std::vector<const Concept*>>& concepts, bool
         total += concepts[i].size();
     }
 
-    std::cout << "Total concepts so far: " << total << " (" << by_complexity << ")... ";
+    std::cout << "Total concepts: " << total << " (" << by_complexity << ")... ";
     if (print_newline) std::cout << std::endl;
 }
 
@@ -696,6 +696,7 @@ void validate_complexity_buckets(const std::vector<std::vector<const Concept*>>&
 std::vector<const Concept*> Factory::generate_concepts(Cache &cache, const Sample &sample, const std::clock_t& start_time) {
     bool some_new_concepts = true;
     bool timeout_reached = false;
+    unsigned total_pruned = 0;
 
     if (!concepts_.empty()) throw std::runtime_error("Don't invoke Factory::generate_concepts more than once");
     concepts_.resize(options.complexity_bound+1); // Create k+1 empty buckets
@@ -725,11 +726,14 @@ std::vector<const Concept*> Factory::generate_concepts(Cache &cache, const Sampl
         some_new_concepts = k<2 || num_generated > 0;
         std::cout << num_generated << " concepts generated, " << num_pruned << " pruned." << std::endl;
 //            report_dl_data(std::cout);
+
+        total_pruned += num_pruned;
     }
 
     // Important to use this vector from here on, as it is sorted by complexity
     auto all_concepts = consolidate_concepts();
     print_byline(concepts_, true);
+    std::cout << "A total of " << total_pruned << " concepts were pruned" << std::endl;
     return all_concepts;
 }
 
