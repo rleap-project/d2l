@@ -952,7 +952,7 @@ void Factory::output_feature_matrix(std::ostream &os, const Cache &cache, const 
 template <typename T1, typename T2>
 bool Factory::attempt_insertion(const T1& elem, Cache &cache, const Sample &sample, std::vector<const T2*>& container) const {
     if (elem.complexity() > options.complexity_bound) {
-            std::cout << elem.str() << " superfluous because complexity " << elem.complexity() << ">" << options.complexity_bound << std::endl;
+//            std::cout << elem.str() << " superfluous because complexity " << elem.complexity() << ">" << options.complexity_bound << std::endl;
         return false;
     }
 
@@ -963,14 +963,14 @@ bool Factory::attempt_insertion(const T1& elem, Cache &cache, const Sample &samp
     if (it != index.end()) {
         // There is in the index some other concept/role with same sample denotation,
         // hence we consider this one redundant
-        std::cout << elem.str() << " redundant with concept with ID: " << it->second << std::endl;
+//        std::cout << elem.str() << " redundant with concept with ID: " << it->second << std::endl;
         delete d;
         return false;
 
     } else {
         container.push_back(elem.clone());
         assert (container.back()->id() == elem.id());
-        std::cout << elem.fullstr() << " inserted" << std::endl;
+//        std::cout << elem.fullstr() << " inserted" << std::endl;
         cache.find_or_insert_sample_denotation(*d, elem.id());
         delete d;
         return true;
