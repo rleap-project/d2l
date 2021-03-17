@@ -160,7 +160,7 @@ def generate_output_from_handcrafted_features(sample, config, features, model_ca
     nfeatures = len(names)
     complexities = [f.complexity() for f in features]
 
-    filename = compute_info_filename(config, "feature-matrix.io")
+    filename = compute_info_filename(config.__dict__, "feature-matrix.io")
     state_ids = sample.get_sorted_state_ids()
 
     assert nfeatures == len(complexities)
@@ -168,7 +168,7 @@ def generate_output_from_handcrafted_features(sample, config, features, model_ca
 
     with open(filename, 'w') as f:
         # Line #0: comment line, simply ignore
-        print(f"Handcrafted feature matrix with {len(state_ids)} states and {nfeatures} features", file=f)
+        print(f";; Handcrafted feature matrix with {len(state_ids)} states and {nfeatures} features", file=f)
 
         # Line #1: feature names
         print(" ".join(name.replace(" ", "") for name in names), file=f)
@@ -180,7 +180,7 @@ def generate_output_from_handcrafted_features(sample, config, features, model_ca
         # each feature has format: <feature-index>:<value>
         for s in state_ids:
             model = model_cache.get_feature_model(s)
-            print(" ".join(str(cast_feature_value(int(model.denotation(f)))) for x in features), file=f)
+            print(" ".join(str(cast_feature_value(int(model.denotation(x)))) for x in features), file=f)
 
     return [], len(names)
 
