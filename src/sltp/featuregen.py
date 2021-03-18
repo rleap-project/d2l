@@ -166,6 +166,10 @@ def generate_output_from_handcrafted_features(sample, config, features, model_ca
     assert nfeatures == len(complexities)
     logging.info(f"Printing feature matrix with shape ({len(state_ids)}, {nfeatures}) to '{filename}'")
 
+    if config.print_hstar_in_feature_matrix:
+        names.append("hstar")
+        complexities.append(-1)
+
     with open(filename, 'w') as f:
         # Line #0: comment line, simply ignore
         print(f";; Handcrafted feature matrix with {len(state_ids)} states and {nfeatures} features", file=f)
@@ -180,7 +184,10 @@ def generate_output_from_handcrafted_features(sample, config, features, model_ca
         # each feature has format: <feature-index>:<value>
         for s in state_ids:
             model = model_cache.get_feature_model(s)
-            print(" ".join(str(cast_feature_value(int(model.denotation(x)))) for x in features), file=f)
+            values = [cast_feature_value(int(model.denotation(x))) for x in features]
+            if config.print_hstar_in_feature_matrix:
+                values.append(sample.vstar[s])
+            print(" ".join(map(str, values)), file=f)
 
     return [], len(names)
 
