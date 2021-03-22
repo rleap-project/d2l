@@ -399,10 +399,13 @@ def read_single_sample_file(filename):
     return ordered, goal_states, transitions, deadends
 
 
-def run(config, data, rng):
-    assert not data
+def generate_sample(config, rng):
     sample = sample_generated_states(config, rng)
     log_sampled_states(sample, config.resampled_states_filename)
     print_transition_matrix(sample, config.transitions_info_filename)
+    return sample
 
-    return ExitCode.Success, dict(sample=sample)
+
+def run(config, data, rng):
+    assert not data
+    return ExitCode.Success, dict(sample=generate_sample(config, rng))

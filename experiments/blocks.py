@@ -1,3 +1,5 @@
+
+import pipelines
 from sltp.util.misc import update_dict
 from sltp.util.names import blocksworld_names, blocksworld_parameters_for_clear, blocksworld_parameters_for_on
 
@@ -59,6 +61,11 @@ def experiments():
         sampling_strategy="goal"
 
         # print_hstar_in_feature_matrix=True,
+    )
+
+    exps["clear-inc"] = update_dict(
+        exps["clear"],
+        pipeline=pipelines.INCREMENTAL,
     )
     
     exps["clear-sd2l"] = update_dict(
