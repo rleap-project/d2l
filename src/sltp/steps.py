@@ -41,7 +41,7 @@ class PlannerStep(Step):
         return "Sampling of the state space"
 
     def get_step_runner(self):
-        return _run_planner
+        return _run_brfs
 
 
 class TransitionSamplingStep(Step):
@@ -157,7 +157,7 @@ class D2LPolicyTestingStep(Step):
         return tester.test_d2l_policy
 
 
-def _run_planner(config, data, rng):
+def _run_brfs(config, data, rng):
     # Run the planner on all training and test instances
     def run(d, i, o, num_states):
         if num_states == "until_first_goal":
