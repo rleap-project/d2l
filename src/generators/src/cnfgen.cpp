@@ -18,8 +18,136 @@ using namespace std;
 
 namespace sltp::cnf {
 
+class Exp2Latex{
+    public:
+        Exp2Latex( const std::string &file_name = "results.tex"){
+            _ofs = utils::get_ofstream(file_name);
+
+            _header = std::string("\\begin{table*}[h!]\n") +
+                      std::string("\\newcommand{\\ninst}{\\ensuremath{\\abs{P_i}}}\n") +
+                      std::string("\\newcommand{\\tset}{\\ensuremath{\\S}}\n") +
+                      std::string("\\newcommand{\\tseteq}{\\ensuremath{\\S/{\\scriptstyle\\sim}}}\n")+
+                      std::string("\\newcommand{\\tall}{\\ensuremath{t_{\\text{all}}}}\n")+
+                      std::string("\\newcommand{\\tsat}{\\ensuremath{t_{\\text{SAT}}}}\n")+
+                      std::string("\\newcommand{\\npool}{\\ensuremath{\\abs{\\F}}}\n")+
+                      std::string("\\newcommand{\\nfeats}{\\ensuremath{\\abs{\\Phi}}}\n")+
+                      std::string("\\newcommand{\\sizepi}{\\ensuremath{\\abs{\\pi_\\Phi}}}\n")+
+                      std::string("\\newcommand{\\cphi}{\\ensuremath{c_{\\Phi}}}\n")+
+                      std::string("\\newcommand{\\maxk}{\\ensuremath{k^*}}\n")+
+                      std::string("\\newcommand{\\dmax}{\\ensuremath{d_{max}}}\n")+
+                      std::string("\\newcommand{\\dimens}{\\ensuremath{dim}}\n")+
+                      std::string("\\newcommand{\\TK}{\\text{K}}\n")+
+                      std::string("\\newcommand{\\TM}{\\text{M}}\n")+
+                      std::string("\\centering\n")+
+                      std::string("\\resizebox{\\textwidth}{!}{\n")+
+                      std::string("\\begin{tabular}{LRRRRRRRRRRRRRRRR}\n")+
+                      std::string("\\toprule\n")+
+                      std::string("D2L & \\ninst & \\dimens && \\tset & \\tseteq &\\dmax& \\npool & vars ") +
+                      std::string("& clauses & \\tall &\\tsat& \\cphi & \\nfeats & \\maxk & \\sizepi \\\\ \n\\midrule\n");
+
+            _bottom = std::string("\\bottomrule\n") +
+                      std::string("\\end{tabular}\n}\n")+
+                      std::string("\\caption{\\emph{Overview of D2L results}. ") +
+                      std::string("\\ninst{} is number of training instances, and ")+
+                      std::string("\\dimens{} is size of largest training instance along main generalization dimension(s). ") +
+                      std::string("\\tset{} is number of sampled transitions in the training set, and ")+
+                      std::string("\\tseteq{} is the number of distinguishable equivalence classes in \tset{}.")+
+                      std::string("\\dmax{} is the max.\\ diameter of the training instances. ")+
+                      std::string("\\npool{} is size of feature pool. ")+
+                      std::string("``Vars'' and ``clauses'' are the number of variables and clauses in the (CNF form) of the theory $\\tsf$; ")+
+                      std::string("\\tall{} is total CPU time, in sec., while ")+
+                      std::string("\\tsat{} is CPU time spent solving  \\msat{} problems. ")+
+                      std::string("\\cphi{} is optimal cost of SAT solution, ") +
+                      std::string("\\nfeats{} is number of selected features, ") +
+                      std::string("\\maxk{} is cost of the most complex feature in the policy, ")+
+                      std::string("\\sizepi{}  is number of rules in the resulting policy. ")+
+                      std::string("CPU times are given for the incremental constraint generation approach, ")+
+                      std::string("which scales up better. }\n \\label{tab:exp-...}\n \\end{table*}");
+        }
+
+        ~Exp2Latex(){
+            if( _ofs.is_open() )
+                _ofs.close();
+        }
+
+        void set_name( const std::string &name = "none" ){ _name = "\\Q_{" + name + "}"; }
+
+        void set_n_instances( int i ){ _ninst = i; }
+
+        void set_dim( const std::string &dim = "" ){ _dim = dim;}
+
+        void set_tx( int t ){ _tset = t; }
+
+        void set_tx_eq( int t ){ _tseteq = t; }
+
+        void set_dmax( int dmax ){ _dmax = dmax; }
+
+        void set_n_feat_pool( int n ){ _npool = n; }
+
+        void set_sat_time( float t ){ _tsat = t; }
+
+        void set_total_time( float t ){ _tall = t; }
+
+        void set_total_cost( int c ){ _total_cost = c; }
+
+        void set_max_cost_feat( int c ){ _max_cost_feat = c; }
+
+        void set_n_feat( int n ){ _n_feat = n; }
+
+        void set_size_pi( int s ){ _size_pi = s; }
+
+        void set_vars( int v ){ _vars = v; }
+
+        void set_clauses( int c ){ _clauses = c; }
+
+        void pretty_printing( int d ){
+            int base = 1;
+            std::string units = "";
+            if( d >= 1000000 ){ base = 100000; units = "\\TM";}
+            else if( d >= 1000 ){ base = 100; units = "\\TK";}
+            else{ _ofs << d; return; }
+            _ofs << (d/(base*10)) << "." << ((d/base)%10) << units;
+        }
+
+        void print_to_file(){
+            _ofs << _header << std::endl;
+            _ofs << _name << " & " << _ninst << " & " << _dim << " && " << _tset << " & " << _tseteq << " & ";
+            _ofs << _dmax << " & " << _npool << " & ";
+            pretty_printing( _vars );
+            _ofs << " & ";
+            pretty_printing( _clauses );
+            _ofs << " & ";
+            _ofs.setf(ios::fixed);
+            _ofs.precision(1);
+            _ofs << _tall << " & " << _tsat << " & " << _total_cost << " & " << _n_feat << " & " << _max_cost_feat << " & ";
+            _ofs << _size_pi << "\\\\" << std::endl;
+            _ofs << _bottom << std::endl;
+        }
+    private:
+        std::ofstream _ofs;
+        std::string _header;
+        std::string _bottom;
+        std::string _name;
+        int _ninst;
+        std::string _dim;
+        int _tset;
+        int _tseteq;
+        int _dmax;
+        int _npool;
+        int _vars;
+        int _clauses;
+        float _tall;
+        float _tsat;
+        int _total_cost;
+        int _n_feat;
+        int _max_cost_feat;
+        int _size_pi;
+};
+
+
+
 std::tuple<CNFGenerationOutput, VariableMapping>
-generate_maxsat_cnf(D2LEncoding& generator, const StateSpaceSample& sample, const cnf::Options& options) {
+generate_maxsat_cnf(D2LEncoding& generator, const StateSpaceSample& sample, const cnf::Options& options, Exp2Latex& t_tex ) {
     float start_time = utils::read_time_in_seconds();
 
     // We write the MaxSAT instance progressively as we generate the CNF. We do so into a temporary "*.tmp" file
@@ -68,6 +196,14 @@ generate_maxsat_cnf(D2LEncoding& generator, const StateSpaceSample& sample, cons
     float total_time = utils::read_time_in_seconds() - start_time;
     std::cout << "CNF [" << writer.nvars() << " vars, " << writer.nclauses()
               << " clauses] generated in " << total_time << " sec." << std::endl;
+
+    t_tex.set_tx( generator.get_num_tx() );
+    t_tex.set_tx_eq( generator.get_num_tx_eq() );
+    t_tex.set_n_feat_pool( generator.get_num_features() );
+    t_tex.set_dmax( generator.compute_D() );
+    t_tex.set_vars(writer.nvars());
+    t_tex.set_clauses(writer.nclauses());
+
     return {output, variables};
 }
 
@@ -91,16 +227,16 @@ struct TimeStats {
 
 class PolicyComputationStrategy {
 public:
-    virtual std::pair<CNFGenerationOutput, DNFPolicy> run(const Options& options, const StateSpaceSample& sample, TimeStats& time) = 0;
+    virtual std::pair<CNFGenerationOutput, DNFPolicy> run(const Options& options, const StateSpaceSample& sample, TimeStats& time, Exp2Latex& t_tex ) = 0;
 };
 
 class SATPolicyComputationStrategy : public PolicyComputationStrategy {
 public:
-    std::pair<CNFGenerationOutput, DNFPolicy> run(const Options& options, const StateSpaceSample& sample, TimeStats& time) override {
+    std::pair<CNFGenerationOutput, DNFPolicy> run(const Options& options, const StateSpaceSample& sample, TimeStats& time, Exp2Latex& t_tex ) override {
         // Generate the encoding
         float gent0 = utils::read_time_in_seconds();
         auto encoder = EncodingFactory::create(sample, options);
-        const auto& [output, variables] = generate_maxsat_cnf(*encoder, sample, options);
+        const auto& [output, variables] = generate_maxsat_cnf(*encoder, sample, options, t_tex );
         time.generation_time += utils::read_time_in_seconds() - gent0;
 
         // If encoding already UNSAT, abort
@@ -116,21 +252,36 @@ public:
         auto tsolution = utils::read_time_in_seconds() - solt0;
         time.solution_time += tsolution;
 
+        // t_tex.add_t_sat( tsolution );
+
         if (!solution.solved) {
             std::cout << "Theory detected as UNSAT by solver." << std::endl;
             return {CNFGenerationOutput::UnsatTheory, DNFPolicy()};
         }
 
+        t_tex.set_total_cost( solution.cost );
+
         std::cout << "Solution with cost " << solution.cost << " found in " << tsolution << "sec." << std::endl;
         auto dnf = encoder->generate_dnf_from_solution(variables, solution);
 //            dnf = minimize_dnf();
+
+
+        t_tex.set_size_pi( dnf.terms.size() );
+        t_tex.set_n_feat( dnf.features.size() );
+        unsigned max_cost = 0, c;
+        for( const auto f : dnf.features ){
+            c = encoder->get_feature_weight(f);
+            if( c > max_cost ) max_cost = c;
+        }
+        t_tex.set_max_cost_feat( max_cost );
+
         return {CNFGenerationOutput::Success, dnf};
     }
 };
 
 class ASPPolicyComputationStrategy : public PolicyComputationStrategy {
 public:
-    std::pair<CNFGenerationOutput, DNFPolicy> run(const Options& options, const StateSpaceSample& sample, TimeStats& time) override {
+    std::pair<CNFGenerationOutput, DNFPolicy> run(const Options& options, const StateSpaceSample& sample, TimeStats& time, Exp2Latex& t_tex ) override {
         // Generate the encoding
         float gent0 = utils::read_time_in_seconds();
         D2LEncoding generator(sample, options);
@@ -175,6 +326,12 @@ std::unique_ptr<PolicyComputationStrategy> choose_strategy(const Options& option
 }
 
 int run(const Options& options) {
+    auto t_tex = Exp2Latex(options.workspace + "/results.tex");
+    // ToDo add the following info by options
+    //t_tex.set_name( options.name ); // Given by options
+    //t_tex.set_n_instances( options.instances ); // Tx instances; Given by options
+    //t_tex.set_dim( options.dim ); // Given by options
+
     float start_time = utils::read_time_in_seconds();
     TimeStats time;
 
@@ -219,7 +376,7 @@ int run(const Options& options) {
 
         auto strategy = choose_strategy(options);
 
-        const auto result = strategy->run(options, *sample, time);
+        const auto result = strategy->run(options, *sample, time, t_tex);
         output = std::get<0>(result);
         const auto& dnf = std::get<1>(result);
         if (output != CNFGenerationOutput::Success) break;
@@ -241,11 +398,17 @@ int run(const Options& options) {
         sample = std::unique_ptr<StateSpaceSample>(sample->add_states(flaws));
 
     }
+    auto finish_time = utils::read_time_in_seconds();
 
     std::cout << "Total times: ";
     std::cout << "Theory generation: " << time.generation_time;
     std::cout << ", Solver: " << time.solution_time;
-    std::cout << ", TOTAL: " << utils::read_time_in_seconds() - start_time << std::endl;
+    std::cout << ", TOTAL: " << finish_time - start_time << std::endl;
+
+    t_tex.set_sat_time( time.solution_time );
+    t_tex.set_total_time( finish_time - start_time );
+
+    t_tex.print_to_file();
 
     return static_cast<std::underlying_type_t<CNFGenerationOutput>>(output);
 }
