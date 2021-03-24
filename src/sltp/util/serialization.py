@@ -5,7 +5,7 @@ from tarski import Predicate, Function
 from tarski.dl import NullaryAtom, EmpiricalBinaryConcept, ConceptCardinalityFeature, PrimitiveConcept, \
     UniversalConcept, NotConcept, ExistsConcept, ForallConcept, PrimitiveRole, EmptyConcept, AndConcept, GoalRole, \
     GoalConcept, InverseRole, EqualConcept, StarRole, NullaryAtomFeature, NominalConcept, MinDistanceFeature, \
-    RestrictRole  #, ConditionalFeature, RoleDifference
+    RestrictRole, OrConcept  # , ConditionalFeature, RoleDifference
 from tarski.dl.features import DifferenceFeature
 from tarski.syntax import Sort
 
@@ -126,9 +126,10 @@ def build_concept(language, node):
         assert len(node.children) == 1
         return InverseRole(build_concept(language, node.children[0]))
 
-    elif node.name == "And":
+    elif node.name in ("And", "Or"):
         assert len(node.children) == 2
-        return AndConcept(build_concept(language, node.children[0]), build_concept(language, node.children[1]), 'object')
+        constructor = AndConcept if node.name == "And" else OrConcept
+        return constructor(build_concept(language, node.children[0]), build_concept(language, node.children[1]), 'object')
 
     elif node.name == "Exists":
         assert len(node.children) == 2

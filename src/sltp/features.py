@@ -1,5 +1,5 @@
 import logging
-from typing import Union
+from typing import Union, List
 
 from tarski.grounding.ops import approximate_symbol_fluency
 
@@ -208,13 +208,20 @@ class FeatureInterpreter:
         self.problem, self.model_factory = create_model_factory(domain_filename, instance_filename, parameter_generator)
         self.static_atoms, _ = compute_static_atoms(self.problem)
 
-    def interpret(self, state: str, feature: Union[str, Feature]):
+    def interpret(self, state: List[str], feature: Union[str, Feature]):
         """ Return the denotation of the given feature in the given state.
-        Both entities can be represented as strings.
+        The state is expected to be a list of strings, one for each atom of the string, e.g.:
+            >>>  ["(clear c)", "(clear a)", "(clear b)", "(ontable c)", "(ontable a)", "(ontable b)", "(handempty)"]
+
+        The feature can be either a string representing the feature, or a D2L feature object.
         """
-        from .util.serialization import unserialize_feature
         model = generate_model_from_state(self.model_factory, state, self.static_atoms)
+
         if isinstance(feature, str):
+            from .util.serialization import unserialize_feature
             feature = unserialize_feature(self.problem.language, feature)
 
         return model.denotation(feature)
+
+    def __call__(self, state, feature):
+        return self.interpret(state, feature)
