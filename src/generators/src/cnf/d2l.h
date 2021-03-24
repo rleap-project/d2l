@@ -107,6 +107,10 @@ public:
     DNFPolicy generate_dnf(const std::vector<unsigned>& goods, const std::vector<unsigned>& selecteds) const;
     DNFPolicy generate_dnf(const std::vector<std::pair<unsigned, unsigned>>& goods, const std::vector<unsigned>& selecteds) const;
 
+    int get_num_features(){ return feature_ids.size(); }
+    int get_num_tx(){ return transition_ids_.size(); }
+    int get_num_tx_eq(){ return class_representatives_.size(); }
+    int get_feature_weight( unsigned f ){ return sample_.feature_weight(f); }
 
         protected:
     //! The transition sample data

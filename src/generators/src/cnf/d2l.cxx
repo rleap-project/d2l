@@ -290,6 +290,9 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
     // Keep a map from pairs (s, d) to SAT variable ID of the variable V(s, d)
     std::unordered_map<std::pair<unsigned, unsigned>, cnfvar_t, boost::hash<state_pair>> vs;
 
+    // Map from state and card. const. var pairs (s,y) to SAT variable ID of the variable CardConstraint(s,y)
+    std::unordered_map<std::pair<unsigned,unsigned>, cnfvar_t, boost::hash<state_pair> > card_constraint_vars;
+
     unsigned n_descending_clauses = 0;
     unsigned n_v_function_clauses = 0;
     unsigned n_good_tx_clauses = 0;
@@ -297,6 +300,8 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
     unsigned n_separation_clauses = 0;
     unsigned n_reachability_clauses = 0;
     unsigned n_goal_clauses = 0;
+    unsigned n_card_constraints = 0;
+    bool with_card_constraints = false;
 
     if (options.verbosity>0) {
         std::cout << "Generating CNF encoding for " << sample_.alive_states().size() << " alive states, "
@@ -325,6 +330,20 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
 
     unsigned acyclicity_radius = 99999;
     if (options.acyclicity == "topological") {
+        if( with_card_constraints ) {
+            unsigned aux = max_d;
+            while (aux > 0) {
+                n_card_constraints++;
+                aux >>= 1;
+            }
+            for (const auto s:sample_.alive_states()) {
+                for (unsigned y = 0; y < n_card_constraints; y++) {
+                    auto var = wr.var("CardConstraint(" + std::to_string(s) + "," + std::to_string(y) + ")");
+                    card_constraint_vars.emplace(std::make_pair(s, y), var);
+                }
+            }
+        }
+
         // Create variables V(s, d) variables for all alive state s and d in 1..D
         for (const auto s:sample_.alive_states()) {
             const auto min_vs = get_vstar(s);
@@ -351,9 +370,21 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
             n_v_function_clauses += 1;
 
             for (unsigned d = 1; d <= max_d; ++d) {
-                for (unsigned dprime = d+1; dprime <= max_d; ++dprime) {
-                    wr.cl({Wr::lit(vs.at({s, d}), false), Wr::lit(vs.at({s, dprime}), false)});
-                    n_v_function_clauses += 1;
+                if( with_card_constraints ) {
+                    for( unsigned y = 0; y < n_card_constraints; y++ ) {
+                        bool eval = ( ( (d-1) & (1 << y ) ) > 0 );
+                        wr.cl({
+                                      wr.lit( vs.at({s,d}), false ),
+                                      wr.lit( card_constraint_vars.at({s,y}), eval )
+                              });
+                        n_v_function_clauses += 1;
+                    }
+                }
+                else{
+                    for (unsigned dprime = d+1; dprime <= max_d; ++dprime) {
+                        wr.cl({Wr::lit(vs.at({s, d}), false), Wr::lit(vs.at({s, dprime}), false)});
+                        n_v_function_clauses += 1;
+                    }
                 }
             }
         }
