@@ -19,9 +19,17 @@ def experiments():
     )
 
     exps = dict()
+    
+    child_base = update_dict(
+		base,
+		# Required info for latex table
+		name = "child",
+        n_instances = 2,
+        dimensions = "(7,7,7,2,3,10)",
+    )
 
     exps["small"] = update_dict(
-        base,
+        child_base,
         # instances=['sample{:02d}.pddl'.format(i) for i in range(1, 5)],
         instances=[
             # 'sample_mini.pddl',
@@ -35,7 +43,7 @@ def experiments():
             # 'child-snack_pfile01-2.pddl',
         ],
         test_policy_instances=all_test_instances(),
-
+        
         # create_goal_features_automatically=True,
         max_concept_size=10,
         use_equivalence_classes=True,
@@ -45,7 +53,7 @@ def experiments():
     )
     
     exps["small-sd2l"] = update_dict(
-        base,
+        child_base,
         # instances=['sample{:02d}.pddl'.format(i) for i in range(1, 5)],
         instances=[
             # 'sample_mini.pddl',
@@ -59,6 +67,10 @@ def experiments():
             # 'child-snack_pfile01-2.pddl',
         ],
         test_policy_instances=all_test_instances(),
+        
+		# Required info for latex table
+        n_instances = 3,
+        dimensions = "(8,8,8,2,3,11)",
 
 		acyclicity="sd2l",
         sampling_strategy="goal",
@@ -77,7 +89,7 @@ def experiments():
     )
     
     exps["small-dtl"] = update_dict(
-        base,
+        child_base,
         # instances=['sample{:02d}.pddl'.format(i) for i in range(1, 5)],
         instances=[
             # 'sample_mini.pddl',
@@ -92,6 +104,10 @@ def experiments():
         ],
         test_policy_instances=all_test_instances(),
 
+		# Required info for latex table
+        n_instances = 3,
+        dimensions = "(8,8,8,2,3,11)",
+        
 		acyclicity="dtl",
         sampling_strategy="goal",
 

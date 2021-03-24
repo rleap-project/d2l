@@ -63,6 +63,15 @@ struct Options {
 
     //! V consistency when V^*(s) <= K, so that V(s') < V(s) and V^*(s) <= V(s) <= v_slack * V^*(s)
     unsigned consistency_bound;
+
+    //! Name of the experiments
+    std::string exp_name;
+
+    //! Number of training instances
+    unsigned n_instances;
+
+    //! Dimension of input instances
+    std::string dimensions;
 };
 
 Options parse_options(int argc, const char** argv);

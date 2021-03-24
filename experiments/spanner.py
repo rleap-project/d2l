@@ -22,8 +22,15 @@ def experiments():
 
     exps = dict()
 
+    span_base = update_dict(
+    	base,
+    	name = "span",
+    	n_instances = 3,
+    	dimensions = "(6,10)",
+    )
+
     exps["small"] = update_dict(
-        base,
+        span_base,
         pipeline="d2l_pipeline",
         instances=[
             "prob-2-2-10.pddl",
@@ -37,7 +44,7 @@ def experiments():
             "prob-10-10-10-1540903568.pddl",
             "prob-15-10-8-1540913795.pddl"
         ] + all_test_instances(),
-
+        
         max_concept_size=8,
         distance_feature_max_complexity=8,
 
@@ -50,7 +57,7 @@ def experiments():
     )
 
     exps["small-sd2l"] = update_dict(
-        base,
+        span_base,
         pipeline="d2l_pipeline",
         instances=[
             "prob-2-2-10.pddl",
@@ -81,7 +88,7 @@ def experiments():
     )
 
     exps["small-dtl"] = update_dict(
-        base,
+        span_base,
         pipeline="d2l_pipeline",
         instances=[
             "prob-2-2-10.pddl",

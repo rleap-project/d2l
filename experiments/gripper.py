@@ -22,14 +22,21 @@ def experiments():
 
     exps = dict()
 
+    grip_base = update_dict(
+    	base,
+    	name = "grip",
+    	n_instances = 1,
+    	dimensions = "4",
+    )
+    
     exps["small"] = update_dict(
-        base,
+        grip_base,
         # instances=["sample-2balls.pddl", "sample-small.pddl"],
         instances=["prob01.pddl"],
         # test_instances=[f"prob{i:02d}.pddl" for i in range(3, 11)],
         test_instances=[],
         test_policy_instances=[f"prob{i:02d}.pddl" for i in range(3, 21)],
-
+        
         max_concept_size=8,
         distance_feature_max_complexity=8,
 
@@ -43,7 +50,7 @@ def experiments():
     )
     
     exps["small-sd2l"] = update_dict(
-        base,
+        grip_base,
         # instances=["sample-2balls.pddl", "sample-small.pddl"],
         instances=["prob01.pddl"],
         # test_instances=[f"prob{i:02d}.pddl" for i in range(3, 11)],
@@ -67,7 +74,7 @@ def experiments():
     )
     
     exps["small-dtl"] = update_dict(
-        base,
+        grip_base,
         # instances=["sample-2balls.pddl", "sample-small.pddl"],
         instances=["prob01.pddl"],
         # test_instances=[f"prob{i:02d}.pddl" for i in range(3, 11)],

@@ -27,8 +27,15 @@ def experiments():
 
     exps = dict()
 
+    micon_base = update_dict(
+    	base,
+    	name = "micon",
+    	n_instances = 2,
+    	dimensions = "(4,8)",
+    )
+    
     exps["small"] = update_dict(
-        base,
+        micon_base,
         instances=[
             # 's2-0.pddl',
             # 's2-1.pddl',
@@ -41,7 +48,7 @@ def experiments():
         test_instances=[
         ],
         test_policy_instances=all_test_instances(),
-
+        
         max_concept_size=8,
         distance_feature_max_complexity=8,
 
@@ -57,7 +64,7 @@ def experiments():
     )
     
     exps["small-sd2l"] = update_dict(
-        base,
+        micon_base,
         instances=[
             # 's2-0.pddl',
             # 's2-1.pddl',
@@ -71,6 +78,9 @@ def experiments():
         test_instances=[
         ],
         test_policy_instances=all_test_instances(),
+        
+    	n_instances = 1,
+    	dimensions = "(7,14)",
 
         acyclicity="sd2l",
         sampling_strategy="goal",
@@ -87,7 +97,7 @@ def experiments():
     )
     
     exps["small-dtl"] = update_dict(
-        base,
+        micon_base,
         instances=[
             # 's2-0.pddl',
             # 's2-1.pddl',
@@ -101,6 +111,9 @@ def experiments():
         test_instances=[
         ],
         test_policy_instances=all_test_instances(),
+        
+    	n_instances = 1,
+    	dimensions = "(7,14)",
 
         acyclicity="dtl",
         sampling_strategy="goal",

@@ -22,13 +22,20 @@ def experiments():
 
     exps = dict()
 
+    rew_base = update_dict(
+    	base,
+    	name = "rew",
+    	n_instances = 1,
+        dimensions = "5\\times 5",
+    )
+
     exps["small"] = update_dict(
-        base,
+        rew_base,
         instances=["training_5x5.pddl"],
         # instances=["instance_5.pddl", "instance_4_blocked.pddl"],
         test_instances=[],
         test_policy_instances=all_test_instances(),
-
+        
         max_concept_size=8,
         distance_feature_max_complexity=8,
         parameter_generator=no_parameter,
@@ -40,7 +47,7 @@ def experiments():
     )
     
     exps["small-sd2l"] = update_dict(
-        base,
+        rew_base,
         instances=["training_5x5.pddl"],
         # instances=["instance_5.pddl", "instance_4_blocked.pddl"],
         test_instances=[],
@@ -63,7 +70,7 @@ def experiments():
     )
     
     exps["small-dtl"] = update_dict(
-        base,
+        rew_base,
         instances=["training_5x5.pddl"],
         # instances=["instance_5.pddl", "instance_4_blocked.pddl"],
         test_instances=[],

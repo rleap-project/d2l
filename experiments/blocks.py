@@ -1,5 +1,4 @@
-
-import pipelines
+#import pipelines
 from sltp.util.misc import update_dict
 from sltp.util.names import blocksworld_names, blocksworld_parameters_for_clear, blocksworld_parameters_for_on
 
@@ -41,9 +40,33 @@ def experiments():
         domain="domain_atomic_move.pddl",
         test_domain="domain_atomic_move.pddl",
     )
+    
+    clear_base = update_dict(
+    	strips_base,
+        # Required info for latex table
+        name = "clear",
+        n_instances = 1,
+        dimensions = "5",
+    )
+        
+    on_base = update_dict(
+    	strips_base,
+        # Required info for latex table
+        name = "on",
+        n_instances = 1,
+        dimensions = "5",
+    )
+    
+    bw_base = update_dict(
+	    strips_atomic_base,
+	    # Required info for latex table
+        name = "bw",
+        n_instances = 2,
+        dimensions = "5",
+    )
 
     exps["clear"] = update_dict(
-        strips_base,
+        clear_base,
         instances=["training_clear_5.pddl"],
         test_policy_instances=all_clear_test_instancess(),
 
@@ -63,15 +86,20 @@ def experiments():
         # print_hstar_in_feature_matrix=True,
     )
 
-    exps["clear-inc"] = update_dict(
-        exps["clear"],
-        pipeline=pipelines.INCREMENTAL,
-    )
+    #exps["clear-inc"] = update_dict(
+    #    exps["clear"],
+    #    pipeline=pipelines.INCREMENTAL,
+    #)
     
     exps["clear-sd2l"] = update_dict(
-        strips_base,
+        clear_base,
         instances=["training_clear_5.pddl"],
         test_policy_instances=all_clear_test_instancess(),
+        
+        # Required info for latex table
+        name = "clear",
+        n_instances = 1,
+        dimensions = "5",
         
         acyclicity="sd2l",
 
@@ -89,9 +117,14 @@ def experiments():
     )
     
     exps["clear-dtl"] = update_dict(
-        strips_base,
+        clear_base,
         instances=["training_clear_5.pddl"],
         test_policy_instances=all_clear_test_instancess(),
+        
+        # Required info for latex table
+        name = "clear",
+        n_instances = 1,
+        dimensions = "5",
         
         acyclicity="dtl",
 
@@ -119,12 +152,12 @@ def experiments():
     )
 
     exps["on"] = update_dict(
-        strips_base,
+        on_base,
         instances=[
             "training_on_5.pddl",
         ],
         test_policy_instances=all_on_test_instancess(),
-
+        
         max_concept_size=8,
         distance_feature_max_complexity=8,
 
@@ -141,7 +174,7 @@ def experiments():
     )
     
     exps["on-sd2l"] = update_dict(
-        strips_base,
+        on_base,
         instances=[
             "training_on_5.pddl",
         ],
@@ -164,7 +197,7 @@ def experiments():
     )
     
     exps["on-dtl"] = update_dict(
-        strips_base,
+        on_base,
         instances=[
             "training_on_5.pddl",
         ],
@@ -214,7 +247,7 @@ def experiments():
     )
 
     exps["all_at_5"] = update_dict(
-        strips_atomic_base,
+        bw_base,
         instances=[
             "training_arbitrary_5_atomic.pddl",
             "training_arbitrary_5_atomic_tower.pddl"
@@ -239,7 +272,7 @@ def experiments():
     )
 
     exps["all_at_5-sd2l"] = update_dict(
-        strips_atomic_base,
+        bw_base,
         instances=[
             "training_arbitrary_5_atomic.pddl",
             "training_arbitrary_5_atomic_tower.pddl"
@@ -265,7 +298,7 @@ def experiments():
     )
     
     exps["all_at_5-dtl"] = update_dict(
-        strips_atomic_base,
+        bw_base,
         instances=[
             "training_arbitrary_5_atomic.pddl",
             "training_arbitrary_5_atomic_tower.pddl"

@@ -22,8 +22,15 @@ def experiments():
 
     exps = dict()
 
+    visit_base = update_dict(
+    	base,
+    	name = "visit",
+    	n_instances = 1,
+        dimensions = "3\\times 3",
+    )
+    
     exps["small"] = update_dict(
-        base,
+        visit_base,
         instances=[
             'problem03-full.pddl',
             # 'problem04-full.pddl',
@@ -41,7 +48,7 @@ def experiments():
     )
     
     exps["small-sd2l"] = update_dict(
-        base,
+        visit_base,
         instances=[
             'problem03-full.pddl',
             # 'problem04-full.pddl',
@@ -65,7 +72,7 @@ def experiments():
     )
     
     exps["small-dtl"] = update_dict(
-        base,
+        visit_base,
         instances=[
             'problem03-full.pddl',
             # 'problem04-full.pddl',

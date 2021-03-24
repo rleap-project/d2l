@@ -86,7 +86,17 @@ Options parse_options(int argc, const char **argv) {
         ("encodings_dir", po::value<std::string>(), "The directory where the ASP encodings are.")
         ("sampling_strategy", po::value<std::string>()->default_value("random"),
           "The strategy to sample states when generating the encoding.")
-    ;
+
+        ("name", po::value<std::string>()->default_value("name"),
+        "Name of the experiment.")
+
+        ("n_instances", po::value<unsigned>()->default_value(1),
+        "Size of the training set.")
+
+        ("dimensions", po::value<std::string>()->default_value("0"),
+        "Dimensions of input instances.")
+
+        ;
 
 
     po::variables_map vm;
@@ -129,6 +139,10 @@ Options parse_options(int argc, const char **argv) {
         options.acyclicity != "dtl") {
         throw po::validation_error(po::validation_error::invalid_option_value, "acyclicity");
     }
+
+    options.exp_name = vm["name"].as<std::string>();
+    options.n_instances = vm["n_instances"].as<unsigned>();
+    options.dimensions = vm["dimensions"].as<std::string>();
 
     return options;
 }

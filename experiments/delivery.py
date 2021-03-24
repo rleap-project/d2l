@@ -22,9 +22,16 @@ def experiments():
     )
 
     exps = dict()
+    
+    deliv_base = update_dict(
+    	base,
+    	name = "deliv",
+    	n_instances = 2,
+    	dimensions = "4\\times 4",
+    )
 
     exps["small"] = update_dict(
-        base,
+        deliv_base,
         instances=[
             'instance_3_3_0.pddl',  # Use one small instance with three packages
             'instance_4_2_0.pddl',  # And a slightly larger one with two packages
@@ -50,7 +57,7 @@ def experiments():
     )
     
     exps["small-sd2l"] = update_dict(
-        base,
+        deliv_base,
         instances=[
         	#'instance_3_2_0.pddl',
             'instance_3_3_0.pddl',  # Use one small instance with three packages
@@ -75,7 +82,7 @@ def experiments():
     )
     
     exps["small-dtl"] = update_dict(
-        base,
+        deliv_base,
         instances=[
         	#'instance_3_2_0.pddl',
             'instance_3_3_0.pddl',  # Use one small instance with three packages

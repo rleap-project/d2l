@@ -20,7 +20,7 @@ namespace sltp::cnf {
 
 class Exp2Latex{
     public:
-        Exp2Latex( const std::string &file_name = "results.tex"){
+        Exp2Latex( const std::string &file_name = "results.tex") : _iteration(0){
             _ofs = utils::get_ofstream(file_name);
 
             _header = std::string("\\begin{table*}[h!]\n") +
@@ -40,9 +40,9 @@ class Exp2Latex{
                       std::string("\\newcommand{\\TM}{\\text{M}}\n")+
                       std::string("\\centering\n")+
                       std::string("\\resizebox{\\textwidth}{!}{\n")+
-                      std::string("\\begin{tabular}{LRRRRRRRRRRRRRRRR}\n")+
+                      std::string("\\begin{tabular}{LRRRRRRRRRRRRRRRRR}\n")+
                       std::string("\\toprule\n")+
-                      std::string("D2L & \\ninst & \\dimens && \\tset & \\tseteq &\\dmax& \\npool & vars ") +
+                      std::string("D2L & \\ninst & \\text{Dim.} & \\text{Iter.}& \\tset & \\tseteq &\\dmax& \\npool & vars ") +
                       std::string("& clauses & \\tall &\\tsat& \\cphi & \\nfeats & \\maxk & \\sizepi \\\\ \n\\midrule\n");
 
             _bottom = std::string("\\bottomrule\n") +
@@ -62,7 +62,7 @@ class Exp2Latex{
                       std::string("\\maxk{} is cost of the most complex feature in the policy, ")+
                       std::string("\\sizepi{}  is number of rules in the resulting policy. ")+
                       std::string("CPU times are given for the incremental constraint generation approach, ")+
-                      std::string("which scales up better. }\n \\label{tab:exp-...}\n \\end{table*}");
+                      std::string("which scales up better. }\n \\label{tab:experiments}\n \\end{table*}");
         }
 
         ~Exp2Latex(){
@@ -76,29 +76,31 @@ class Exp2Latex{
 
         void set_dim( const std::string &dim = "" ){ _dim = dim;}
 
-        void set_tx( int t ){ _tset = t; }
+        void add_tx( int t ){ _tset.emplace_back(t); }
 
-        void set_tx_eq( int t ){ _tseteq = t; }
+        void add_tx_eq( int t ){ _tseteq.emplace_back(t); }
 
-        void set_dmax( int dmax ){ _dmax = dmax; }
+        void add_dmax( int dmax ){ _dmax.emplace_back(dmax); }
 
-        void set_n_feat_pool( int n ){ _npool = n; }
+        void add_n_feat_pool( int n ){ _npool.emplace_back(n); }
 
-        void set_sat_time( float t ){ _tsat = t; }
+        void add_sat_time( float t ){ _tsat.emplace_back(t); }
 
-        void set_total_time( float t ){ _tall = t; }
+        void add_total_time( float t ){ _tall.emplace_back(t); }
 
-        void set_total_cost( int c ){ _total_cost = c; }
+        void add_total_cost( int c ){ _total_cost.emplace_back(c); }
 
-        void set_max_cost_feat( int c ){ _max_cost_feat = c; }
+        void add_max_cost_feat( int c ){ _max_cost_feat.emplace_back(c); }
 
-        void set_n_feat( int n ){ _n_feat = n; }
+        void add_n_feat( int n ){ _n_feat.emplace_back(n); }
 
-        void set_size_pi( int s ){ _size_pi = s; }
+        void add_size_pi( int s ){ _size_pi.emplace_back(s); }
 
-        void set_vars( int v ){ _vars = v; }
+        void add_vars( int v ){ _vars.emplace_back(v); }
 
-        void set_clauses( int c ){ _clauses = c; }
+        void add_clauses( int c ){ _clauses.emplace_back(c);}
+
+        void next_iteration(){ _iteration++; }
 
         void pretty_printing( int d ){
             int base = 1;
@@ -110,17 +112,21 @@ class Exp2Latex{
         }
 
         void print_to_file(){
-            _ofs << _header << std::endl;
-            _ofs << _name << " & " << _ninst << " & " << _dim << " && " << _tset << " & " << _tseteq << " & ";
-            _ofs << _dmax << " & " << _npool << " & ";
-            pretty_printing( _vars );
-            _ofs << " & ";
-            pretty_printing( _clauses );
-            _ofs << " & ";
             _ofs.setf(ios::fixed);
             _ofs.precision(1);
-            _ofs << _tall << " & " << _tsat << " & " << _total_cost << " & " << _n_feat << " & " << _max_cost_feat << " & ";
-            _ofs << _size_pi << "\\\\" << std::endl;
+            _ofs << _header << std::endl;
+            _ofs << _name << " & " << _ninst << " & " << _dim << " & ";
+            for( unsigned i = 0; i < _iteration; i++ ) {
+                if(i) _ofs << " & & & ";
+                _ofs << i << " & " << _tset[i] << " & " << _tseteq[i] << " & ";
+                _ofs << _dmax[i] << " & " << _npool[i] << " & ";
+                pretty_printing(_vars[i]);
+                _ofs << " & ";
+                pretty_printing(_clauses[i]);
+                _ofs << " & " << _tall[i] << " & " << _tsat[i] << " & ";
+                _ofs << _total_cost[i] << " & " << _n_feat[i] << " & ";
+                _ofs << _max_cost_feat[i] << " & " << _size_pi[i] << "\\\\" << std::endl;
+            }
             _ofs << _bottom << std::endl;
         }
     private:
@@ -130,18 +136,19 @@ class Exp2Latex{
         std::string _name;
         int _ninst;
         std::string _dim;
-        int _tset;
-        int _tseteq;
-        int _dmax;
-        int _npool;
-        int _vars;
-        int _clauses;
-        float _tall;
-        float _tsat;
-        int _total_cost;
-        int _n_feat;
-        int _max_cost_feat;
-        int _size_pi;
+        std::vector< int > _tset;
+        std::vector< int > _tseteq;
+        std::vector< int > _dmax;
+        std::vector< int > _npool;
+        std::vector< int > _vars;
+        std::vector< int > _clauses;
+        std::vector< float > _tall;
+        std::vector< float > _tsat;
+        std::vector< int > _total_cost;
+        std::vector< int > _n_feat;
+        std::vector< int > _max_cost_feat;
+        std::vector< int > _size_pi;
+        int _iteration;
 };
 
 
@@ -197,12 +204,12 @@ generate_maxsat_cnf(D2LEncoding& generator, const StateSpaceSample& sample, cons
     std::cout << "CNF [" << writer.nvars() << " vars, " << writer.nclauses()
               << " clauses] generated in " << total_time << " sec." << std::endl;
 
-    t_tex.set_tx( generator.get_num_tx() );
-    t_tex.set_tx_eq( generator.get_num_tx_eq() );
-    t_tex.set_n_feat_pool( generator.get_num_features() );
-    t_tex.set_dmax( generator.compute_D() );
-    t_tex.set_vars(writer.nvars());
-    t_tex.set_clauses(writer.nclauses());
+    t_tex.add_tx( generator.get_num_tx() );
+    t_tex.add_tx_eq( generator.get_num_tx_eq() );
+    t_tex.add_n_feat_pool( generator.get_num_features() );
+    t_tex.add_dmax( generator.compute_D() );
+    t_tex.add_vars(writer.nvars());
+    t_tex.add_clauses(writer.nclauses());
 
     return {output, variables};
 }
@@ -252,28 +259,26 @@ public:
         auto tsolution = utils::read_time_in_seconds() - solt0;
         time.solution_time += tsolution;
 
-        // t_tex.add_t_sat( tsolution );
+        t_tex.add_sat_time( tsolution );
 
         if (!solution.solved) {
             std::cout << "Theory detected as UNSAT by solver." << std::endl;
             return {CNFGenerationOutput::UnsatTheory, DNFPolicy()};
         }
 
-        t_tex.set_total_cost( solution.cost );
-
         std::cout << "Solution with cost " << solution.cost << " found in " << tsolution << "sec." << std::endl;
         auto dnf = encoder->generate_dnf_from_solution(variables, solution);
 //            dnf = minimize_dnf();
 
-
-        t_tex.set_size_pi( dnf.terms.size() );
-        t_tex.set_n_feat( dnf.features.size() );
+        t_tex.add_total_cost( solution.cost );
+        t_tex.add_size_pi( dnf.terms.size() );
+        t_tex.add_n_feat( dnf.features.size() );
         unsigned max_cost = 0, c;
         for( const auto f : dnf.features ){
             c = encoder->get_feature_weight(f);
             if( c > max_cost ) max_cost = c;
         }
-        t_tex.set_max_cost_feat( max_cost );
+        t_tex.add_max_cost_feat( max_cost );
 
         return {CNFGenerationOutput::Success, dnf};
     }
@@ -328,9 +333,9 @@ std::unique_ptr<PolicyComputationStrategy> choose_strategy(const Options& option
 int run(const Options& options) {
     auto t_tex = Exp2Latex(options.workspace + "/results.tex");
     // ToDo add the following info by options
-    //t_tex.set_name( options.name ); // Given by options
-    //t_tex.set_n_instances( options.instances ); // Tx instances; Given by options
-    //t_tex.set_dim( options.dim ); // Given by options
+    t_tex.set_name( options.exp_name ); // Given by options
+    t_tex.set_n_instances( options.n_instances ); // Tx instances; Given by options
+    t_tex.set_dim( options.dimensions ); // Given by options
 
     float start_time = utils::read_time_in_seconds();
     TimeStats time;
@@ -387,6 +392,10 @@ int run(const Options& options) {
 
         auto flaws = sampler->sample_flaws(dnf, options.refinement_batch_size);
 //        auto flaws = test_policy(rng, dnf, *sample, options.refinement_batch_size);
+
+        t_tex.add_total_time( utils::read_time_in_seconds() - start_time );
+        t_tex.next_iteration();
+
         if (flaws.empty()) {
             std::cout << "Solution found in iteration #" << it << " is correct!" << std::endl;
             print_classifier(sample->matrix(), dnf, options.workspace + "/classifier");
@@ -398,15 +407,12 @@ int run(const Options& options) {
         sample = std::unique_ptr<StateSpaceSample>(sample->add_states(flaws));
 
     }
-    auto finish_time = utils::read_time_in_seconds();
 
+    auto finish_time = utils::read_time_in_seconds();
     std::cout << "Total times: ";
     std::cout << "Theory generation: " << time.generation_time;
     std::cout << ", Solver: " << time.solution_time;
     std::cout << ", TOTAL: " << finish_time - start_time << std::endl;
-
-    t_tex.set_sat_time( time.solution_time );
-    t_tex.set_total_time( finish_time - start_time );
 
     t_tex.print_to_file();
 
