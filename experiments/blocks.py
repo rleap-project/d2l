@@ -1,4 +1,4 @@
-#import pipelines
+import pipelines
 from sltp.util.misc import update_dict
 from sltp.util.names import blocksworld_names, blocksworld_parameters_for_clear, blocksworld_parameters_for_on
 
@@ -40,29 +40,29 @@ def experiments():
         domain="domain_atomic_move.pddl",
         test_domain="domain_atomic_move.pddl",
     )
-    
+
     clear_base = update_dict(
-    	strips_base,
+        strips_base,
         # Required info for latex table
-        name = "clear",
-        n_instances = 1,
-        dimensions = "5",
+        name="clear",
+        n_instances=1,
+        dimensions="5",
     )
-        
+
     on_base = update_dict(
-    	strips_base,
+        strips_base,
         # Required info for latex table
-        name = "on",
-        n_instances = 1,
-        dimensions = "5",
+        name="on",
+        n_instances=1,
+        dimensions="5",
     )
-    
+
     bw_base = update_dict(
-	    strips_atomic_base,
-	    # Required info for latex table
-        name = "bw",
-        n_instances = 2,
-        dimensions = "5",
+        strips_atomic_base,
+        # Required info for latex table
+        name="bw",
+        n_instances=2,
+        dimensions="5",
     )
 
     exps["clear"] = update_dict(
@@ -80,34 +80,38 @@ def experiments():
         verbosity=2,
         initial_sample_size=10,
         refinement_batch_size=20,
-        #sampling_strategy="random",
+        # sampling_strategy="random",
         sampling_strategy="goal"
 
         # print_hstar_in_feature_matrix=True,
     )
 
-    #exps["clear-inc"] = update_dict(
-    #    exps["clear"],
-    #    pipeline=pipelines.INCREMENTAL,
-    #)
-    
+    exps["clear-inc"] = update_dict(
+        exps["clear"],
+        pipeline=pipelines.INCREMENTAL,
+        validation_instances=[
+            "test_clear_probBLOCKS-10-0.pddl",
+            "test_clear_probBLOCKS-10-1.pddl", ],
+        test_policy_instances=all_clear_test_instancess(),
+    )
+
     exps["clear-sd2l"] = update_dict(
         clear_base,
         instances=["training_clear_5.pddl"],
         test_policy_instances=all_clear_test_instancess(),
-        
+
         # Required info for latex table
-        name = "clear",
-        n_instances = 1,
-        dimensions = "5",
-        
+        name="clear",
+        n_instances=1,
+        dimensions="5",
+
         acyclicity="sd2l",
 
         sampling_strategy="goal",
         n_features=3,
         max_concept_size=8,
-        #initial_sample_size=999999,
-        #initial_sample_size=10,
+        # initial_sample_size=999999,
+        # initial_sample_size=10,
         consistency_bound=0,
         optimal_steps=2,
         v_slack=2,
@@ -115,24 +119,24 @@ def experiments():
         verbosity=2,
         use_equivalence_classes=True,
     )
-    
+
     exps["clear-dtl"] = update_dict(
         clear_base,
         instances=["training_clear_5.pddl"],
         test_policy_instances=all_clear_test_instancess(),
-        
+
         # Required info for latex table
-        name = "clear",
-        n_instances = 1,
-        dimensions = "5",
-        
+        name="clear",
+        n_instances=1,
+        dimensions="5",
+
         acyclicity="dtl",
 
         sampling_strategy="goal",
         n_features=3,
         max_concept_size=8,
-        #initial_sample_size=999999,
-        #initial_sample_size=10,
+        # initial_sample_size=999999,
+        # initial_sample_size=10,
         consistency_bound=10,
         optimal_steps=2,
         v_slack=2,
@@ -157,7 +161,7 @@ def experiments():
             "training_on_5.pddl",
         ],
         test_policy_instances=all_on_test_instancess(),
-        
+
         max_concept_size=8,
         distance_feature_max_complexity=8,
 
@@ -167,12 +171,12 @@ def experiments():
 
         verbosity=2,
         # initial_sample_size=40,
-         sampling_strategy="goal",
+        sampling_strategy="goal",
         # acyclicity="asp",
 
         # print_hstar_in_feature_matrix=True,
     )
-    
+
     exps["on-sd2l"] = update_dict(
         on_base,
         instances=[
@@ -185,8 +189,8 @@ def experiments():
         n_features=4,
         max_concept_size=8,
         distance_feature_max_complexity=8,
-        #initial_sample_size=999999,
-        #initial_sample_size=10,
+        # initial_sample_size=999999,
+        # initial_sample_size=10,
         consistency_bound=0,
         optimal_steps=2,
         v_slack=2,
@@ -195,7 +199,7 @@ def experiments():
 
         parameter_generator=blocksworld_parameters_for_on
     )
-    
+
     exps["on-dtl"] = update_dict(
         on_base,
         instances=[
@@ -208,8 +212,8 @@ def experiments():
         n_features=4,
         max_concept_size=8,
         distance_feature_max_complexity=8,
-        #initial_sample_size=999999,
-        #initial_sample_size=10,
+        # initial_sample_size=999999,
+        # initial_sample_size=10,
         consistency_bound=10,
         optimal_steps=2,
         v_slack=2,
@@ -253,10 +257,10 @@ def experiments():
             "training_arbitrary_5_atomic_tower.pddl"
         ],
         test_policy_instances=[
-            "training_arbitrary_5_atomic.pddl",
-        ] + [
-            f"test_atomic_{n}_{i}.pddl" for n in range(10, 31) for i in range(0, 5)
-        ],
+                                  "training_arbitrary_5_atomic.pddl",
+                              ] + [
+                                  f"test_atomic_{n}_{i}.pddl" for n in range(10, 31) for i in range(0, 5)
+                              ],
 
         max_concept_size=8,
         distance_feature_max_complexity=8,
@@ -278,17 +282,17 @@ def experiments():
             "training_arbitrary_5_atomic_tower.pddl"
         ],
         test_policy_instances=[
-            "training_arbitrary_5_atomic.pddl",
-        ] + [
-            f"test_atomic_{n}_{i}.pddl" for n in range(10, 31) for i in range(0, 5)
-        ],
+                                  "training_arbitrary_5_atomic.pddl",
+                              ] + [
+                                  f"test_atomic_{n}_{i}.pddl" for n in range(10, 31) for i in range(0, 5)
+                              ],
 
         acyclicity="sd2l",
         sampling_strategy="goal",
         n_features=3,
         max_concept_size=8,
         distance_feature_max_complexity=8,
-        #initial_sample_size=10,
+        # initial_sample_size=10,
         consistency_bound=0,
         optimal_steps=2,
         v_slack=2,
@@ -296,7 +300,7 @@ def experiments():
         verbosity=2,
         use_equivalence_classes=True,
     )
-    
+
     exps["all_at_5-dtl"] = update_dict(
         bw_base,
         instances=[
@@ -304,17 +308,17 @@ def experiments():
             "training_arbitrary_5_atomic_tower.pddl"
         ],
         test_policy_instances=[
-            "training_arbitrary_5_atomic.pddl",
-        ] + [
-            f"test_atomic_{n}_{i}.pddl" for n in range(10, 31) for i in range(0, 5)
-        ],
+                                  "training_arbitrary_5_atomic.pddl",
+                              ] + [
+                                  f"test_atomic_{n}_{i}.pddl" for n in range(10, 31) for i in range(0, 5)
+                              ],
 
         acyclicity="dtl",
         sampling_strategy="goal",
         n_features=4,
         max_concept_size=8,
         distance_feature_max_complexity=8,
-        #initial_sample_size=10,
+        # initial_sample_size=10,
         consistency_bound=10,
         optimal_steps=2,
         v_slack=2,
@@ -399,7 +403,6 @@ def debug_features_at2(lang):
 
 
 def debug_policy_4op():
-
     # NOTE the -holding below is important because in the standard BW instances the goal is underspecified:
     # the goal is always a tower, but the block that must go on the table left implicitly. Let's say that block is D
     # in some instance, and we don't have that -holding in the definition of well-placed.
@@ -415,7 +418,8 @@ def debug_policy_4op():
         # Pick up some block that has blocks below misplaced when possible
         # [(some_below_misplaced, 'DEC'), (holding, 'ADD')],
         # [(holding, 'ADD'), (nallbelow_wellplaced, 'NIL')],
-        [(holding, 'ADD'), (ready_to_rock, 'ADD'), (nontable, 'DEC')],  # pick one from the table if can be placed correctly next
+        [(holding, 'ADD'), (ready_to_rock, 'ADD'), (nontable, 'DEC')],
+        # pick one from the table if can be placed correctly next
         [(holding, 'ADD'), (nwp, 'NIL'), (nontable, 'NIL')],  # pick
         # [(holding, 'ADD'), (some_below_misplaced, 'DEC')],  # pick
 
@@ -494,7 +498,7 @@ def all_clear_test_instancess():
             "test_clear_probBLOCKS-9-0.pddl",
             "test_clear_probBLOCKS-9-1.pddl",
             "test_clear_probBLOCKS-9-2.pddl",
-    ]
+            ]
 
 
 def all_on_test_instancess():
@@ -536,4 +540,4 @@ def all_on_test_instancess():
             "test_on_probBLOCKS-9-0.pddl",
             "test_on_probBLOCKS-9-1.pddl",
             "test_on_probBLOCKS-9-2.pddl",
-    ]
+            ]
