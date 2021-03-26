@@ -60,7 +60,8 @@ public:
 
     int vstar(unsigned sid) const {
         auto vstar = vstar_.at(sid);
-        return vstar < 0 ? -1 : vstar;
+        return vstar;
+//        return vstar < 0 ? -1 : vstar;
     }
 
     const std::vector<unsigned>& successors(unsigned s) const {
@@ -125,11 +126,14 @@ public:
             if (vstar>0) {
                 is_state_alive_[s] = true;
                 alive_states_.push_back(s);
-            } else if (vstar<0) {
-                is_state_unsolvable_[s] = true;
-            } else {
+            } else if (vstar == 0) {
                 goal_states_.push_back(s);
                 is_state_goal_[s] = true;
+            } else if (vstar==-1) {
+                is_state_unsolvable_[s] = true;
+            } else {
+                assert (vstar < -1);
+                // No need to do anything, we don't know whether the state is unsolvable or not
             }
         }
     }

@@ -4,15 +4,20 @@ import os
 from tarski.grounding.lp_grounding import ground_problem_schemas_into_plain_operators
 from tarski.io import FstripsReader
 from tarski.search import GroundForwardSearchModel, BreadthFirstSearch
+from tarski.search.applicability import is_applicable
 from tarski.search.blind import make_child_node, make_root_node, SearchSpace, SearchStats
+from tarski.search.model import progress
+from tarski.syntax.transform.action_grounding import ground_schema_into_plain_operator_from_grounding
 
 from . import cnfgen
 from .driver import Step, BENCHMARK_DIR
 from .featuregen import generate_feature_pool
 from .features import FeatureInterpreter, create_model_factory, compute_static_atoms, generate_model_from_state
+from .outputs import print_transition_matrix
 from .returncodes import ExitCode
-from .sampling import generate_sample
+from .sampling import generate_sample, sample_generated_states, log_sampled_states
 from .steps import _run_brfs
+from .util.command import execute
 from .util.naming import compute_sample_filenames, compute_info_filename, compute_maxsat_filename
 
 
@@ -39,17 +44,111 @@ def compute_policy_for_sample(config, sample):
     return None if code != ExitCode.Success else res['d2l_policy']
 
 
-def generate_initial_sample(config):
-    # ground_actions = ground_problem_schemas_into_plain_operators(problem)
-    # model = GroundForwardSearchModel(problem, ground_actions)
-    #
-    # search = BreadthFirstSearch(model)
-    # space, stats = search.run()
+def run_fd(domain, instance):
+    """ Run Fast Downward on the given problem, and return a plan, or None if
+    the problem is not solvable. """
+    # e.g. fast-downward.py --alias seq-opt-lmcut /home/frances/projects/code/downward-benchmarks/gripper/prob01.pddl
+    logging.info(f'Invoking Fast Downward on instance {instance}')
+    args = f'--alias seq-opt-lmcut --plan-file plan.txt {domain} {instance}'.split()
+    retcode = execute(['fast-downward.py'] + args)
+    if retcode != 0:
+        logging.error("Fast Downward error")
+        return None
 
-    # TODO Run Fast Downward on the instance(s), retrieve the plans, and put them
-    # TODO into the sample. Since we don't have that yet, at the moment we run a simple brfs:
-    _run_brfs(config, None, None)
-    sample = generate_sample(config, None)
+    with open('plan.txt', 'r') as f:
+        # Read up all lines in plan file that do not start with a comment character ";"
+        plan = [line for line in f.read().splitlines() if not line.startswith(';')]
+    return plan
+
+
+class TarskiSampleWriter:
+    """ A simple class to manage the printing of the state space samples that get explored by the Tarski engine """
+    def __init__(self, search_model, outfile):
+        self.outfile = outfile
+        self.search_model = search_model
+        self.states = dict()
+        self.expanded = set()
+
+    def register_state(self, state, state_string):
+        sid = len(self.states)
+        self.states[state_string] = sid
+
+        is_blind = False  # I think this is not being used at the moment
+        print(f"(N) {sid} {int(self.search_model.is_goal(state))} {int(is_blind)} {' '.join(state_string)}", file=self.outfile)
+
+        return sid
+
+    def add_state(self, state, expand=True):
+        asstr = translate_state(state, fmt="std")
+        sid = self.states.get(asstr, None)
+
+        if sid is not None and sid in self.expanded:
+            # The state has already been expanded, no need to add it again to the sample file
+            return
+
+        sid = self.register_state(state, asstr) if sid is None else sid
+
+        self.expanded.add(sid)
+
+        for op, sprime in self.search_model.successors(state):
+            succstr = translate_state(sprime, fmt="std")
+            succid = self.states.get(succstr, None)
+            if succid is None:
+                succid = self.register_state(sprime, succstr)
+            print(f"(E) {sid} {succid}", file=self.outfile)
+
+
+def generate_plan_and_create_sample(domain, instance, outfile):
+    problem = parse_problem_with_tarski(domain, instance)
+    model = GroundForwardSearchModel(problem, ground_problem_schemas_into_plain_operators(problem))
+
+    with open(outfile, 'w') as f:
+        logging.info(f"Printing plan sample info to file {outfile}")
+        sample_writer = TarskiSampleWriter(model, f)
+
+        plan = run_fd(domain, instance)
+        if plan is None:
+            # instance is unsolvable
+            print("Unsolvable instance")
+            return
+
+        s = problem.init
+        for action in plan:
+            sample_writer.add_state(s)
+            components = action.rstrip(')').lstrip('(').split()
+            assert len(components) > 0
+            a = problem.get_action(components[0])
+            op = ground_schema_into_plain_operator_from_grounding(a, components[1:])
+            if not is_applicable(s, op):
+                raise RuntimeError(f"Action {op} from FD plan not applicable!")
+
+            s = progress(s, op)
+        # sample_writer.add_state(s, expand=False)  # Note that we don't need to add the last state, as it's been already added as a child of its parent
+
+        if not model.is_goal(s):
+            raise RuntimeError(f"State after executing FD plan is not a goal: {s}")
+
+
+def generate_initial_sample(config):
+
+    # To generate the initial sample, we compute one plan per training instance, and include in the sample all
+    # states that are part of the plan, plus all their (possibly unexpanded) children.
+    # _run_brfs(config, None, None)
+
+    for instance, outfile in zip(config.instances, config.sample_files):
+        generate_plan_and_create_sample(config.domain, instance, outfile)
+
+    sample = sample_generated_states(config, None)
+
+    # Since we have only generated some (optimal) plan, we don't know the actual V* value for states that are in the
+    # sample but not in the plan. We mark that accordingly with the special -2 "unknown" value
+    for s in sample.states.keys():
+        if s not in sample.expanded and s not in sample.goals:
+            sample.vstar[s] = -2
+
+    log_sampled_states(sample, config.resampled_states_filename)
+    print_transition_matrix(sample, config.transitions_info_filename)
+
     return sample
 
 
@@ -100,11 +199,20 @@ class SafePolicyGuidedSearch:
             stats.nexpansions += 1
 
 
-def translate_atom(atom):
+def translate_atom(atom, fmt="lisp"):
+    if fmt != "lisp":
+        return str(atom)
+
     if not atom.subterms:
         return f"({atom.predicate.name})"
+
     args = ' '.join(str(a) for a in atom.subterms)
     return f"({atom.predicate.name} {args})"
+
+
+def translate_state(state, fmt="lisp"):
+    """ Translate a Tarski state into a list of strings, one for each atom that is true in the state. """
+    return tuple(sorted(translate_atom(a, fmt=fmt) for a in state.as_atoms()))
 
 
 class D2LPolicy:
@@ -115,11 +223,9 @@ class D2LPolicy:
         self.static_atoms = static_atoms
     
     def __call__(self, state):
-        strrep = [translate_atom(a) for a in state.as_atoms()]
-        m0 = generate_model_from_state(self.model_factory, strrep, self.static_atoms)
+        m0 = generate_model_from_state(self.model_factory, translate_state(state), self.static_atoms)
         for operator, succ in self.search_model.successors(state):
-            strrep = [translate_atom(a) for a in succ.as_atoms()]
-            m1 = generate_model_from_state(self.model_factory, strrep, self.static_atoms)
+            m1 = generate_model_from_state(self.model_factory, translate_state(succ), self.static_atoms)
             if self.tc_policy.transition_is_good(m0, m1):
                 return succ, operator
         return None, None
@@ -168,9 +274,10 @@ def run(config, data, rng):
     sample = generate_initial_sample(config)
 
     while True:
-        # This could be optimized to avoid recomputing the features over the states that already were in the sample
-        # on the previous iteration.
+        # TODO: This could be optimized to avoid recomputing the features over the states that already were in the
+        #       sample on the previous iteration.
         code, res = generate_feature_pool(config, sample)
+        assert code == ExitCode.Success
 
         policy = compute_policy_for_sample(config, sample)
         if not policy:
@@ -187,8 +294,9 @@ def run(config, data, rng):
         sample = sample.add(flaws)
 
     # Run on the test set and report coverage.
-    _, nsolved = test_policy(policy, config.test_policy_instances, config)
-    print(f"Learnt policy solves {nsolved}/{len(config.test_policy_instances)} in the test set")
+    if policy:
+        _, nsolved = test_policy(policy, config.test_policy_instances, config)
+        print(f"Learnt policy solves {nsolved}/{len(config.test_policy_instances)} in the test set")
     return ExitCode.Success, {}
 
 
