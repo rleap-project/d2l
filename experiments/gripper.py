@@ -1,4 +1,4 @@
-from experiments import pipelines
+import pipelines
 from sltp.util.misc import update_dict
 from sltp.util.names import gripper_names, gripper_parameters
 
