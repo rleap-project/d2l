@@ -1,3 +1,4 @@
+import pipelines
 from sltp.util.misc import update_dict
 from sltp.util.names import visitall_names
 
@@ -45,6 +46,17 @@ def experiments():
         # use_feature_dominance=True,
         sampling_strategy="goal",
         verbosity=2,
+    )
+
+    exps["small-inc"] = update_dict(
+        exps["small"],
+        distinguish_goals=True,
+        pipeline=pipelines.INCREMENTAL,
+        instances=[ 'problem03-full.pddl', 'problem04-full.pddl', 'problem05-full.pddl'],
+        #instances=[ 'problem04-full.pddl'],
+        #validation_instances=["problem{:02d}-full.pddl".format(i) for i in range(4, 6)],
+        validation_instances=["problem{:02d}-full.pddl".format(i) for i in range(3, 6)],
+        test_policy_instances=["problem{:02d}-full.pddl".format(i) for i in range(6, 12)],
     )
     
     exps["small-sd2l"] = update_dict(

@@ -25,6 +25,7 @@ protected:
     std::vector<bool> is_state_alive_;
     std::vector<bool> is_state_goal_;
     std::vector<bool> is_state_unsolvable_;
+    std::vector<bool> is_state_unknown_;
 
     std::vector<unsigned> alive_states_;
     std::vector<unsigned> goal_states_;
@@ -39,6 +40,7 @@ public:
               is_state_alive_(num_states, false),
               is_state_goal_(num_states, false),
               is_state_unsolvable_(num_states, false),
+              is_state_unknown_(num_states, false),
               alive_states_(),
               goal_states_()
     {
@@ -71,6 +73,7 @@ public:
     bool is_alive(unsigned state) const { return is_state_alive_.at(state); }
     bool is_goal(unsigned state) const { return is_state_goal_.at(state); }
     bool is_unsolvable(unsigned state) const { return is_state_unsolvable_.at(state); }
+    bool is_unknown(unsigned state) const { return is_state_unknown_.at(state); }
 
     unsigned num_unsolvable() const {
         unsigned c = 0;
@@ -131,9 +134,11 @@ public:
                 is_state_goal_[s] = true;
             } else if (vstar==-1) {
                 is_state_unsolvable_[s] = true;
+            } else if (vstar==-2){
+                is_state_unknown_[s] = true;
             } else {
-                assert (vstar < -1);
-                // No need to do anything, we don't know whether the state is unsolvable or not
+                    assert (vstar < -1);
+                    // No need to do anything, we don't know whether the state is unsolvable or not
             }
         }
     }

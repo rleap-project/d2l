@@ -59,7 +59,7 @@ def generate_policy_from_sat_solution(config, solution, model_cache, print_polic
     assert solution.solved
     features = extract_features_from_sat_solution(config, solution)
     assert features
-    # print_maxsat_solution(solution.assignment, config.wsat_allvars_filename)
+    #print_maxsat_solution(solution.assignment, config.wsat_allvars_filename)
     good_transitions = compute_good_transitions(solution.assignment, config.wsat_varmap_filename)
     policy = TransitionClassificationPolicy(features)
     for (s, t) in good_transitions:

@@ -103,6 +103,8 @@ public:
 
     bool is_unsolvable(unsigned s) const { return transitions_.is_unsolvable(s); }
 
+    bool is_unknown( unsigned s ) const { return transitions_.is_unknown(s); }
+
     inline FeatureMatrix::feature_value_t value(unsigned s, unsigned f) const {
         return matrix_.entry(s, f);
     }

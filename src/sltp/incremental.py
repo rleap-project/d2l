@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import List, Any, Union, Tuple
 
 from tarski.grounding.lp_grounding import ground_problem_schemas_into_plain_operators
 from tarski.io import FstripsReader
@@ -20,9 +21,11 @@ from .steps import _run_brfs
 from .util.command import execute
 from .util.naming import compute_sample_filenames, compute_info_filename, compute_maxsat_filename
 
+from collections import defaultdict, OrderedDict, deque
 
 class IncrementalPolicyGenerationSingleStep(Step):
     """ Generate exhaustively a set of all features up to a given complexity from the transition (state) sample """
+
     def get_required_attributes(self):
         return []
 
@@ -63,6 +66,7 @@ def run_fd(domain, instance):
 
 class TarskiSampleWriter:
     """ A simple class to manage the printing of the state space samples that get explored by the Tarski engine """
+
     def __init__(self, search_model, outfile):
         self.outfile = outfile
         self.search_model = search_model
@@ -74,7 +78,8 @@ class TarskiSampleWriter:
         self.states[state_string] = sid
 
         is_blind = False  # I think this is not being used at the moment
-        print(f"(N) {sid} {int(self.search_model.is_goal(state))} {int(is_blind)} {' '.join(state_string)}", file=self.outfile)
+        print(f"(N) {sid} {int(self.search_model.is_goal(state))} {int(is_blind)} {' '.join(state_string)}",
+              file=self.outfile)
 
         return sid
 
@@ -130,7 +135,6 @@ def generate_plan_and_create_sample(domain, instance, outfile):
 
 
 def generate_initial_sample(config):
-
     # To generate the initial sample, we compute one plan per training instance, and include in the sample all
     # states that are part of the plan, plus all their (possibly unexpanded) children.
     # _run_brfs(config, None, None)
@@ -162,6 +166,7 @@ class SafePolicyGuidedSearch:
     The search is "safe" in the sense that it detects duplicate nodes, i.e. loops induced by the policy,
     at the cost of keeping a closed list whose size grows with the size of the state space.
     """
+
     def __init__(self, model: GroundForwardSearchModel, policy):
         self.model = model
         self.policy = policy
@@ -221,7 +226,7 @@ class D2LPolicy:
         self.tc_policy = tc_policy
         self.model_factory = model_factory
         self.static_atoms = static_atoms
-    
+
     def __call__(self, state):
         m0 = generate_model_from_state(self.model_factory, translate_state(state), self.static_atoms)
         for operator, succ in self.search_model.successors(state):
@@ -239,7 +244,7 @@ def test_policy(policy, instances, config):
         problem, dl_model_factory = create_model_factory(config.domain, instance, config.parameter_generator)
         static_atoms, _ = compute_static_atoms(problem)
         search_model = GroundForwardSearchModel(problem, ground_problem_schemas_into_plain_operators(problem))
-        
+
         d2l_pol = D2LPolicy(search_model, policy, dl_model_factory, static_atoms)
         search = SafePolicyGuidedSearch(search_model, d2l_pol)
         result, state = search.run()
@@ -248,6 +253,20 @@ def test_policy(policy, instances, config):
             solved += 1
             continue
         flaws.append(state)
+        """
+        successors = search_model.successors(state)
+        states = OrderedDict()
+        transitions = defaultdict(set)
+        deadends = set()
+        states.update(state)
+        for sprime in successors:
+            states.update(sprime)
+            transitions.update([state, sprime])
+        if len(successors) == 0:
+            deadends = True
+        flaws.append([states, transitions, instance, deadends])
+        """
+
     return flaws, solved
 
 
@@ -266,7 +285,8 @@ def run(config, data, rng):
     config.wsat_varmap_filename = compute_info_filename(config.__dict__, "varmap.wsat")
     config.wsat_allvars_filename = compute_info_filename(config.__dict__, "allvars.wsat")
 
-    config.validation_instances = [os.path.join(BENCHMARK_DIR, config.domain_dir, i) for i in config.validation_instances]
+    config.validation_instances = [os.path.join(BENCHMARK_DIR, config.domain_dir, i) for i in
+                                   config.validation_instances]
 
     # Compute a plan for each of the training instances, and put all states in the plan into the sample, along with
     # all of their (possibly non-expanded) children.
@@ -290,13 +310,17 @@ def run(config, data, rng):
             print("Policy solves all tests")
             break  # Policy test was successful, we're done.
 
+        # TODO: solve adding flaws to the sample
         # Add the flaws found during validation to the sample
         sample = sample.add(flaws)
+        #for f in flaws:
+        #    sample.add_transitions(f[0], f[1], f[2], f[3])
+        #sample.states.update(flaws)
+        #for s in flaws:
+        #    sample.transitions.update(s,s)
 
     # Run on the test set and report coverage.
     if policy:
         _, nsolved = test_policy(policy, config.test_policy_instances, config)
         print(f"Learnt policy solves {nsolved}/{len(config.test_policy_instances)} in the test set")
     return ExitCode.Success, {}
-
-

@@ -34,7 +34,8 @@ void D2LEncoding::compute_equivalence_relations() {
             assert(it1.second);
 
             if (!sample_.is_solvable(sprime)) { // An alive-to-dead transition cannot be Good
-                necessarily_bad_transitions_.emplace(id);
+                if( !sample_.is_unknown(sprime) )
+                    necessarily_bad_transitions_.emplace(id);
             }
 
             if (!options.use_equivalence_classes) {
@@ -535,9 +536,10 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
 
     // (8): Force D1(s1, s2) to be true if exactly one of the two states is a goal state
     if (options.distinguish_goals) {
-        for (unsigned s:sample_.goal_states()) {
-            for (unsigned t:sample_.nongoal_states()) {
-
+        for ( const auto s : sample_.full_training_set().all_alive()) {
+            for( const auto t : sample_.full_training_set().all_goals()) {
+        //for (unsigned s:sample_.goal_states()) {
+            //for (unsigned t:sample_.nongoal_states()) {
                 const auto d1feats = compute_d1_distinguishing_features(sample_, s, t);
                 if (d1feats.empty()) {
                     undist_goal_warning(s, t);
