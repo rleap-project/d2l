@@ -236,7 +236,18 @@ class D2LPolicy:
         return None, None
 
 
-def test_policy(policy, instances, config):
+def tarski_model_to_d2l_sample_representation(state):
+    atoms = list()
+    for atom in state.as_atoms():
+        atoms.append([atom.predicate.name] + [str(st) for st in atom.subterms])
+    return atoms
+
+
+def test_policy_and_compute_flaws(policy, instances, config, sample=None):
+    """
+    If sample is not None, the computed flaws are added to it.
+    """
+
     flaws = []
     solved = 0
     for instance in instances:
@@ -253,19 +264,29 @@ def test_policy(policy, instances, config):
             solved += 1
             continue
         flaws.append(state)
-        """
-        successors = search_model.successors(state)
-        states = OrderedDict()
-        transitions = defaultdict(set)
-        deadends = set()
-        states.update(state)
-        for sprime in successors:
-            states.update(sprime)
-            transitions.update([state, sprime])
-        if len(successors) == 0:
-            deadends = True
-        flaws.append([states, transitions, instance, deadends])
-        """
+
+        # If a sample was provided, add the found flaws to it
+        if sample is not None:
+            translated = tarski_model_to_d2l_sample_representation(state)
+            state_id = 0  # TODO: We need to check whether the state is already in the sample; if it is, use its ID
+            indexed_states = {
+                state_id: translated
+            }
+
+            transitions = {state_id: set()}
+            for _, succ in search_model.successors(state):
+                succ_translated = tarski_model_to_d2l_sample_representation(succ)
+                succ_id = len(indexed_states)  # TODO: We need to check whether the state is already in the sample; if it is, use its ID
+                indexed_states[succ_id] = succ_translated
+                transitions[state_id].add(succ_id)
+
+
+            # I don't think it's relevant what instance ID we give here, so let's use a -1 to detect potential errors.
+            # TODO Still need to decide what to do with deadends
+            # TODO Note that the line "self.parents.update(compute_parents(transitions))" in sample.add_transitions
+            #      is not correct if we now add a few transitions only. In other words, add_transitions was designed
+            #      thinking in adding all transitions in one same instance at the same time. We need to change that.
+            sample = sample.add_transitions(indexed_states, transitions, instance_id=-1, deadends=set())
 
     return flaws, solved
 
@@ -305,22 +326,13 @@ def run(config, data, rng):
             break
 
         # Test the policy on the validation set
-        flaws, _ = test_policy(policy, config.validation_instances, config)
+        flaws, _ = test_policy_and_compute_flaws(policy, config.validation_instances, config, sample)
         if not flaws:
-            print("Policy solves all tests")
+            print("Policy solves all states in training set")
             break  # Policy test was successful, we're done.
 
-        # TODO: solve adding flaws to the sample
-        # Add the flaws found during validation to the sample
-        sample = sample.add(flaws)
-        #for f in flaws:
-        #    sample.add_transitions(f[0], f[1], f[2], f[3])
-        #sample.states.update(flaws)
-        #for s in flaws:
-        #    sample.transitions.update(s,s)
-
-    # Run on the test set and report coverage.
+    # Run on the test set and report coverage. No need to add flaws to sample here
     if policy:
-        _, nsolved = test_policy(policy, config.test_policy_instances, config)
+        _, nsolved = test_policy_and_compute_flaws(policy, config.test_policy_instances, config)
         print(f"Learnt policy solves {nsolved}/{len(config.test_policy_instances)} in the test set")
     return ExitCode.Success, {}

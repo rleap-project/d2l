@@ -28,6 +28,11 @@ class TransitionSample:
         self.vstar = {}
 
     def add_transitions(self, states, transitions, instance_id, deadends):
+        """ Add a batch of states coming from the same instance to the sample.
+        `states` is expected to be a dictionary mapping state IDs to tuples with all atoms that are true in the
+        state (including static atoms).
+        `transitions` is expected to be a dictionary mapping state IDs X to sets of IDS Y such that (X, Y) is a transition.
+        """
         assert not any(s in self.states for s in states.keys())  # Don't allow repeated states
         self.states.update(states)
         self.transitions.update(transitions)
@@ -303,6 +308,7 @@ def sample_expanded_and_goal_states(sample_size, goal_states, num_states, parent
 
 
 def compute_parents(transitions):
+    """ Return a dictionary mapping state IDs x to a set with the IDs of the parents of x in the sample. """
     parents = defaultdict(set)
     for source, targets in transitions.items():
         for t in targets:
