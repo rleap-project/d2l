@@ -240,7 +240,7 @@ def tarski_model_to_d2l_sample_representation(state):
     atoms = list()
     for atom in state.as_atoms():
         atoms.append([atom.predicate.name] + [str(st) for st in atom.subterms])
-    return atoms
+    return tuple(sorted(atoms))
 
 
 def test_policy_and_compute_flaws(policy, instances, config, sample=None):
@@ -250,7 +250,7 @@ def test_policy_and_compute_flaws(policy, instances, config, sample=None):
 
     flaws = []
     solved = 0
-    for instance in instances:
+    for instance_id, instance in enumerate(instances):
         # Parse the domain & instance and create a model generator
         problem, dl_model_factory = create_model_factory(config.domain, instance, config.parameter_generator)
         static_atoms, _ = compute_static_atoms(problem)
@@ -268,15 +268,25 @@ def test_policy_and_compute_flaws(policy, instances, config, sample=None):
         # If a sample was provided, add the found flaws to it
         if sample is not None:
             translated = tarski_model_to_d2l_sample_representation(state)
-            state_id = 0  # TODO: We need to check whether the state is already in the sample; if it is, use its ID
-            indexed_states = {
-                state_id: translated
-            }
+            next_id = sample.num_states()
+            state_id = sample.get_state_id( translated )  # TODO: We need to check whether the state is already in the sample; if it is, use its ID
+
+            # If the state is new (not in sample) assign the next ID
+            if state_id == -1 :
+                state_id = next_id
+                next_id += 1
+
+            indexed_states = OrderedDict()
+            indexed_states[ state_id ] = translated
 
             transitions = {state_id: set()}
             for _, succ in search_model.successors(state):
                 succ_translated = tarski_model_to_d2l_sample_representation(succ)
-                succ_id = len(indexed_states)  # TODO: We need to check whether the state is already in the sample; if it is, use its ID
+                #succ_id = len(indexed_states)  # TODO: We need to check whether the state is already in the sample; if it is, use its ID
+                succ_id = sample.get_state_id( succ_translated )
+                if succ_id == -1 :
+                    succ_id = next_id
+                    next_id += 1
                 indexed_states[succ_id] = succ_translated
                 transitions[state_id].add(succ_id)
 
@@ -286,7 +296,8 @@ def test_policy_and_compute_flaws(policy, instances, config, sample=None):
             # TODO Note that the line "self.parents.update(compute_parents(transitions))" in sample.add_transitions
             #      is not correct if we now add a few transitions only. In other words, add_transitions was designed
             #      thinking in adding all transitions in one same instance at the same time. We need to change that.
-            sample = sample.add_transitions(indexed_states, transitions, instance_id=-1, deadends=set())
+            #sample = sample.add_transitions(indexed_states, transitions, instance_id=-1, deadends=set())
+            sample = sample.add_transitions(indexed_states, transitions, instance_id=instance_id, deadends=set())
 
     return flaws, solved
 
@@ -313,10 +324,11 @@ def run(config, data, rng):
     # all of their (possibly non-expanded) children.
     # All states will need to be labeled with their status (goal / unsolvable / alive)
     sample = generate_initial_sample(config)
-
+    iteration = 1
     while True:
         # TODO: This could be optimized to avoid recomputing the features over the states that already were in the
         #       sample on the previous iteration.
+        print("### MAIN ITERATION", iteration ,"AND SAMPLE SIZE", sample.num_states())
         code, res = generate_feature_pool(config, sample)
         assert code == ExitCode.Success
 
@@ -330,6 +342,8 @@ def run(config, data, rng):
         if not flaws:
             print("Policy solves all states in training set")
             break  # Policy test was successful, we're done.
+
+        iteration += 1
 
     # Run on the test set and report coverage. No need to add flaws to sample here
     if policy:

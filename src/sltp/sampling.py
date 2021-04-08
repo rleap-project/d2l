@@ -27,6 +27,12 @@ class TransitionSample:
         self.remapping = dict()
         self.vstar = {}
 
+    def get_state_id(self, state):
+        for k, v in self.states.items() :
+            if state == v :
+                return k
+        return -1
+
     def add_transitions(self, states, transitions, instance_id, deadends):
         """ Add a batch of states coming from the same instance to the sample.
         `states` is expected to be a dictionary mapping state IDs to tuples with all atoms that are true in the
@@ -42,7 +48,7 @@ class TransitionSample:
             self.instance[s] = instance_id
         self.deadends.update(deadends)
         # We consider a state expanded if it has some child or it is marked as a deadend
-        self.expanded.update(s for s in states if (len(transitions[s]) > 0 or s in self.deadends))
+        self.expanded.update(s for s in states if (s in transitions.keys() and len(transitions[s]) > 0) or s in self.deadends)
 
     def mark_as_root(self, state):
         self.roots.add(state)

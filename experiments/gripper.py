@@ -53,8 +53,12 @@ def experiments():
     exps["small-inc"] = update_dict(
         exps["small"],
         pipeline=pipelines.INCREMENTAL,
-        validation_instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
+        instances=["prob01.pddl"],
+        validation_instances=["prob01.pddl"],
+        #instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
+        #validation_instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
         test_policy_instances=[f"prob{i:02d}.pddl" for i in range(5, 21)],
+        verbosity=0
     )
 
     exps["small-sd2l"] = update_dict(
