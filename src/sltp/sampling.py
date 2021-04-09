@@ -33,6 +33,9 @@ class TransitionSample:
                 return k
         return -1
 
+    def is_expanded(self,state_id):
+        return state_id in self.expanded
+
     def add_transitions(self, states, transitions, instance_id, deadends):
         """ Add a batch of states coming from the same instance to the sample.
         `states` is expected to be a dictionary mapping state IDs to tuples with all atoms that are true in the
@@ -49,6 +52,30 @@ class TransitionSample:
         self.deadends.update(deadends)
         # We consider a state expanded if it has some child or it is marked as a deadend
         self.expanded.update(s for s in states if (s in transitions.keys() and len(transitions[s]) > 0) or s in self.deadends)
+
+    def incremental_transitions(self, states, transitions, instance_id):
+        # Update states
+        self.states.update(states)
+        # Update transitions
+        self.transitions.update( transitions )
+        # Update transition parents
+        self.parents.update( compute_parents(transitions) )
+        # Assign state instances
+        for s in states:
+            self.instance[s] = instance_id
+        # We consider a state expanded if it has some child or it is marked as a deadend
+        self.expanded.update(s for s in states if (s in transitions.keys() and len(transitions[s]) > 0) or s in self.deadends)
+
+        # ToDo Update V* values: now the list is wrong
+        #mark_optimal_transitions(self)
+        optimal, alive, vstar = mark_all_optimal(self.goals, self.parents)
+        self.mark_as_alive(alive)
+        self.mark_as_optimal(optimal)
+        self.vstar.update(vstar)
+        for s in self.states.keys():
+            if s not in self.vstar or (s not in self.expanded and s not in self.goals):
+                self.vstar[s] = -2
+
 
     def mark_as_root(self, state):
         self.roots.add(state)

@@ -133,7 +133,6 @@ def generate_plan_and_create_sample(domain, instance, outfile):
         if not model.is_goal(s):
             raise RuntimeError(f"State after executing FD plan is not a goal: {s}")
 
-
 def generate_initial_sample(config):
     # To generate the initial sample, we compute one plan per training instance, and include in the sample all
     # states that are part of the plan, plus all their (possibly unexpanded) children.
@@ -193,12 +192,14 @@ class SafePolicyGuidedSearch:
             child, operator = self.policy(current.state)
             if operator is None:
                 logging.error(f"Policy not defined on state {current.state}")
-                return False, current.state
+                #return False, current.state
+                return False, closed
 
             current = make_child_node(current, operator, child)
             if current.state in closed:
                 logging.error(f"Loop detected in state {current.state}")
-                return False, current.state, None, None
+                #return False, current.state, None, None
+                return False, closed, None, None
 
             closed.add(current.state)
             stats.nexpansions += 1
@@ -258,46 +259,52 @@ def test_policy_and_compute_flaws(policy, instances, config, sample=None):
 
         d2l_pol = D2LPolicy(search_model, policy, dl_model_factory, static_atoms)
         search = SafePolicyGuidedSearch(search_model, d2l_pol)
-        result, state = search.run()
+        result, visited_states = search.run()
         if result:
             print("Policy solves instance")
             solved += 1
             continue
-        flaws.append(state)
+        #flaws.append(state)
+        #flaws.update(visited_transitions)
+        flaws.append(visited_states)
 
         # If a sample was provided, add the found flaws to it
         if sample is not None:
-            translated = tarski_model_to_d2l_sample_representation(state)
             next_id = sample.num_states()
-            state_id = sample.get_state_id( translated )  # TODO: We need to check whether the state is already in the sample; if it is, use its ID
-
-            # If the state is new (not in sample) assign the next ID
-            if state_id == -1 :
-                state_id = next_id
-                next_id += 1
-
-            indexed_states = OrderedDict()
-            indexed_states[ state_id ] = translated
-
-            transitions = {state_id: set()}
-            for _, succ in search_model.successors(state):
-                succ_translated = tarski_model_to_d2l_sample_representation(succ)
-                #succ_id = len(indexed_states)  # TODO: We need to check whether the state is already in the sample; if it is, use its ID
-                succ_id = sample.get_state_id( succ_translated )
-                if succ_id == -1 :
-                    succ_id = next_id
+            for state in visited_states :
+                translated = tarski_model_to_d2l_sample_representation(state)
+                state_id = sample.get_state_id( translated )
+                # If the state is new (not in sample) assign the next ID
+                if state_id == -1 :
+                    state_id = next_id
                     next_id += 1
-                indexed_states[succ_id] = succ_translated
-                transitions[state_id].add(succ_id)
+                elif sample.is_expanded(state_id):
+                    continue
 
+                sample.incremental_transitions(OrderedDict({state_id:translated}), {state_id:set()}, instance_id)
 
-            # I don't think it's relevant what instance ID we give here, so let's use a -1 to detect potential errors.
-            # TODO Still need to decide what to do with deadends
-            # TODO Note that the line "self.parents.update(compute_parents(transitions))" in sample.add_transitions
-            #      is not correct if we now add a few transitions only. In other words, add_transitions was designed
-            #      thinking in adding all transitions in one same instance at the same time. We need to change that.
-            #sample = sample.add_transitions(indexed_states, transitions, instance_id=-1, deadends=set())
-            sample = sample.add_transitions(indexed_states, transitions, instance_id=instance_id, deadends=set())
+                indexed_states = OrderedDict()
+                transitions = {}
+                indexed_states[ state_id ] = translated
+                transitions[ state_id ] = set()
+                for _, succ in search_model.successors(state):
+                    succ_translated = tarski_model_to_d2l_sample_representation(succ)
+                    succ_id = sample.get_state_id( succ_translated )
+                    if succ_id == -1 :
+                        succ_id = next_id
+                        next_id += 1
+                        transitions.update( {succ_id:set()} )
+                    indexed_states[succ_id] = succ_translated
+                    transitions[state_id].add(succ_id)
+
+                # I don't think it's relevant what instance ID we give here, so let's use a -1 to detect potential errors.
+                # TODO Still need to decide what to do with deadends
+                # TODO Note that the line "self.parents.update(compute_parents(transitions))" in sample.add_transitions
+                #      is not correct if we now add a few transitions only. In other words, add_transitions was designed
+                #      thinking in adding all transitions in one same instance at the same time. We need to change that.
+                #sample = sample.add_transitions(indexed_states, transitions, instance_id=-1, deadends=set())
+                #sample.add_transitions(indexed_states, transitions, instance_id=instance_id, deadends=set())
+                sample.incremental_transitions(indexed_states,transitions,instance_id)
 
     return flaws, solved
 
@@ -342,6 +349,9 @@ def run(config, data, rng):
         if not flaws:
             print("Policy solves all states in training set")
             break  # Policy test was successful, we're done.
+
+        log_sampled_states(sample, config.resampled_states_filename)
+        print_transition_matrix(sample, config.transitions_info_filename)
 
         iteration += 1
 

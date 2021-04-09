@@ -428,7 +428,8 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
 
     /////// CNF constraints ///////
     // [1] For each alive state s, post a constraint OR_{s' solvable child of s} Good(s, s')
-    for (const auto s:sample_.alive_states()) {
+    //for (const auto s:sample_.alive_states()) {
+    for (const auto s:sample_.expanded_states()) {
         cnfclause_t clause;
         for (unsigned sprime:sample_.successors(s)) {
             auto tx = get_transition_id(s, sprime);
@@ -448,7 +449,6 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
         wr.cl(clause);
         ++n_good_tx_clauses;
     }
-
 
 
     // Post reachability constraints

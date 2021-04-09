@@ -1,3 +1,4 @@
+import pipelines
 from sltp.util.misc import update_dict
 from sltp.util.names import reward_names, no_parameter
 
@@ -44,6 +45,17 @@ def experiments():
         # use_feature_dominance=True,
         sampling_strategy="goal",
         verbosity=2
+    )
+
+    exps["small-inc"] = update_dict(
+        exps["small"],
+        pipeline=pipelines.INCREMENTAL,
+        instances=["training_5x5.pddl"],
+        validation_instances=["training_5x5.pddl"],
+        #instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
+        #validation_instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
+        test_policy_instances=all_test_instances(),
+        verbosity=0
     )
     
     exps["small-sd2l"] = update_dict(
