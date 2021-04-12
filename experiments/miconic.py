@@ -1,3 +1,4 @@
+import pipelines
 from sltp.util.misc import update_dict
 from sltp.util.names import miconic_names
 
@@ -61,6 +62,15 @@ def experiments():
         # acyclicity="asp",
         verbosity=1,
         sampling_strategy="goal"
+    )
+
+    exps["small-inc"] = update_dict(
+        exps["small"],
+        pipeline=pipelines.INCREMENTAL,
+        instances=["s7-0.pddl"],
+        validation_instances=["s7-0.pddl"],
+        test_policy_instances=all_test_instances(),
+        verbosity=0,
     )
     
     exps["small-sd2l"] = update_dict(

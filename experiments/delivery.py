@@ -1,4 +1,4 @@
-
+import pipelines
 from sltp.util.misc import update_dict
 from sltp.util.names import delivery_names
 
@@ -54,6 +54,23 @@ def experiments():
         verbosity=1,
         sampling_strategy="goal"
 
+    )
+
+    exps["small-inc"] = update_dict(
+        exps["small"],
+        pipeline=pipelines.INCREMENTAL,
+        instances=[
+            #'instance_3_3_0.pddl',  # Use one small instance with three packages
+            #'instance_4_2_0.pddl',  # And a slightly larger one with two packages
+            'instance_7_2_2.pddl',
+        ],
+        validation_instances=[
+            #'instance_3_3_0.pddl',  # Use one small instance with three packages
+            #'instance_4_2_0.pddl',  # And a slightly larger one with two packages
+            'instance_7_2_2.pddl',
+        ],
+        test_policy_instances=all_test_instances(),
+        verbosity=0,
     )
     
     exps["small-sd2l"] = update_dict(

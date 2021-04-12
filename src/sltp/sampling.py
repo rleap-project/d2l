@@ -54,19 +54,25 @@ class TransitionSample:
         self.expanded.update(s for s in states if (s in transitions.keys() and len(transitions[s]) > 0) or s in self.deadends)
 
     def incremental_transitions(self, states, transitions, instance_id):
+        # ToDo update states only of the instance
         # Update states
         self.states.update(states)
         # Update transitions
         self.transitions.update( transitions )
         # Update transition parents
-        self.parents.update( compute_parents(transitions) )
+        #self.parents.update( compute_parents(transitions) )
+        for source, targets in transitions.items():
+            for t in targets:
+                if t in self.parents :
+                    self.parents[t].add(source)
+                else :
+                    self.parents[t] = set({source})
         # Assign state instances
         for s in states:
             self.instance[s] = instance_id
         # We consider a state expanded if it has some child or it is marked as a deadend
         self.expanded.update(s for s in states if (s in transitions.keys() and len(transitions[s]) > 0) or s in self.deadends)
 
-        # ToDo Update V* values: now the list is wrong
         #mark_optimal_transitions(self)
         optimal, alive, vstar = mark_all_optimal(self.goals, self.parents)
         self.mark_as_alive(alive)

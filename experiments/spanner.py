@@ -1,3 +1,4 @@
+import pipelines
 from sltp.util.misc import update_dict
 from sltp.util.names import spanner_names
 
@@ -54,6 +55,22 @@ def experiments():
         # use_feature_dominance=True,
         sampling_strategy="goal",
         verbosity=2
+    )
+
+    exps["small-inc"] = update_dict(
+        exps["small"],
+        pipeline=pipelines.INCREMENTAL,
+        instances=[
+            'pfile02-006.pddl',
+        ],
+        validation_instances=[
+            'pfile02-006.pddl',
+        ],
+        test_policy_instances=[
+            "prob-10-10-10-1540903568.pddl",
+            "prob-15-10-8-1540913795.pddl"
+        ] + all_test_instances(),
+        verbosity=0,
     )
 
     exps["small-sd2l"] = update_dict(

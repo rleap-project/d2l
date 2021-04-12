@@ -89,6 +89,11 @@ def experiments():
     exps["clear-inc"] = update_dict(
         exps["clear"],
         pipeline=pipelines.INCREMENTAL,
+        #instances=["training_clear_5.pddl"],
+        #validation_instances=["training_clear_5.pddl"],
+        instances=[
+            "test_clear_probBLOCKS-10-0.pddl",
+            "test_clear_probBLOCKS-10-1.pddl", ],
         validation_instances=[
             "test_clear_probBLOCKS-10-0.pddl",
             "test_clear_probBLOCKS-10-1.pddl", ],
@@ -175,6 +180,24 @@ def experiments():
         # acyclicity="asp",
 
         # print_hstar_in_feature_matrix=True,
+    )
+
+    exps["on-inc"] = update_dict(
+        exps["on"],
+        pipeline=pipelines.INCREMENTAL,
+        instances=[
+            "test_on_probBLOCKS-10-0.pddl",
+            "test_on_probBLOCKS-10-2.pddl",
+            "test_on_probBLOCKS-11-0.pddl",
+            "test_on_probBLOCKS-11-1.pddl",
+            "test_on_probBLOCKS-11-2.pddl" ],
+        validation_instances=[
+            "test_on_probBLOCKS-10-0.pddl",
+            "test_on_probBLOCKS-10-2.pddl",
+            "test_on_probBLOCKS-11-0.pddl",
+            "test_on_probBLOCKS-11-1.pddl",
+            "test_on_probBLOCKS-11-2.pddl" ],
+        test_policy_instances=all_on_test_instancess(),
     )
 
     exps["on-sd2l"] = update_dict(
@@ -273,6 +296,24 @@ def experiments():
         # acyclicity="asp",
         verbosity=2,
         sampling_strategy="goal"
+    )
+        
+    exps["all_at_5-inc"] = update_dict(
+        exps["all_at_5"],
+        pipeline=pipelines.INCREMENTAL,
+        instances=[
+            "training_arbitrary_5_atomic.pddl",
+            "training_arbitrary_5_atomic_tower.pddl"
+        ],
+        validation_instances=[
+            "training_arbitrary_5_atomic.pddl",
+            "training_arbitrary_5_atomic_tower.pddl"
+        ],
+        test_policy_instances=[
+                                  "training_arbitrary_5_atomic.pddl",
+                              ] + [
+                                  f"test_atomic_{n}_{i}.pddl" for n in range(10, 31) for i in range(0, 5)
+                              ],
     )
 
     exps["all_at_5-sd2l"] = update_dict(

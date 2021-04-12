@@ -1,3 +1,4 @@
+import pipelines
 from sltp.util.misc import update_dict
 #from sltp.util.names import visitall_names
 
@@ -36,6 +37,15 @@ def experiments():
         # use_feature_dominance=True,
         sampling_strategy="goal",
         verbosity=2,
+    )
+
+    exps["small-inc"] = update_dict(
+        exps["small"],
+        pipeline=pipelines.INCREMENTAL,
+        instances=['instances/instance-1.pddl' ],
+        validation_instances=['instances/instance-1.pddl' ],
+        test_policy_instances=all_test_instances(),
+        verbosity=0,
     )
     
     exps["small-sd2l"] = update_dict(

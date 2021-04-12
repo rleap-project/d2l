@@ -58,7 +58,7 @@ def experiments():
         #instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
         #validation_instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
         test_policy_instances=[f"prob{i:02d}.pddl" for i in range(5, 21)],
-        verbosity=0
+        verbosity=0,
     )
 
     exps["small-sd2l"] = update_dict(

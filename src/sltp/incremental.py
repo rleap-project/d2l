@@ -199,7 +199,7 @@ class SafePolicyGuidedSearch:
             if current.state in closed:
                 logging.error(f"Loop detected in state {current.state}")
                 #return False, current.state, None, None
-                return False, closed, None, None
+                return False, closed
 
             closed.add(current.state)
             stats.nexpansions += 1
@@ -271,40 +271,43 @@ def test_policy_and_compute_flaws(policy, instances, config, sample=None):
         # If a sample was provided, add the found flaws to it
         if sample is not None:
             next_id = sample.num_states()
-            for state in visited_states :
+            for state in visited_states:
                 translated = tarski_model_to_d2l_sample_representation(state)
-                state_id = sample.get_state_id( translated )
+                state_id = sample.get_state_id(translated)
                 # If the state is new (not in sample) assign the next ID
-                if state_id == -1 :
+                if state_id == -1:
                     state_id = next_id
                     next_id += 1
                 elif sample.is_expanded(state_id):
                     continue
 
-                sample.incremental_transitions(OrderedDict({state_id:translated}), {state_id:set()}, instance_id)
+                sample.incremental_transitions(OrderedDict({state_id: translated}), {state_id: set()}, instance_id)
 
                 indexed_states = OrderedDict()
                 transitions = {}
-                indexed_states[ state_id ] = translated
-                transitions[ state_id ] = set()
+                indexed_states[state_id] = translated
+                transitions[state_id] = set()
                 for _, succ in search_model.successors(state):
                     succ_translated = tarski_model_to_d2l_sample_representation(succ)
-                    succ_id = sample.get_state_id( succ_translated )
-                    if succ_id == -1 :
+                    succ_id = sample.get_state_id(succ_translated)
+                    if succ_id == -1:
                         succ_id = next_id
                         next_id += 1
-                        transitions.update( {succ_id:set()} )
+                        transitions.update({succ_id: set()})
                     indexed_states[succ_id] = succ_translated
                     transitions[state_id].add(succ_id)
+                    # sample.incremental_transitions(indexed_states, transitions, instance_id)
 
                 # I don't think it's relevant what instance ID we give here, so let's use a -1 to detect potential errors.
                 # TODO Still need to decide what to do with deadends
                 # TODO Note that the line "self.parents.update(compute_parents(transitions))" in sample.add_transitions
                 #      is not correct if we now add a few transitions only. In other words, add_transitions was designed
                 #      thinking in adding all transitions in one same instance at the same time. We need to change that.
-                #sample = sample.add_transitions(indexed_states, transitions, instance_id=-1, deadends=set())
-                #sample.add_transitions(indexed_states, transitions, instance_id=instance_id, deadends=set())
-                sample.incremental_transitions(indexed_states,transitions,instance_id)
+                # sample = sample.add_transitions(indexed_states, transitions, instance_id=-1, deadends=set())
+                # sample.add_transitions(indexed_states, transitions, instance_id=instance_id, deadends=set())
+                sample.incremental_transitions(indexed_states, transitions, instance_id)
+
+
 
     return flaws, solved
 
