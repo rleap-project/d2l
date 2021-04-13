@@ -187,7 +187,7 @@ class SafePolicyGuidedSearch:
 
             if self.model.is_goal(current.state):
                 logging.info(f"Goal found after {stats.nexpansions} expansions")
-                return True, current
+                return True, {current.state}
 
             child, operator = self.policy(current.state)
             if operator is None:
@@ -243,6 +243,8 @@ def tarski_model_to_d2l_sample_representation(state):
         atoms.append([atom.predicate.name] + [str(st) for st in atom.subterms])
     return tuple(sorted(atoms))
 
+#def d2l_sample_to_tarski_model_representation(state):
+#    pass
 
 def test_policy_and_compute_flaws(policy, instances, config, sample=None):
     """
@@ -260,6 +262,15 @@ def test_policy_and_compute_flaws(policy, instances, config, sample=None):
         d2l_pol = D2LPolicy(search_model, policy, dl_model_factory, static_atoms)
         search = SafePolicyGuidedSearch(search_model, d2l_pol)
         result, visited_states = search.run()
+
+        t_leaves = sample.get_t_leaves()
+        for t_leaf_state in t_leaves :
+            #t_leaf_state = d2l_sample_to_tarski_model_representation(leaf_state)
+            leaf_res, leaf_visited = search.search(t_leaf_state)
+            if not leaf_res:
+                result = False
+                visited_states.update( leaf_visited )
+
         if result:
             print("Policy solves instance")
             solved += 1
@@ -270,6 +281,7 @@ def test_policy_and_compute_flaws(policy, instances, config, sample=None):
 
         # If a sample was provided, add the found flaws to it
         if sample is not None:
+            t_states = OrderedDict()
             next_id = sample.num_states()
             for state in visited_states:
                 translated = tarski_model_to_d2l_sample_representation(state)
@@ -281,6 +293,7 @@ def test_policy_and_compute_flaws(policy, instances, config, sample=None):
                 elif sample.is_expanded(state_id):
                     continue
 
+                t_states[state_id] = state
                 sample.incremental_transitions(OrderedDict({state_id: translated}), {state_id: set()}, instance_id)
 
                 indexed_states = OrderedDict()
@@ -296,6 +309,7 @@ def test_policy_and_compute_flaws(policy, instances, config, sample=None):
                         transitions.update({succ_id: set()})
                     indexed_states[succ_id] = succ_translated
                     transitions[state_id].add(succ_id)
+                    t_states[succ_id] = succ
                     # sample.incremental_transitions(indexed_states, transitions, instance_id)
 
                 # I don't think it's relevant what instance ID we give here, so let's use a -1 to detect potential errors.
@@ -306,7 +320,7 @@ def test_policy_and_compute_flaws(policy, instances, config, sample=None):
                 # sample = sample.add_transitions(indexed_states, transitions, instance_id=-1, deadends=set())
                 # sample.add_transitions(indexed_states, transitions, instance_id=instance_id, deadends=set())
                 sample.incremental_transitions(indexed_states, transitions, instance_id)
-
+            sample.add_t_states(t_states)
 
 
     return flaws, solved

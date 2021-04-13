@@ -26,6 +26,7 @@ class TransitionSample:
         self.instance = dict()  # A mapping between states and the problem instances they came from
         self.remapping = dict()
         self.vstar = {}
+        self.t_states = OrderedDict()
 
     def get_state_id(self, state):
         for k, v in self.states.items() :
@@ -33,8 +34,23 @@ class TransitionSample:
                 return k
         return -1
 
+    def get_state(self,state_id):
+        return self.states.get(state_id)
+
     def is_expanded(self,state_id):
         return state_id in self.expanded
+
+    def get_t_leaves(self):
+        #return [s for s in self.states if len(self.transitions[s]>0)]
+        t_leaves = set()
+        for k,s in self.states.items():
+            if k in self.transitions and len(self.transitions[k])>0 and k in self.t_states.keys():
+                t_leaves.add(self.t_states[k])
+        return t_leaves
+        #return {self.t_states[k] for k,s in self.states.items() if s in self.transitions and len(self.transitions[s]) > 0 and k in self.t_states.keys()}
+
+    def add_t_states(self,t_states):
+        self.t_states.update(t_states)
 
     def add_transitions(self, states, transitions, instance_id, deadends):
         """ Add a batch of states coming from the same instance to the sample.
