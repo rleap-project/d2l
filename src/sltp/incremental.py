@@ -270,7 +270,7 @@ def test_policy_and_compute_flaws(policy, instances, config, sample=None):
             continue
 
         # result, visited_states = search.search(root)
-        flaws = set().union(*(flaws for _, flaws in testruns))
+        flaws = set().union(*(flaws for res, flaws in testruns if res is not True))
 
         # If a sample was provided, add the found flaws to it
         if sample is not None and flaws:
