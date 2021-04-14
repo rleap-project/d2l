@@ -1,10 +1,9 @@
 import logging
 import os
-from typing import List, Any, Union, Tuple
 
 from tarski.grounding.lp_grounding import ground_problem_schemas_into_plain_operators
 from tarski.io import FstripsReader
-from tarski.search import GroundForwardSearchModel, BreadthFirstSearch
+from tarski.search import GroundForwardSearchModel
 from tarski.search.applicability import is_applicable
 from tarski.search.blind import make_child_node, make_root_node, SearchSpace, SearchStats
 from tarski.search.model import progress
@@ -13,15 +12,15 @@ from tarski.syntax.transform.action_grounding import ground_schema_into_plain_op
 from . import cnfgen
 from .driver import Step, BENCHMARK_DIR
 from .featuregen import generate_feature_pool
-from .features import FeatureInterpreter, create_model_factory, compute_static_atoms, generate_model_from_state
+from .features import create_model_factory, compute_static_atoms, generate_model_from_state
 from .outputs import print_transition_matrix
 from .returncodes import ExitCode
-from .sampling import generate_sample, sample_generated_states, log_sampled_states
-from .steps import _run_brfs
+from .sampling import sample_generated_states, log_sampled_states
 from .util.command import execute
 from .util.naming import compute_sample_filenames, compute_info_filename, compute_maxsat_filename
 
-from collections import defaultdict, OrderedDict, deque
+from collections import OrderedDict
+
 
 class IncrementalPolicyGenerationSingleStep(Step):
     """ Generate exhaustively a set of all features up to a given complexity from the transition (state) sample """
@@ -133,6 +132,7 @@ def generate_plan_and_create_sample(domain, instance, outfile):
         if not model.is_goal(s):
             raise RuntimeError(f"State after executing FD plan is not a goal: {s}")
 
+
 def generate_initial_sample(config):
     # To generate the initial sample, we compute one plan per training instance, and include in the sample all
     # states that are part of the plan, plus all their (possibly unexpanded) children.
@@ -174,8 +174,10 @@ class SafePolicyGuidedSearch:
         return self.search(self.model.init())
 
     def search(self, root):
-        # create obj to track state space
-        space = SearchSpace()
+        """ Run the policy-guided search.
+        When the policy is not defined in some state, return that state.
+        When the policy enters a loop, return the entire loop.
+        """
         stats = SearchStats()
 
         closed = {root}
@@ -192,13 +194,11 @@ class SafePolicyGuidedSearch:
             child, operator = self.policy(current.state)
             if operator is None:
                 logging.error(f"Policy not defined on state {current.state}")
-                #return False, current.state
-                return False, closed
+                return False, {current.state}
 
             current = make_child_node(current, operator, child)
             if current.state in closed:
                 logging.error(f"Loop detected in state {current.state}")
-                #return False, current.state, None, None
                 return False, closed
 
             closed.add(current.state)
@@ -243,47 +243,40 @@ def tarski_model_to_d2l_sample_representation(state):
         atoms.append([atom.predicate.name] + [str(st) for st in atom.subterms])
     return tuple(sorted(atoms))
 
-#def d2l_sample_to_tarski_model_representation(state):
-#    pass
 
 def test_policy_and_compute_flaws(policy, instances, config, sample=None):
     """
     If sample is not None, the computed flaws are added to it.
     """
-
-    flaws = []
-    solved = 0
+    nsolved = 0
     for instance_id, instance in enumerate(instances):
         # Parse the domain & instance and create a model generator
         problem, dl_model_factory = create_model_factory(config.domain, instance, config.parameter_generator)
         static_atoms, _ = compute_static_atoms(problem)
+
         search_model = GroundForwardSearchModel(problem, ground_problem_schemas_into_plain_operators(problem))
+        d2l_policy = D2LPolicy(search_model, policy, dl_model_factory, static_atoms)
+        search = SafePolicyGuidedSearch(search_model, d2l_policy)
 
-        d2l_pol = D2LPolicy(search_model, policy, dl_model_factory, static_atoms)
-        search = SafePolicyGuidedSearch(search_model, d2l_pol)
-        result, visited_states = search.run()
+        # Collect all the states from which we want to test the policy
+        roots = {problem.init}
+        if config.refine_policy_from_entire_sample:
+            roots.update(sample.get_t_leaves())
 
-        t_leaves = sample.get_t_leaves()
-        for t_leaf_state in t_leaves :
-            #t_leaf_state = d2l_sample_to_tarski_model_representation(leaf_state)
-            leaf_res, leaf_visited = search.search(t_leaf_state)
-            if not leaf_res:
-                result = False
-                visited_states.update( leaf_visited )
-
-        if result:
+        testruns = [search.search(root) for root in roots]
+        if all(res is True for res, _ in testruns):
             print("Policy solves instance")
-            solved += 1
+            nsolved += 1
             continue
-        #flaws.append(state)
-        #flaws.update(visited_transitions)
-        flaws.append(visited_states)
+
+        # result, visited_states = search.search(root)
+        flaws = set().union(*(flaws for _, flaws in testruns))
 
         # If a sample was provided, add the found flaws to it
-        if sample is not None:
+        if sample is not None and flaws:
             t_states = OrderedDict()
             next_id = sample.num_states()
-            for state in visited_states:
+            for state in flaws:
                 translated = tarski_model_to_d2l_sample_representation(state)
                 state_id = sample.get_state_id(translated)
                 # If the state is new (not in sample) assign the next ID
@@ -312,7 +305,8 @@ def test_policy_and_compute_flaws(policy, instances, config, sample=None):
                     t_states[succ_id] = succ
                     # sample.incremental_transitions(indexed_states, transitions, instance_id)
 
-                # I don't think it's relevant what instance ID we give here, so let's use a -1 to detect potential errors.
+                # I don't think it's relevant what instance ID we give here,
+                # so let's use a -1 to detect potential errors.
                 # TODO Still need to decide what to do with deadends
                 # TODO Note that the line "self.parents.update(compute_parents(transitions))" in sample.add_transitions
                 #      is not correct if we now add a few transitions only. In other words, add_transitions was designed
@@ -322,8 +316,7 @@ def test_policy_and_compute_flaws(policy, instances, config, sample=None):
                 sample.incremental_transitions(indexed_states, transitions, instance_id)
             sample.add_t_states(t_states)
 
-
-    return flaws, solved
+    return nsolved
 
 
 def run(config, data, rng):
@@ -352,7 +345,7 @@ def run(config, data, rng):
     while True:
         # TODO: This could be optimized to avoid recomputing the features over the states that already were in the
         #       sample on the previous iteration.
-        print("### MAIN ITERATION", iteration ,"AND SAMPLE SIZE", sample.num_states())
+        print(f"### MAIN ITERATION: {iteration}; SAMPLE SIZE: {sample.num_states()}")
         code, res = generate_feature_pool(config, sample)
         assert code == ExitCode.Success
 
@@ -362,8 +355,8 @@ def run(config, data, rng):
             break
 
         # Test the policy on the validation set
-        flaws, _ = test_policy_and_compute_flaws(policy, config.validation_instances, config, sample)
-        if not flaws:
+        nsolved = test_policy_and_compute_flaws(policy, config.validation_instances, config, sample)
+        if nsolved == len(config.validation_instances):
             print("Policy solves all states in training set")
             break  # Policy test was successful, we're done.
 
@@ -374,6 +367,6 @@ def run(config, data, rng):
 
     # Run on the test set and report coverage. No need to add flaws to sample here
     if policy:
-        _, nsolved = test_policy_and_compute_flaws(policy, config.test_policy_instances, config)
+        nsolved = test_policy_and_compute_flaws(policy, config.test_policy_instances, config)
         print(f"Learnt policy solves {nsolved}/{len(config.test_policy_instances)} in the test set")
     return ExitCode.Success, {}

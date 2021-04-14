@@ -188,6 +188,8 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
         # ???
         optimal_steps=0,
         consistency_bound=10,
+
+        refine_policy_from_entire_sample=True,
     )
 
     parameters = {**defaults, **kwargs}  # Copy defaults, overwrite with user-specified parameters

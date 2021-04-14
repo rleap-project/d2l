@@ -55,10 +55,12 @@ def experiments():
         pipeline=pipelines.INCREMENTAL,
         instances=["prob01.pddl"],
         validation_instances=["prob01.pddl"],
-        #instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
-        #validation_instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
+        # instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
+        # validation_instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
         test_policy_instances=[f"prob{i:02d}.pddl" for i in range(5, 21)],
         verbosity=0,
+        refine_policy_from_entire_sample=False,
+        initial_sample_size=99999999,
     )
 
     exps["small-sd2l"] = update_dict(
