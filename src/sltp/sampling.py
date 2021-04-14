@@ -74,16 +74,15 @@ class TransitionSample:
         # ToDo update states only of the instance
         # Update states
         self.states.update(states)
-        # Update transitions
-        self.transitions.update( transitions )
-        # Update transition parents
-        #self.parents.update( compute_parents(transitions) )
+
+        # Update transition and parents
         for source, targets in transitions.items():
+            self.transitions[source].update(targets)
             for t in targets:
-                if t in self.parents :
+                if t in self.parents:
                     self.parents[t].add(source)
-                else :
-                    self.parents[t] = set({source})
+                else:
+                    self.parents[t] = {source}
         # Assign state instances
         for s in states:
             self.instance[s] = instance_id

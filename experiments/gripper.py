@@ -60,7 +60,8 @@ def experiments():
         test_policy_instances=[f"prob{i:02d}.pddl" for i in range(5, 21)],
         verbosity=0,
         refine_policy_from_entire_sample=False,
-        initial_sample_size=99999999,
+        sampling_strategy="full",
+
     )
 
     exps["small-sd2l"] = update_dict(

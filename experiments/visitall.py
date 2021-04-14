@@ -24,12 +24,12 @@ def experiments():
     exps = dict()
 
     visit_base = update_dict(
-    	base,
-    	name = "visit",
-    	n_instances = 1,
-        dimensions = "3\\times 3",
+        base,
+        name="visit",
+        n_instances=1,
+        dimensions="3\\times 3",
     )
-    
+
     exps["small"] = update_dict(
         visit_base,
         instances=[
@@ -51,14 +51,18 @@ def experiments():
     exps["small-inc"] = update_dict(
         exps["small"],
         distinguish_goals=True,
-        pipeline=pipelines.INCREMENTAL,        
-        instances=[ 'problem05-full.pddl'],
-        validation_instances=[ 'problem05-full.pddl'],
-        #instances=["problem{:02d}-full.pddl".format(i) for i in range(2, 6)],
-        #validation_instances=["problem{:02d}-full.pddl".format(i) for i in range(2, 6)],
+        pipeline=pipelines.INCREMENTAL,
+        instances=['problem05-full.pddl'],
+        validation_instances=['problem05-full.pddl'],
+        # instances=["problem{:02d}-full.pddl".format(i) for i in range(2, 6)],
+        # validation_instances=["problem{:02d}-full.pddl".format(i) for i in range(2, 6)],
         test_policy_instances=["problem{:02d}-full.pddl".format(i) for i in range(6, 12)],
+
+        refine_policy_from_entire_sample=False,
+        sampling_strategy="full",
+        verbosity=0,
     )
-    
+
     exps["small-sd2l"] = update_dict(
         visit_base,
         instances=[
@@ -69,20 +73,20 @@ def experiments():
         test_instances=[],
         test_policy_instances=all_test_instances(),
         acyclicity="sd2l",
-        
+
         sampling_strategy="goal",
         n_features=2,
         max_concept_size=8,
         distance_feature_max_complexity=8,
-        #initial_sample_size=999999,
-        #initial_sample_size=10,
+        # initial_sample_size=999999,
+        # initial_sample_size=10,
         consistency_bound=0,
         optimal_steps=2,
         v_slack=2,
         verbosity=2,
         use_equivalence_classes=True,
     )
-    
+
     exps["small-dtl"] = update_dict(
         visit_base,
         instances=[
@@ -93,20 +97,19 @@ def experiments():
         test_instances=[],
         test_policy_instances=all_test_instances(),
         acyclicity="dtl",
-        
+
         sampling_strategy="goal",
         n_features=2,
         max_concept_size=8,
         distance_feature_max_complexity=8,
-        #initial_sample_size=999999,
-        #initial_sample_size=10,
+        # initial_sample_size=999999,
+        # initial_sample_size=10,
         consistency_bound=10,
         optimal_steps=2,
         v_slack=2,
         verbosity=2,
         use_equivalence_classes=True,
     )
-
 
     exps["debug"] = update_dict(
         base,

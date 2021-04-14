@@ -24,7 +24,7 @@ void D2LEncoding::compute_equivalence_relations() {
     // A mapping from a full transition trace to the ID of the corresponding equivalence class
     std::unordered_map<transition_trace, unsigned> from_trace_to_class_repr;
 
-    for (const auto s:sample_.alive_states()) {
+    for (const auto s:sample_.expanded_states()) {
         for (unsigned sprime:sample_.successors(s)) {
             auto tx = std::make_pair((state_id_t) s, (state_id_t) sprime);
             auto id = (unsigned) transition_ids_inv_.size(); // Assign a sequential ID to the transition

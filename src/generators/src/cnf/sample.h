@@ -73,14 +73,13 @@ public:
     {
         // Let's classify the states for easier access
         for (unsigned s:states_) {
-            if (is_alive(s)) {
-                alive_states_.push_back(s);
-                expanded_states_.push_back(s);
-            }
-            else if(is_unknown(s)) {
-                unknown_states_.push_back(s);
-                expanded_states_.push_back(s);
-            }
+            if (is_alive(s)) alive_states_.push_back(s);
+            else if (is_unknown(s)) unknown_states_.push_back(s);
+
+            // TODO We should find a better way to identify which states have been
+            // expanded (e.g. a state could have no successor but have been expanded anyway)
+            if (!transitions.successors(s).empty()) expanded_states_.push_back(s);
+
             if (is_goal(s)) goal_states_.push_back(s);
             else nongoal_states_.push_back(s);
         }
@@ -203,9 +202,21 @@ protected:
     using StateSampler::sample_flaws;
 };
 
+class FullSampleSampler : public StateSampler {
+public:
+    FullSampleSampler(std::mt19937& rng, const TrainingSet& trset, unsigned verbosity)
+            : StateSampler(rng, trset, verbosity)
+    {}
+
+    StateSpaceSample* sample_initial_states(unsigned n) override;
+    std::vector<unsigned> sample_flaws(const DNFPolicy& dnf, unsigned batch_size) override { return {}; }
+};
+
+
 inline std::unique_ptr<StateSampler> select_sampler(const std::string& strategy, std::mt19937& rng, const TrainingSet& trset, unsigned verbosity) {
     if (strategy == "random") return std::make_unique<RandomSampler>(rng, trset, verbosity);
     else if (strategy == "goal") return std::make_unique<GoalDistanceSampler>(rng, trset, verbosity);
+    else if (strategy == "full") return std::make_unique<FullSampleSampler>(rng, trset, verbosity);
     else throw std::runtime_error("Unknown state sampling strategy " + strategy);
 }
 

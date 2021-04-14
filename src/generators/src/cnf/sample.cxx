@@ -92,6 +92,12 @@ StateSpaceSample* RandomSampler::sample_initial_states(unsigned n) {
 }
 
 
+StateSpaceSample* FullSampleSampler::sample_initial_states(unsigned n) {
+    std::vector<unsigned> all(trset.transitions().num_states());
+    std::iota(all.begin(), all.end(), 0);
+    return new StateSpaceSample(trset.matrix(), trset.transitions(), all);
+}
+
 std::vector<unsigned> RandomSampler::sample_flaws(const DNFPolicy& dnf, unsigned batch_size) {
     // We randomize the order in which we check alive states
     return sample_flaws(dnf, batch_size, randomize_all_alive_states());
