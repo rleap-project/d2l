@@ -7,7 +7,7 @@
 
 sltp::TransitionSample read_transition_data(const std::string& workspace, bool verbose) {
     std::string transitions_filename = workspace + "/transitions-info.io";
-    std::cout << sltp::utils::blue() << "reading" << sltp::utils::normal() << " '" << transitions_filename << std::endl;
+    std::cout << sltp::utils::blue() << "reading" << sltp::utils::normal() << " '" << transitions_filename << "'" << std::endl;
     auto ifs_transitions = sltp::utils::get_ifstream(transitions_filename);
     auto transitions = sltp::TransitionSample::read_dump(ifs_transitions, verbose);
     ifs_transitions.close();
@@ -17,7 +17,7 @@ sltp::TransitionSample read_transition_data(const std::string& workspace, bool v
 
 sltp::FeatureMatrix read_feature_matrix(const std::string& workspace, bool verbose) {
     std::string matrix_filename = workspace + "/feature-matrix.io";
-    std::cout << sltp::utils::blue() << "reading" << sltp::utils::normal() << " '" << matrix_filename << std::endl;
+    std::cout << sltp::utils::blue() << "reading" << sltp::utils::normal() << " '" << matrix_filename <<  "'" << std::endl;
     auto ifs_matrix = sltp::utils::get_ifstream(matrix_filename);
     auto matrix = sltp::FeatureMatrix::read_dump(ifs_matrix, verbose);
     ifs_matrix.close();

@@ -5,7 +5,7 @@ from tarski.grounding.lp_grounding import ground_problem_schemas_into_plain_oper
 from tarski.io import FstripsReader
 from tarski.search import GroundForwardSearchModel
 from tarski.search.applicability import is_applicable
-from tarski.search.blind import make_child_node, make_root_node, SearchSpace, SearchStats
+from tarski.search.blind import make_child_node, make_root_node, SearchStats
 from tarski.search.model import progress
 from tarski.syntax.transform.action_grounding import ground_schema_into_plain_operator_from_grounding
 
@@ -15,7 +15,7 @@ from .featuregen import generate_feature_pool
 from .features import create_model_factory, compute_static_atoms, generate_model_from_state
 from .outputs import print_transition_matrix
 from .returncodes import ExitCode
-from .sampling import sample_generated_states, log_sampled_states
+from .sampling import log_sampled_states, TransitionSample, mark_optimal_transitions
 from .util.command import execute
 from .util.naming import compute_sample_filenames, compute_info_filename, compute_maxsat_filename
 
@@ -63,74 +63,51 @@ def run_fd(domain, instance):
     return plan
 
 
-class TarskiSampleWriter:
-    """ A simple class to manage the printing of the state space samples that get explored by the Tarski engine """
-
-    def __init__(self, search_model, outfile):
-        self.outfile = outfile
-        self.search_model = search_model
-        self.states = dict()
-        self.expanded = set()
-
-    def register_state(self, state, state_string):
-        sid = len(self.states)
-        self.states[state_string] = sid
-
-        is_blind = False  # I think this is not being used at the moment
-        print(f"(N) {sid} {int(self.search_model.is_goal(state))} {int(is_blind)} {' '.join(state_string)}",
-              file=self.outfile)
-
-        return sid
-
-    def add_state(self, state, expand=True):
-        asstr = translate_state(state, fmt="std")
-        sid = self.states.get(asstr, None)
-
-        if sid is not None and sid in self.expanded:
-            # The state has already been expanded, no need to add it again to the sample file
-            return
-
-        sid = self.register_state(state, asstr) if sid is None else sid
-
-        self.expanded.add(sid)
-
-        for op, sprime in self.search_model.successors(state):
-            succstr = translate_state(sprime, fmt="std")
-            succid = self.states.get(succstr, None)
-            if succid is None:
-                succid = self.register_state(sprime, succstr)
-            print(f"(E) {sid} {succid}", file=self.outfile)
-
-
-def generate_plan_and_create_sample(domain, instance, outfile):
+def generate_plan_and_create_sample(domain, instance_id, instance, sample):
     problem = parse_problem_with_tarski(domain, instance)
     model = GroundForwardSearchModel(problem, ground_problem_schemas_into_plain_operators(problem))
 
-    with open(outfile, 'w') as f:
-        logging.info(f"Printing plan sample info to file {outfile}")
-        sample_writer = TarskiSampleWriter(model, f)
+    # Run Fast Downward and get a plan!
+    plan = run_fd(domain, instance)
+    if plan is None:
+        # instance is unsolvable
+        print("Unsolvable instance")
+        return
 
-        plan = run_fd(domain, instance)
-        if plan is None:
-            # instance is unsolvable
-            print("Unsolvable instance")
-            return
+    # Collect all states in the plan
+    allstates = []
+    s = problem.init
+    for action in plan:
+        allstates.append(s)
+        components = action.rstrip(')').lstrip('(').split()
+        assert len(components) > 0
+        a = problem.get_action(components[0])
+        op = ground_schema_into_plain_operator_from_grounding(a, components[1:])
+        if not is_applicable(s, op):
+            raise RuntimeError(f"Action {op} from FD plan not applicable!")
 
-        s = problem.init
-        for action in plan:
-            sample_writer.add_state(s)
-            components = action.rstrip(')').lstrip('(').split()
-            assert len(components) > 0
-            a = problem.get_action(components[0])
-            op = ground_schema_into_plain_operator_from_grounding(a, components[1:])
-            if not is_applicable(s, op):
-                raise RuntimeError(f"Action {op} from FD plan not applicable!")
+        s = progress(s, op)
+    # Note that we don't need to add the last state, as it's been already added as a child of its parent:
+    # sample_writer.add_state(s, expand=False)
 
-            s = progress(s, op)
-        # sample_writer.add_state(s, expand=False)  # Note that we don't need to add the last state, as it's been already added as a child of its parent
+    if not model.is_goal(s):
+        raise RuntimeError(f"State after executing FD plan is not a goal: {s}")
 
-        if not model.is_goal(s):
-            raise RuntimeError(f"State after executing FD plan is not a goal: {s}")
+    # Finally, add the states (plus their expansions) to the D2L Transitionsample object.
+    for i, state in enumerate(allstates, start=0):
+        expand_state_into_sample(sample, state, instance_id, model, root=(i == 0))
+
+
+def expand_state_into_sample(sample, state, instance_id, model, root=False):
+    sid = sample.add_state(state, instance_id=instance_id, expanded=True, goal=model.is_goal(state),
+                           unsolvable=False, root=root)
+
+    for op, sprime in model.successors(state):
+        # Note that we set update_if_duplicate=False to prevent this from updating a previously seen
+        # state that is in the plan trace.
+        succid = sample.add_state(sprime, instance_id=instance_id, expanded=False, goal=model.is_goal(sprime),
+                                  unsolvable=False, root=False, update_if_duplicate=False)
+        sample.add_transition(sid, succid)
 
 
 def generate_initial_sample(config):
@@ -138,10 +115,12 @@ def generate_initial_sample(config):
     # states that are part of the plan, plus all their (possibly unexpanded) children.
     # _run_brfs(config, None, None)
 
-    for instance, outfile in zip(config.instances, config.sample_files):
-        generate_plan_and_create_sample(config.domain, instance, outfile)
+    sample = TransitionSample()
+    for i, instance in enumerate(config.instances, start=0):
+        generate_plan_and_create_sample(config.domain, i, instance, sample)
 
-    sample = sample_generated_states(config, None)
+    mark_optimal_transitions(sample)
+    logging.info(f"Entire sample: {sample.info()}")
 
     # Since we have only generated some (optimal) plan, we don't know the actual V* value for states that are in the
     # sample but not in the plan. We mark that accordingly with the special -2 "unknown" value
@@ -149,8 +128,8 @@ def generate_initial_sample(config):
         if s not in sample.expanded and s not in sample.goals:
             sample.vstar[s] = -2
 
-    log_sampled_states(sample, config.resampled_states_filename)
     print_transition_matrix(sample, config.transitions_info_filename)
+    log_sampled_states(sample, config.resampled_states_filename)
 
     return sample
 
@@ -184,6 +163,7 @@ class SafePolicyGuidedSearch:
         current = make_root_node(root)
 
         while True:
+            # print(current.state)
             stats.iterations += 1
             # logging.debug(f"brfs: Iteration {iteration}")
 
@@ -198,27 +178,24 @@ class SafePolicyGuidedSearch:
 
             current = make_child_node(current, operator, child)
             if current.state in closed:
-                logging.error(f"Loop detected in state {current.state}")
-                return False, closed
+                loop = retrieve_loop_states(current)
+                logging.error(f"Size-{len(loop)} loop detected after {len(closed)} expansions. State: {current.state}")
+                return False, loop
 
             closed.add(current.state)
             stats.nexpansions += 1
 
 
-def translate_atom(atom, fmt="lisp"):
-    if fmt != "lisp":
-        return str(atom)
+def retrieve_loop_states(node):
+    """ Retrieve the states that are part of a loopy trajectory within the state space of the problem. """
+    assert node.parent is not None  # The root cannot be a loop
+    loop = {node.state}
+    x = node.parent
+    while x.state != node.state:
+        loop.add(x.state)
+        x = x.parent
 
-    if not atom.subterms:
-        return f"({atom.predicate.name})"
-
-    args = ' '.join(str(a) for a in atom.subterms)
-    return f"({atom.predicate.name} {args})"
-
-
-def translate_state(state, fmt="lisp"):
-    """ Translate a Tarski state into a list of strings, one for each atom that is true in the state. """
-    return tuple(sorted(translate_atom(a, fmt=fmt) for a in state.as_atoms()))
+    return loop
 
 
 class D2LPolicy:
@@ -229,9 +206,9 @@ class D2LPolicy:
         self.static_atoms = static_atoms
 
     def __call__(self, state):
-        m0 = generate_model_from_state(self.model_factory, translate_state(state), self.static_atoms)
+        m0 = generate_model_from_state(self.model_factory, state, self.static_atoms)
         for operator, succ in self.search_model.successors(state):
-            m1 = generate_model_from_state(self.model_factory, translate_state(succ), self.static_atoms)
+            m1 = generate_model_from_state(self.model_factory, succ, self.static_atoms)
             if self.tc_policy.transition_is_good(m0, m1):
                 return succ, operator
         return None, None
@@ -260,7 +237,7 @@ def test_policy_and_compute_flaws(policy, instances, config, sample=None):
 
         # Collect all the states from which we want to test the policy
         roots = {problem.init}
-        if config.refine_policy_from_entire_sample:
+        if config.refine_policy_from_entire_sample and sample is not None:
             roots.update(sample.get_t_leaves())
 
         testruns = [search.search(root) for root in roots]
@@ -273,48 +250,14 @@ def test_policy_and_compute_flaws(policy, instances, config, sample=None):
         flaws = set().union(*(flaws for res, flaws in testruns if res is not True))
 
         # If a sample was provided, add the found flaws to it
-        if sample is not None and flaws:
-            t_states = OrderedDict()
-            next_id = sample.num_states()
+        if sample is not None:
             for state in flaws:
-                translated = tarski_model_to_d2l_sample_representation(state)
-                state_id = sample.get_state_id(translated)
-                # If the state is new (not in sample) assign the next ID
-                if state_id == -1:
-                    state_id = next_id
-                    next_id += 1
-                elif sample.is_expanded(state_id):
+                sid = sample.get_state_id(state)
+                if sid is not None and sample.is_expanded(sid):
+                    # If the state is already in the sample and already expanded, no need to do anything about it
                     continue
 
-                t_states[state_id] = state
-                sample.incremental_transitions(OrderedDict({state_id: translated}), {state_id: set()}, instance_id)
-
-                indexed_states = OrderedDict()
-                transitions = {}
-                indexed_states[state_id] = translated
-                transitions[state_id] = set()
-                for _, succ in search_model.successors(state):
-                    succ_translated = tarski_model_to_d2l_sample_representation(succ)
-                    succ_id = sample.get_state_id(succ_translated)
-                    if succ_id == -1:
-                        succ_id = next_id
-                        next_id += 1
-                        transitions.update({succ_id: set()})
-                    indexed_states[succ_id] = succ_translated
-                    transitions[state_id].add(succ_id)
-                    t_states[succ_id] = succ
-                    # sample.incremental_transitions(indexed_states, transitions, instance_id)
-
-                # I don't think it's relevant what instance ID we give here,
-                # so let's use a -1 to detect potential errors.
-                # TODO Still need to decide what to do with deadends
-                # TODO Note that the line "self.parents.update(compute_parents(transitions))" in sample.add_transitions
-                #      is not correct if we now add a few transitions only. In other words, add_transitions was designed
-                #      thinking in adding all transitions in one same instance at the same time. We need to change that.
-                # sample = sample.add_transitions(indexed_states, transitions, instance_id=-1, deadends=set())
-                # sample.add_transitions(indexed_states, transitions, instance_id=instance_id, deadends=set())
-                sample.incremental_transitions(indexed_states, transitions, instance_id)
-            sample.add_t_states(t_states)
+                expand_state_into_sample(sample, state, instance_id, search_model, root=False)
 
     return nsolved
 

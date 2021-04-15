@@ -350,18 +350,9 @@ int run(const Options& options) {
             read_transition_data(options.workspace, options.verbosity));
     std::cout << "Done. Training sample: " << trset << std::endl;
 
-    if (options.verbosity) {
+    if (options.verbosity && options.sampling_strategy != "full") {
         std::cout << "Sampling " << options.initial_sample_size << " alive states at random" << std::endl;
     }
-
-/////////////
-//    GoalDistanceSampler gds(rng, trset, options.verbosity);
-//    auto count = gds.compute_goal_distance_histogram(trset.transitions().all_alive());
-////    for (const auto& [v, c]:count) std::cout << v << ": " << c << std::endl;
-//    for (unsigned v=count.size(); v>0; --v) std::cout << v << ": " << count.at(v) << std::endl;
-//
-//    throw std::runtime_error("DONE");
-/////////////
 
     auto sampler = select_sampler(options.sampling_strategy, rng, trset, options.verbosity);
 
@@ -369,42 +360,26 @@ int run(const Options& options) {
 
     CNFGenerationOutput output;
 
-    for (unsigned it=1; true; ++it) {
-        if (options.verbosity>0) {
-            std::cout << std::endl << std::endl << "###  STARTING ITERATION " << it << "  ###" << std::endl;
-        } else {
-            std::cout << std::endl << "Starting iteration " << it << std::endl;
-        }
+    if (options.verbosity) std::cout << *sample << std::endl;
 
-        if (options.verbosity) std::cout << *sample << std::endl;
+    auto strategy = choose_strategy(options);
 
-        auto strategy = choose_strategy(options);
-
-        const auto result = strategy->run(options, *sample, time, t_tex);
-        output = std::get<0>(result);
-        const auto& dnf = std::get<1>(result);
-        if (output != CNFGenerationOutput::Success) break;
-
-        if (options.verbosity>0) {
-            print_features(*sample, dnf);
-        }
-
-        auto flaws = sampler->sample_flaws(dnf, options.refinement_batch_size);
-//        auto flaws = test_policy(rng, dnf, *sample, options.refinement_batch_size);
+    const auto result = strategy->run(options, *sample, time, t_tex);
+    output = std::get<0>(result);
+    const auto& dnf = std::get<1>(result);
+    if (output == CNFGenerationOutput::Success) {
+        if (options.verbosity>0) print_features(*sample, dnf);
 
         t_tex.add_total_time( utils::read_time_in_seconds() - start_time );
         t_tex.next_iteration();
+        print_classifier(sample->matrix(), dnf, options.workspace + "/classifier");
 
-        if (flaws.empty()) {
-            std::cout << "Solution found in iteration #" << it << " is correct!" << std::endl;
-            print_classifier(sample->matrix(), dnf, options.workspace + "/classifier");
-            break;
+        // Let's leave this here for the moment being just as a sanity check
+        auto flaws = sampler->sample_flaws(dnf, options.refinement_batch_size);
+        if (!flaws.empty()) {
+            std::cerr << "ERROR: Solution has flaws on training sample??" << std::endl;
+            throw std::logic_error("");
         }
-
-//        print_classifier(sample->matrix(), dnf, options.workspace + "/classifier_" + std::to_string(it));
-        std::cout << "Solution found in iteration #" << it << " has " << flaws.size() << " flaws" << std::endl;
-        sample = std::unique_ptr<StateSpaceSample>(sample->add_states(flaws));
-
     }
 
     auto finish_time = utils::read_time_in_seconds();

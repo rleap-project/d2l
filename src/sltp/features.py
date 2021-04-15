@@ -2,6 +2,7 @@ import logging
 from typing import Union, List
 
 from tarski.grounding.ops import approximate_symbol_fluency
+from tarski.model import Model
 
 from .models import DLModelFactory, FeatureModel
 from .util.misc import compute_universe_from_pddl_model, state_as_atoms, types_as_atoms
@@ -191,8 +192,9 @@ def translate_state(state, static_atoms):
 
 
 def generate_model_from_state(model_factory, state, static_atoms):
-    translated = translate_state(state, static_atoms)
-    return FeatureModel(model_factory.create_model(translated))
+    if not isinstance(state, Model):
+        state = translate_state(state, static_atoms)
+    return FeatureModel(model_factory.create_model(state))
 
 
 class FeatureInterpreter:

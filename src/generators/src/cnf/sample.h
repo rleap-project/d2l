@@ -65,7 +65,6 @@ public:
     std::vector<unsigned> alive_states_;
     std::vector<unsigned> goal_states_;
     std::vector<unsigned> nongoal_states_;
-    std::vector<unsigned> unknown_states_;
     std::vector<unsigned> expanded_states_;
 
     StateSpaceSample(const FeatureMatrix& matrix, const TransitionSample& transitions, std::vector<unsigned> states) :
@@ -74,12 +73,7 @@ public:
         // Let's classify the states for easier access
         for (unsigned s:states_) {
             if (is_alive(s)) alive_states_.push_back(s);
-            else if (is_unknown(s)) unknown_states_.push_back(s);
-
-            // TODO We should find a better way to identify which states have been
-            // expanded (e.g. a state could have no successor but have been expanded anyway)
-            if (!transitions.successors(s).empty()) expanded_states_.push_back(s);
-
+            if (transitions.is_expanded(s)) expanded_states_.push_back(s);
             if (is_goal(s)) goal_states_.push_back(s);
             else nongoal_states_.push_back(s);
         }
@@ -102,18 +96,15 @@ public:
     const std::vector<unsigned>& alive_states() const { return alive_states_; }
     const std::vector<unsigned>& goal_states() const { return goal_states_; }
     const std::vector<unsigned>& nongoal_states() const { return nongoal_states_; }
-    const std::vector<unsigned>& unknown_states() const { return unknown_states_; }
     const std::vector<unsigned>& expanded_states() const { return expanded_states_; }
 
     bool is_goal(unsigned s) const { return transitions_.is_goal(s); }
+    bool is_expanded(unsigned s) const { return transitions_.is_expanded(s); }
 
     bool is_alive(unsigned s) const { return transitions_.is_alive(s); }
 
-    bool is_solvable(unsigned s) const { return is_alive(s) || is_goal(s); }
-
     bool is_unsolvable(unsigned s) const { return transitions_.is_unsolvable(s); }
-
-    bool is_unknown( unsigned s ) const { return transitions_.is_unknown(s); }
+    bool is_solvable(unsigned s) const { return !is_unsolvable(s); }
 
     inline FeatureMatrix::feature_value_t value(unsigned s, unsigned f) const {
         return matrix_.entry(s, f);

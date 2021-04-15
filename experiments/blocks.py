@@ -98,6 +98,10 @@ def experiments():
             "test_clear_probBLOCKS-10-0.pddl",
             "test_clear_probBLOCKS-10-1.pddl", ],
         test_policy_instances=all_clear_test_instancess(),
+
+        refine_policy_from_entire_sample=False,
+        sampling_strategy="full",
+        verbosity=0,
     )
 
     exps["clear-sd2l"] = update_dict(

@@ -22,6 +22,9 @@ struct VariableMapping {
     //! A map from transition IDs to SAT variable IDs:
     std::unordered_map<unsigned, cnfvar_t> goods;
 
+    //! A map from pairs (s, d) to SAT variable ID of the variable V(s, d)
+    std::unordered_map<std::pair<unsigned, unsigned>, cnfvar_t, boost::hash<state_pair>> vs;
+
     explicit VariableMapping(unsigned nfeatures) : selecteds(nfeatures, std::numeric_limits<uint32_t>::max())
     {}
 };
@@ -87,14 +90,15 @@ public:
         return vstar < 0 ? -1 : std::ceil(options.v_slack * vstar);
     }
 
-    inline unsigned compute_D() const {
-        // return 20;
+    unsigned compute_D() const {
         // D will be the maximum over the set of alive states of the upper bounds on V_pi
-        unsigned D = 0;
+        int D = 0;
         for (const auto s:sample_.alive_states()) {
-            auto max_v_s = get_max_v(s);
+            int max_v_s = get_max_v(s);
+//            std::cout << max_v_s << std::endl;
             if (max_v_s > D) D = max_v_s;
         }
+//        std::cout << D << std::endl;
         return D;
     }
 

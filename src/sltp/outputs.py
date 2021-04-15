@@ -4,24 +4,27 @@ import logging
 def print_transition_matrix(sample, transitions_filename):
     state_ids = sample.get_sorted_state_ids()
     transitions = sample.transitions
-    optimal_transitions = sample.optimal_transitions
     num_transitions = sum(len(targets) for targets in transitions.values())
-    num_states = len(transitions.keys())
-    num_optimal_transitions = len(optimal_transitions)
-    logging.info(f"Printing SAT transition matrix with {len(state_ids)} states,"
-                 f" {num_states} expanded states and {num_transitions} transitions to '{transitions_filename}'")
+    num_expanded = sum(1 for s in state_ids if sample.is_expanded(s))
+    logging.info(f"Printing transition data with {len(state_ids)} states,"
+                 f" {num_expanded} expanded states and {num_transitions} transitions to '{transitions_filename}'")
 
-    # State Ids should start at 0 and be contiguous
+    # Make sure that state IDs start at 0 and are contiguous
     assert state_ids == list(range(0, len(state_ids)))
 
     with open(transitions_filename, 'w') as f:
         # first line: <#states> <#transitions>
-        print(f"{num_states} {num_transitions}", file=f)
+        print(f"{len(state_ids)} {num_transitions}", file=f)
 
-        # Next lines: transitions, one per source state, in format: source_id, num_successors, succ_1, succ_2, ...
-        for s, successors in transitions.items():
+        # Next lines: See format description in C++ code, at TransitionSample::read()
+        for s in state_ids:
+            successors = transitions[s]
             sorted_succs = " ".join(map(str, sorted(successors)))
-            print(f"{s} {len(successors)} {sorted_succs}", file=f)
-
-        # Next: A space-separated list of V^*(s) values, one per each state s, where -1 denotes infinity
-        print(' '.join(str(sample.vstar.get(s, -1)) for s in state_ids), file=f)
+            line = f"{s}"
+            line += f" {int(sample.is_expanded(s))}"
+            line += f" {int(sample.is_goal(s))}"
+            line += f" {int(sample.is_unsolvable(s))}"
+            line += f" {sample.vstar.get(s, -1)}"
+            line += f" {len(successors)}"
+            line += f" {sorted_succs}"
+            print(line, file=f)

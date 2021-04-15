@@ -34,8 +34,7 @@ void D2LEncoding::compute_equivalence_relations() {
             assert(it1.second);
 
             if (!sample_.is_solvable(sprime)) { // An alive-to-dead transition cannot be Good
-                if( !sample_.is_unknown(sprime) )
-                    necessarily_bad_transitions_.emplace(id);
+                necessarily_bad_transitions_.emplace(id);
             }
 
             if (!options.use_equivalence_classes) {
@@ -288,9 +287,6 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
     // A map from pairs of states (s, s') to the ID of the SAT variable reach(s, s')
     std::unordered_map<state_pair, cnfvar_t, boost::hash<state_pair>> reach;
 
-    // Keep a map from pairs (s, d) to SAT variable ID of the variable V(s, d)
-    std::unordered_map<std::pair<unsigned, unsigned>, cnfvar_t, boost::hash<state_pair>> vs;
-
     // Map from state and card. const. var pairs (s,y) to SAT variable ID of the variable CardConstraint(s,y)
     std::unordered_map<std::pair<unsigned,unsigned>, cnfvar_t, boost::hash<state_pair> > card_constraint_vars;
 
@@ -299,13 +295,12 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
     unsigned n_good_tx_clauses = 0;
     unsigned n_selected_clauses = 0;
     unsigned n_separation_clauses = 0;
-    unsigned n_reachability_clauses = 0;
     unsigned n_goal_clauses = 0;
     unsigned n_card_constraints = 0;
     bool with_card_constraints = false;
 
     if (options.verbosity>0) {
-        std::cout << "Generating CNF encoding for " << sample_.alive_states().size() << " alive states, "
+        std::cout << "Generating CNF encoding for " << sample_.expanded_states().size() << " expanded states, "
                   <<  transition_ids_.size() << " alive-to-solvable and alive-to-dead transitions and "
                   << class_representatives_.size() << " transition equivalence classes" << std::endl;
     }
@@ -319,73 +314,62 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
         variables.selecteds[f] = v;
     }
 
-    if (options.acyclicity == "reachability") {
-        // Create one "Reach(s, s') variable for each pair of states (s, s')
-        for (unsigned s:sample_.alive_states()) {
-            for (unsigned sprime:sample_.alive_states()) {
-                auto v = wr.var("Reach(" + std::to_string(s) + ", " + std::to_string(sprime) + ")");
-                reach.emplace(std::make_pair(s, sprime), v);
+    if( with_card_constraints ) {
+        unsigned aux = max_d;
+        while (aux > 0) {
+            n_card_constraints++;
+            aux >>= 1;
+        }
+        for (const auto s:sample_.alive_states()) {
+            for (unsigned y = 0; y < n_card_constraints; y++) {
+                auto var = wr.var("CardConstraint(" + std::to_string(s) + "," + std::to_string(y) + ")");
+                card_constraint_vars.emplace(std::make_pair(s, y), var);
             }
         }
     }
 
-    unsigned acyclicity_radius = 99999;
-    if (options.acyclicity == "topological") {
-        if( with_card_constraints ) {
-            unsigned aux = max_d;
-            while (aux > 0) {
-                n_card_constraints++;
-                aux >>= 1;
-            }
-            for (const auto s:sample_.alive_states()) {
-                for (unsigned y = 0; y < n_card_constraints; y++) {
-                    auto var = wr.var("CardConstraint(" + std::to_string(s) + "," + std::to_string(y) + ")");
-                    card_constraint_vars.emplace(std::make_pair(s, y), var);
-                }
+    // Create variables V(s, d) variables for all alive state s and d in 1..D
+    for (const auto s:sample_.expanded_states()) {
+        const auto min_vs = get_vstar(s);
+        const auto max_vs = get_max_v(s);
+//        std::cout << min_vs << ", " << max_vs << std::endl;
+//        assert(max_vs > 0 && max_vs <= max_d && min_vs >= 0 && min_vs <= max_vs);
+
+        cnfclause_t within_range_clause;
+
+        // TODO Note that we could be more efficient here and create only variables V(s,d) for those values of d that
+        //  are within the bounds below. I'm leaving that as a future optimization, as it slightly complicates the
+        //  formulation of constraints C2
+//        std::cout << "V(" << s << "): [" << min_vs << ", " << max_vs << "]" << std::endl;
+        for (unsigned d = 1; d <= max_d; ++d) {
+            const auto v_s_d = wr.var("V(" + std::to_string(s) + ", " + std::to_string(d) + ")");
+            variables.vs.emplace(std::make_pair(s, d), v_s_d);
+//                std::cout << s << ", " << d << std::endl;
+
+            if (min_vs < 0 || (d >= min_vs && d <= max_vs)) {
+                within_range_clause.push_back(Wr::lit(v_s_d, true));
             }
         }
 
-        // Create variables V(s, d) variables for all alive state s and d in 1..D
-        for (const auto s:sample_.alive_states()) {
-            const auto min_vs = get_vstar(s);
-            const auto max_vs = get_max_v(s);
-            assert(max_vs > 0 && max_vs <= max_d && min_vs <= max_vs);
+        // Add clauses (4), (5)
+        wr.cl(within_range_clause);
+        n_v_function_clauses += 1;
 
-            cnfclause_t within_range_clause;
-
-            // TODO Note that we could be more efficient here and create only variables V(s,d) for those values of d that
-            //  are within the bounds below. I'm leaving that as a future optimization, as it slightly complicates the
-            //  formulation of constraints C2
-            for (unsigned d = 1; d <= max_d; ++d) {
-                const auto v_s_d = wr.var("V(" + std::to_string(s) + ", " + std::to_string(d) + ")");
-                vs.emplace(std::make_pair(s, d), v_s_d);
-//                std::cout << s << ", " << d << std::endl;
-
-                if (d >= min_vs && d <= max_vs) {
-                    within_range_clause.push_back(Wr::lit(v_s_d, true));
+        for (unsigned d = 1; d <= max_d; ++d) {
+            if( with_card_constraints ) {
+                for( unsigned y = 0; y < n_card_constraints; y++ ) {
+                    bool eval = ( ( (d-1) & (1 << y ) ) > 0 );
+                    wr.cl({
+                                  wr.lit( variables.vs.at({s,d}), false ),
+                                  wr.lit( card_constraint_vars.at({s,y}), eval )
+                          });
+                    n_v_function_clauses += 1;
                 }
             }
-
-            // Add clauses (4), (5)
-            wr.cl(within_range_clause);
-            n_v_function_clauses += 1;
-
-            for (unsigned d = 1; d <= max_d; ++d) {
-                if( with_card_constraints ) {
-                    for( unsigned y = 0; y < n_card_constraints; y++ ) {
-                        bool eval = ( ( (d-1) & (1 << y ) ) > 0 );
-                        wr.cl({
-                                      wr.lit( vs.at({s,d}), false ),
-                                      wr.lit( card_constraint_vars.at({s,y}), eval )
-                              });
-                        n_v_function_clauses += 1;
-                    }
-                }
-                else{
-                    for (unsigned dprime = d+1; dprime <= max_d; ++dprime) {
-                        wr.cl({Wr::lit(vs.at({s, d}), false), Wr::lit(vs.at({s, dprime}), false)});
-                        n_v_function_clauses += 1;
-                    }
+            else {
+                for (unsigned dprime = d+1; dprime <= max_d; ++dprime) {
+                    wr.cl({Wr::lit(variables.vs.at({s, d}), false), Wr::lit(variables.vs.at({s, dprime}), false)});
+                    n_v_function_clauses += 1;
                 }
             }
         }
@@ -419,12 +403,12 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
         std::cout << "A total of " << wr.nvars() << " variables were created" << std::endl;
         std::cout << "\tSelect(f): " << variables.selecteds.size() << std::endl;
         std::cout << "\tGood(s, s'): " << variables.goods.size() << std::endl;
-        std::cout << "\tV(s, d): " << vs.size() << std::endl;
+        std::cout << "\tV(s, d): " << variables.vs.size() << std::endl;
         std::cout << "\tReach(s, s'): " << reach.size() << std::endl;
     }
 
     // Check our variable count is correct
-    assert(wr.nvars() == variables.selecteds.size() + variables.goods.size() + vs.size() + reach.size());
+    assert(wr.nvars() == variables.selecteds.size() + variables.goods.size() + variables.vs.size() + reach.size());
 
     /////// CNF constraints ///////
     // [1] For each alive state s, post a constraint OR_{s' solvable child of s} Good(s, s')
@@ -451,60 +435,30 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
     }
 
 
-    // Post reachability constraints
-    if (options.acyclicity == "reachability") {
-        for (const auto s:sample_.alive_states()) {
-            for (const auto sprime:sample_.successors(s)) {
-                if (is_necessarily_bad(get_transition_id(s, sprime))) continue; // includes alive-to-dead transitions
-                if (!sample_.is_alive(sprime)) continue;
-                if (!sample_.in_sample(sprime)) continue;  // If s' is not in the sample, then it'll have no outgoing edge
+    for (const auto s:sample_.expanded_states()) {
+        for (const auto sprime:sample_.successors(s)) {
+            if (is_necessarily_bad(get_transition_id(s, sprime))) continue; // includes alive-to-dead transitions
+//                if (!sample_.is_alive(sprime)) continue;
+            if (sample_.is_goal(sprime)) continue;
+            if (!sample_.is_expanded(sprime)) continue;
 
-                const auto good_s_prime = variables.goods.at(get_class_representative(s, sprime));
-                const auto reach_s_sprime = reach.at({s, sprime});
+            const auto good_s_prime = variables.goods.at(get_class_representative(s, sprime));
 
-                // Good(s, s') --> Reach(s, s')
-                wr.cl({Wr::lit(good_s_prime, false), Wr::lit(reach_s_sprime, true)});
-                n_reachability_clauses += 1;
+            for (unsigned dprime=1; dprime < max_d; ++dprime) {
+                // (2) Good(s, s') and V(s',dprime) -> V(s) > dprime
+                cnfclause_t clause{Wr::lit(good_s_prime, false),
+                                   Wr::lit(variables.vs.at({sprime, dprime}), false)};
 
-                for (const auto t:sample_.alive_states()) {
-                    const auto reach_s_t = reach.at({s, t});
-                    const auto reach_sprime_t = reach.at({sprime, t});
-                    // Good(s, s') and Reach(s', t) --> Reach(s, t)
-                    wr.cl({Wr::lit(good_s_prime, false), Wr::lit(reach_sprime_t, false), Wr::lit(reach_s_t, true)});
-                    n_reachability_clauses += 1;
+                for (unsigned d = dprime + 1; d <= max_d; ++d) {
+                    clause.push_back(Wr::lit(variables.vs.at({s, d}), true));
                 }
-            }
-
-            // -Reach(s, s)
-            wr.cl({Wr::lit(reach.at({s, s}), false)});
-            n_reachability_clauses += 1;
-        }
-    } else if (options.acyclicity == "topological") {
-        for (const auto s:sample_.alive_states()) {
-            for (const auto sprime:sample_.successors(s)) {
-                if (is_necessarily_bad(get_transition_id(s, sprime))) continue; // includes alive-to-dead transitions
-                if (!sample_.is_alive(sprime)) continue;
-                if (!sample_.in_sample(sprime)) continue;
-                if (get_vstar(s) > acyclicity_radius) continue;
-
-                const auto good_s_prime = variables.goods.at(get_class_representative(s, sprime));
-
-                for (unsigned dprime=1; dprime < max_d; ++dprime) {
-                    // (2) Good(s, s') and V(s',dprime) -> V(s) > dprime
-                    cnfclause_t clause{Wr::lit(good_s_prime, false),
-                                       Wr::lit(vs.at({sprime, dprime}), false)};
-
-                    for (unsigned d = dprime + 1; d <= max_d; ++d) {
-                        clause.push_back(Wr::lit(vs.at({s, d}), true));
-                    }
-                    wr.cl(clause);
-                    ++n_descending_clauses;
-                }
-
-                // (2') Border condition: V(s', D) implies -Good(s, s')
-                wr.cl({Wr::lit(vs.at({sprime, max_d}), false), Wr::lit(good_s_prime, false)});
+                wr.cl(clause);
                 ++n_descending_clauses;
             }
+
+            // (2') Border condition: V(s', D) implies -Good(s, s')
+            wr.cl({Wr::lit(variables.vs.at({sprime, max_d}), false), Wr::lit(good_s_prime, false)});
+            ++n_descending_clauses;
         }
     }
 
@@ -580,11 +534,10 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
         std::cout << "\tV descending along good transitions [X]: " << n_descending_clauses << std::endl;
         std::cout << "\tV is total function within bounds [X]: " << n_v_function_clauses << std::endl;
         std::cout << "\tGoal separation [X]: " << n_goal_clauses << std::endl;
-        std::cout << "\tReachability [X]: " << n_reachability_clauses << std::endl;
         std::cout << "\t(Weighted) Select(f): " << n_selected_clauses << std::endl;
         assert(wr.nclauses() == n_selected_clauses + n_good_tx_clauses + n_descending_clauses
                                 + n_v_function_clauses + n_separation_clauses
-                                + n_goal_clauses + n_reachability_clauses);
+                                + n_goal_clauses);
     }
     return {CNFGenerationOutput::Success, variables};
 }
@@ -643,8 +596,17 @@ DNFPolicy D2LEncoding::generate_dnf_from_solution(const VariableMapping& variabl
     }
 
     for (const auto& [txid, varid]:variables.goods) {
-        if (varid>0 && solution.assignment.at(varid)) goods.push_back(txid);
+        if (varid>0 && solution.assignment.at(varid)) {
+            goods.push_back(txid);
+//            std::cout << "Good(" << get_state_pair(txid).first << ", " << get_state_pair(txid).second << ")" << std::endl;
+        }
     }
+
+//    for (const auto& [sd, varid]:variables.vs) {
+//        if (varid>0 && solution.assignment.at(varid)) {
+//            std::cout << "V(" << sd.first << ") = " << sd.second << std::endl;
+//        }
+//    }
     return generate_dnf(goods, selecteds);
 }
 

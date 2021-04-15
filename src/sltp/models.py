@@ -2,6 +2,7 @@
 Concept and feature models and related classes
 """
 from bitarray import bitarray
+from tarski.model import Model
 
 from .extensions import uncompress_extension, compress_extension
 from .util.misc import try_number
@@ -74,6 +75,10 @@ def default_denotation_by_arity(arity):  # The default values for each possible 
     return set()
 
 
+def tarski_atom_to_tuple(atom):
+    return (atom.predicate.name, ) + tuple(st.name for st in atom.subterms)
+
+
 class DLModelFactory:
     """ A factory of DL models tailored to a concrete universe of discourse.
     This means that the factory is suitable to generate models that work for *a single planning instance*,
@@ -133,10 +138,11 @@ class DLModelFactory:
 
     def create_model(self, state):
         """ Create a model capable of interpreting any DL concept / role under the given state """
+        assert isinstance(state, Model)
         # Start with a copy of all the precomputed data
         denotations = self.base_model()
-        _ = [self.process_atom(atom, denotations, _STANDARD_DL_MAPPING) for atom in state
-             if atom[0] not in self.instance_info.static_predicates]
+        _ = [self.process_atom(tarski_atom_to_tuple(atom), denotations, _STANDARD_DL_MAPPING) for atom in state.as_atoms()
+             if atom.predicate.name not in self.instance_info.static_predicates]
         return DLModel(denotations, self.statics, self.universe)
 
     def process_atom(self, atom, denotations, dl_mapping):

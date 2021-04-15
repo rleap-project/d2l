@@ -22,27 +22,31 @@ protected:
     //! trdata_[s] contains the IDs of all neighbors of s in the state space
     std::vector<std::vector<unsigned>> trdata_;
 
+    std::vector<bool> is_state_expanded_;
     std::vector<bool> is_state_alive_;
     std::vector<bool> is_state_goal_;
     std::vector<bool> is_state_unsolvable_;
-    std::vector<bool> is_state_unknown_;
+    std::vector<int> hstar_;
 
+    std::vector<unsigned> expanded_states_;
     std::vector<unsigned> alive_states_;
     std::vector<unsigned> goal_states_;
-
-    std::vector<int> vstar_;
+    std::vector<unsigned> unsolvable_states_;
 
 public:
     TransitionSample(std::size_t num_states, std::size_t num_transitions)
             : num_states_(num_states),
               num_transitions_(num_transitions),
               trdata_(num_states),
+              is_state_expanded_(num_states, false),
               is_state_alive_(num_states, false),
               is_state_goal_(num_states, false),
               is_state_unsolvable_(num_states, false),
-              is_state_unknown_(num_states, false),
+              hstar_(num_states, -2),
+              expanded_states_(),
               alive_states_(),
-              goal_states_()
+              goal_states_(),
+              unsolvable_states_()
     {
         if (num_states_ > std::numeric_limits<state_id_t>::max()) {
             throw std::runtime_error("Number of states too high - revise source code and change state_id_t datatype");
@@ -61,7 +65,7 @@ public:
     std::size_t num_transitions() const { return num_transitions_; }
 
     int vstar(unsigned sid) const {
-        auto vstar = vstar_.at(sid);
+        auto vstar = hstar_.at(sid);
         return vstar;
 //        return vstar < 0 ? -1 : vstar;
     }
@@ -70,18 +74,12 @@ public:
         return trdata_.at(s);
     }
 
+    bool is_expanded(unsigned state) const { return is_state_expanded_.at(state); }
     bool is_alive(unsigned state) const { return is_state_alive_.at(state); }
     bool is_goal(unsigned state) const { return is_state_goal_.at(state); }
     bool is_unsolvable(unsigned state) const { return is_state_unsolvable_.at(state); }
-    bool is_unknown(unsigned state) const { return is_state_unknown_.at(state); }
 
-    unsigned num_unsolvable() const {
-        unsigned c = 0;
-        for (unsigned s=0; s < num_states_; ++s) {
-            if (is_unsolvable(s)) c += 1;
-        }
-        return c;
-    }
+    unsigned num_unsolvable() const { return unsolvable_states_.size(); }
 
     const std::vector<unsigned>& all_alive() const { return alive_states_; }
     const std::vector<unsigned>& all_goals() const { return goal_states_; }
@@ -99,46 +97,53 @@ public:
         return os;
     }
 
-    // readers
     void read(std::istream &is) {
-        // read transitions, in format: source_id, num_successors, succ_1, succ_2, ...
+        // From here on, line #i contains a number of space-separated information fields about state #i.
+        // The fields, in order, are:
+        // <state-id>: The ID of the state, should correspond to the number of the line-1
+        //             (because of the first line that once we are here has already been processed)
+        // <expanded?>: Whether the state has been expanded in the sample or not
+        // <goal?>: Whether the state is a goal
+        // <unsolvable?>: Whether the state is unsolvable.
+        // <h*(s)>: The optimal distance-to-goal, if known, or -2, if not. A value of -1 indicates infinity (i.e. s unsolvable).
+        // <num_successors>: The number of out-transitions starting on the state. Can be 0 if state has not been
+        //                    expanded, or of course if state has no successors in the problem
+        // <s_i>: one state ID for each possible successor
+        int sid = 0, nsuccessors = 0, dst = 0, hstar = 0;
+        bool expanded = false, goal = false, unsolvable = false;
+
         for (unsigned i = 0; i < num_states_; ++i) {
-            unsigned src = 0, count = 0, dst = 0;
-            is >> src >> count;
-            assert(src < num_states_ && 0 <= count);
-            if (count > 0) {
+            is >> sid >> expanded >> goal >> unsolvable >> hstar >> nsuccessors;
+            assert(sid == i && 0 <= nsuccessors);
+
+            is_state_expanded_[sid] = expanded;
+            is_state_goal_[sid] = goal;
+            is_state_unsolvable_[sid] = unsolvable;
+
+            if (expanded) expanded_states_.push_back(sid);
+            if (goal) goal_states_.push_back(sid);
+            if (unsolvable) unsolvable_states_.push_back(sid);
+
+//            std::cout << "hstar(" << sid << ")=" << hstar << std::endl;
+
+            hstar_[sid] = hstar;
+            if (hstar > 0) {
+                is_state_alive_[sid] = true;
+                alive_states_.push_back(sid);
+            } else {
+                // No need to do anything
+            }
+
+            if (nsuccessors > 0) {
                 std::vector<bool> seen(num_states_, false);
-                trdata_[src].reserve(count);
-                for (unsigned j = 0; j < count; ++j) {
+                trdata_[sid].reserve(nsuccessors);
+                for (unsigned j = 0; j < nsuccessors; ++j) {
                     is >> dst;
                     assert(dst < num_states_);
                     if (seen.at(dst)) throw std::runtime_error("Duplicate transition");
-                    trdata_[src].push_back(dst);
+                    trdata_[sid].push_back(dst);
                     seen[dst] = true;
                 }
-            }
-        }
-
-        // Store the value of V^*(s) for each state s
-        unsigned s = 0;
-        int vstar = 0;
-        vstar_.reserve(num_states_);
-        for (s=0; s < num_states_; ++s) {
-            is >> vstar;
-            vstar_.push_back(vstar);
-            if (vstar>0) {
-                is_state_alive_[s] = true;
-                alive_states_.push_back(s);
-            } else if (vstar == 0) {
-                goal_states_.push_back(s);
-                is_state_goal_[s] = true;
-            } else if (vstar==-1) {
-                is_state_unsolvable_[s] = true;
-            } else if (vstar==-2){
-                is_state_unknown_[s] = true;
-            } else {
-                    assert (vstar < -1);
-                    // No need to do anything, we don't know whether the state is unsolvable or not
             }
         }
     }
