@@ -347,8 +347,7 @@ int run(const Options& options) {
     std::cout << "Parsing training data... " << std::endl;
     sltp::TrainingSet trset(
             read_feature_matrix(options.workspace, options.verbosity),
-            read_transition_data(options.workspace, options.verbosity),
-            read_input_sample(options.workspace));
+            read_transition_data(options.workspace, options.verbosity));
     std::cout << "Done. Training sample: " << trset << std::endl;
 
     if (options.verbosity) {

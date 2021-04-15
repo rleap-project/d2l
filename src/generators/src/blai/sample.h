@@ -20,16 +20,14 @@ class TrainingSet {
 public:
     const FeatureMatrix matrix_;
     const TransitionSample transitions_;
-    const sltp::Sample sample_;
 
-    TrainingSet(FeatureMatrix&& matrix, TransitionSample&& transitions, sltp::Sample&& sample) :
-        matrix_(std::move(matrix)), transitions_(std::move(transitions)), sample_(std::move(sample))
+    TrainingSet(FeatureMatrix&& matrix, TransitionSample&& transitions) :
+        matrix_(std::move(matrix)), transitions_(std::move(transitions))
     {}
     virtual ~TrainingSet() = default;
 
     const FeatureMatrix& matrix() const { return matrix_; }
     const TransitionSample& transitions() const { return transitions_; }
-    const sltp::Sample& sample() const { return sample_; }
 
 
     friend std::ostream& operator<<(std::ostream &os, const TrainingSet& o) { return o.print(os); }
@@ -39,29 +37,15 @@ public:
                         (1024.0 * 1024.0);
 
         unsigned num_alive = 0;
-        std::unordered_map<unsigned, unsigned> num_alive_per_instance;
-
         for (const auto s:transitions_.all_alive()) {
             auto nsuccessors = transitions_.successors(s).size();
-            auto instanceid = sample_.state(s).instance_id();
             num_alive += nsuccessors;
-            num_alive_per_instance[instanceid] += nsuccessors;
-        }
-
-        // here we use the fact that instance IDs are consecutive
-        auto ninstances = num_alive_per_instance.size();
-        std::string alive_string;
-        for (unsigned i=0; i < ninstances; ++i) {
-            alive_string += std::to_string(num_alive_per_instance[i]);
-            if (i < ninstances-1) alive_string += "/";
         }
 
         os
-            << "[instances: " << ninstances
-            << ", states: " << transitions_.num_states()
+            << "[states: " << transitions_.num_states()
             << ", transitions: " << transitions_.num_transitions()
-            << " (" << num_alive << " alive: " << alive_string << ")"
-//          << " (" << transitions_.num_marked_transitions() << " marked)"
+            << " (from alive state: " << num_alive << ")"
             << ", unsolvable: " << transitions_.num_unsolvable()
             << ", goals: " << transitions_.all_goals().size()
             << ", features: " << matrix_.num_features()
