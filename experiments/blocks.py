@@ -85,23 +85,39 @@ def experiments():
 
         # print_hstar_in_feature_matrix=True,
     )
+    
+    exps["clear-orig-inc"] = update_dict(
+        exps["clear"],
+        pipeline=pipelines.INCREMENTAL,
+        #instances=["training_clear_5.pddl"],
+        #validation_instances=["training_clear_5.pddl"],
+        instances=["training_clear_5.pddl"],
+        validation_instances=["training_clear_5.pddl"],
+        test_policy_instances=all_clear_test_instancess(),
 
-    exps["clear-inc"] = update_dict(
+        refine_policy_from_entire_sample=False,
+        sampling_strategy="full",
+        initial_sample_size=999999,
+        verbosity=2,
+    )
+
+    exps["clear-ipc-inc"] = update_dict(
         exps["clear"],
         pipeline=pipelines.INCREMENTAL,
         #instances=["training_clear_5.pddl"],
         #validation_instances=["training_clear_5.pddl"],
         instances=[
-            "test_clear_probBLOCKS-10-0.pddl",
+            #"test_clear_probBLOCKS-10-0.pddl",
             "test_clear_probBLOCKS-10-1.pddl", ],
         validation_instances=[
-            "test_clear_probBLOCKS-10-0.pddl",
+            #"test_clear_probBLOCKS-10-0.pddl",
             "test_clear_probBLOCKS-10-1.pddl", ],
         test_policy_instances=all_clear_test_instancess(),
 
         refine_policy_from_entire_sample=False,
         sampling_strategy="full",
-        verbosity=0,
+        initial_sample_size=999999,
+        verbosity=2,
     )
 
     exps["clear-sd2l"] = update_dict(
@@ -186,22 +202,36 @@ def experiments():
         # print_hstar_in_feature_matrix=True,
     )
 
-    exps["on-inc"] = update_dict(
+    exps["on-orig-inc"] = update_dict(
         exps["on"],
         pipeline=pipelines.INCREMENTAL,
         instances=[
-            "test_on_probBLOCKS-10-0.pddl",
-            "test_on_probBLOCKS-10-2.pddl",
+            "training_on_5.pddl",
+        ],
+        validation_instances=[
+            "training_on_5.pddl",
+        ],
+        test_policy_instances=all_on_test_instancess(),
+        sampling_strategy="full",
+        initial_sample_size=999999,
+        verbosity=2,
+    )
+
+    exps["on-ipc-inc"] = update_dict(
+        exps["on"],
+        pipeline=pipelines.INCREMENTAL,
+        instances=[
             "test_on_probBLOCKS-11-0.pddl",
             "test_on_probBLOCKS-11-1.pddl",
             "test_on_probBLOCKS-11-2.pddl" ],
         validation_instances=[
-            "test_on_probBLOCKS-10-0.pddl",
-            "test_on_probBLOCKS-10-2.pddl",
             "test_on_probBLOCKS-11-0.pddl",
             "test_on_probBLOCKS-11-1.pddl",
             "test_on_probBLOCKS-11-2.pddl" ],
         test_policy_instances=all_on_test_instancess(),
+        sampling_strategy="full",
+        initial_sample_size=999999,
+		verbosity=2,
     )
 
     exps["on-sd2l"] = update_dict(
@@ -302,7 +332,7 @@ def experiments():
         sampling_strategy="goal"
     )
         
-    exps["all_at_5-inc"] = update_dict(
+    exps["all_at_5-orig-inc"] = update_dict(
         exps["all_at_5"],
         pipeline=pipelines.INCREMENTAL,
         instances=[
@@ -318,6 +348,26 @@ def experiments():
                               ] + [
                                   f"test_atomic_{n}_{i}.pddl" for n in range(10, 31) for i in range(0, 5)
                               ],
+        sampling_strategy="full",
+        initial_sample_size=999999,
+		verbosity=2,
+    ) 
+    
+    exps["all_at_5-ipc-inc"] = update_dict(
+        exps["all_at_5"],
+        pipeline=pipelines.INCREMENTAL,
+        instances=[
+            "test_atomic_11_2.pddl" ],
+        validation_instances=[
+            "test_atomic_11_2.pddl" ],
+        test_policy_instances=[
+                                  "training_arbitrary_5_atomic.pddl",
+                              ] + [
+                                  f"test_atomic_{n}_{i}.pddl" for n in range(10, 31) for i in range(0, 5)
+                              ],
+        sampling_strategy="full",
+        initial_sample_size=999999,
+		verbosity=2,
     )
 
     exps["all_at_5-sd2l"] = update_dict(

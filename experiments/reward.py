@@ -46,8 +46,21 @@ def experiments():
         sampling_strategy="goal",
         verbosity=2
     )
+    
+    exps["small-orig-inc"] = update_dict(
+        exps["small"],
+        pipeline=pipelines.INCREMENTAL,
+        instances=["training_5x5.pddl"],
+        validation_instances=["training_5x5.pddl"],
+        #instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
+        #validation_instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
+        test_policy_instances=all_test_instances(),
+        verbosity=2,
+        initial_sample_size=999999,
+        sampling_strategy="full"
+    )
 
-    exps["small-inc"] = update_dict(
+    exps["small-ipc-inc"] = update_dict(
         exps["small"],
         pipeline=pipelines.INCREMENTAL,
         instances=["instance_10x10_0.pddl","instance_10x10_1.pddl","instance_10x10_2.pddl","instance_10x10_3.pddl","instance_10x10_4.pddl"],
@@ -55,7 +68,9 @@ def experiments():
         #instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
         #validation_instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
         test_policy_instances=all_test_instances(),
-        verbosity=0,
+        verbosity=2,
+        initial_sample_size=999999,
+        sampling_strategy="full"
     )
     
     exps["small-sd2l"] = update_dict(

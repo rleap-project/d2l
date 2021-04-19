@@ -64,16 +64,30 @@ def experiments():
         sampling_strategy="goal"
     )
 
-    exps["small-inc"] = update_dict(
+    exps["small-orig-inc"] = update_dict(
+        exps["small"],
+        pipeline=pipelines.INCREMENTAL,
+        instances=[ 's4-0.pddl', 'training2.pddl',],
+        validation_instances=[ 's4-0.pddl', 'training2.pddl',],
+        test_policy_instances=all_test_instances(),
+        verbosity=2,
+        
+        refine_policy_from_entire_sample=False,
+        sampling_strategy="full",
+        initial_sample_size=999999,
+    )
+
+    exps["small-ipc-inc"] = update_dict(
         exps["small"],
         pipeline=pipelines.INCREMENTAL,
         instances=["s7-0.pddl"],
         validation_instances=["s7-0.pddl"],
         test_policy_instances=all_test_instances(),
-        verbosity=0,
+        verbosity=2,
         
         refine_policy_from_entire_sample=False,
         sampling_strategy="full",
+        initial_sample_size=999999,
     )
     
     exps["small-sd2l"] = update_dict(

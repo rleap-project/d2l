@@ -48,7 +48,23 @@ def experiments():
         verbosity=2,
     )
 
-    exps["small-inc"] = update_dict(
+    exps["small-orig-inc"] = update_dict(
+        exps["small"],
+        distinguish_goals=True,
+        pipeline=pipelines.INCREMENTAL,
+        instances=['problem03-full.pddl'],
+        validation_instances=['problem03-full.pddl'],
+        # instances=["problem{:02d}-full.pddl".format(i) for i in range(2, 6)],
+        # validation_instances=["problem{:02d}-full.pddl".format(i) for i in range(2, 6)],
+        test_policy_instances=["problem{:02d}-full.pddl".format(i) for i in range(6, 12)],
+
+        refine_policy_from_entire_sample=False,
+        sampling_strategy="full",
+        initial_sample_size=999999,
+        verbosity=2,
+    )
+
+    exps["small-ipc-inc"] = update_dict(
         exps["small"],
         distinguish_goals=True,
         pipeline=pipelines.INCREMENTAL,
@@ -60,9 +76,10 @@ def experiments():
 
         refine_policy_from_entire_sample=False,
         sampling_strategy="full",
-        verbosity=0,
+        initial_sample_size=999999,
+        verbosity=2,
     )
-
+    
     exps["small-sd2l"] = update_dict(
         visit_base,
         instances=[

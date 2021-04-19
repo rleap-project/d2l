@@ -238,6 +238,7 @@ def test_policy_and_compute_flaws(policy, instances, config, sample=None):
         # Collect all the states from which we want to test the policy
         roots = {problem.init}
         if config.refine_policy_from_entire_sample and sample is not None:
+        #if sample is not None:
             roots.update(sample.get_t_leaves())
 
         testruns = [search.search(root) for root in roots]
@@ -276,6 +277,7 @@ def run(config, data, rng):
     config.good_features_filename = compute_info_filename(config.__dict__, "good_features.io")
     config.wsat_varmap_filename = compute_info_filename(config.__dict__, "varmap.wsat")
     config.wsat_allvars_filename = compute_info_filename(config.__dict__, "allvars.wsat")
+    #config.refine_policy_from_entire_sample=True
 
     config.validation_instances = [os.path.join(BENCHMARK_DIR, config.domain_dir, i) for i in
                                    config.validation_instances]

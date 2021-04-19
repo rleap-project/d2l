@@ -299,13 +299,13 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
     unsigned n_card_constraints = 0;
     bool with_card_constraints = false;
 
+
+    const unsigned max_d = compute_D();
     if (options.verbosity>0) {
         std::cout << "Generating CNF encoding for " << sample_.expanded_states().size() << " expanded states, "
                   <<  transition_ids_.size() << " alive-to-solvable and alive-to-dead transitions and "
-                  << class_representatives_.size() << " transition equivalence classes" << std::endl;
+                  << class_representatives_.size() << " transition equivalence classes with a d_max=" << max_d << std::endl;
     }
-
-    const unsigned max_d = compute_D();
 
     /////// CNF variables ///////
     // Create one "Select(f)" variable for each feature f in the pool
@@ -411,7 +411,7 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
     assert(wr.nvars() == variables.selecteds.size() + variables.goods.size() + variables.vs.size() + reach.size());
 
     /////// CNF constraints ///////
-    // [1] For each alive state s, post a constraint OR_{s' solvable child of s} Good(s, s')
+    // [1] For each expanded state s, post a constraint OR_{s' solvable child of s} Good(s, s')
     //for (const auto s:sample_.alive_states()) {
     for (const auto s:sample_.expanded_states()) {
         cnfclause_t clause;

@@ -64,6 +64,8 @@ def experiments():
         ],
         test_policy_instances=all_test_instances(),
         verbosity=0,
+        initial_sample_size=999999,
+        sampling_strategy="full"
     )
     
     exps["small-sd2l"] = update_dict(
