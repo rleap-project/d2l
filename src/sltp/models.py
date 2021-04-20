@@ -141,7 +141,8 @@ class DLModelFactory:
         assert isinstance(state, Model)
         # Start with a copy of all the precomputed data
         denotations = self.base_model()
-        _ = [self.process_atom(tarski_atom_to_tuple(atom), denotations, _STANDARD_DL_MAPPING) for atom in state.as_atoms()
+        _ = [self.process_atom(tarski_atom_to_tuple(atom), denotations, _STANDARD_DL_MAPPING)
+             for atom in state.as_atoms()
              if atom.predicate.name not in self.instance_info.static_predicates]
         return DLModel(denotations, self.statics, self.universe)
 

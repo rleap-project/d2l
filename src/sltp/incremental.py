@@ -238,8 +238,7 @@ def test_policy_and_compute_flaws(policy, instances, config, sample=None):
         # Collect all the states from which we want to test the policy
         roots = {problem.init}
         if config.refine_policy_from_entire_sample and sample is not None:
-        #if sample is not None:
-            roots.update(sample.get_t_leaves())
+            roots.update(sample.get_leaves())
 
         testruns = [search.search(root) for root in roots]
         if all(res is True for res, _ in testruns):

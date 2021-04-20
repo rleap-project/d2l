@@ -87,13 +87,9 @@ class TransitionSample:
         self.parents[t].add(s)
 
     def get_leaves(self):
-        #return [s for s in self.states if len(self.transitions[s]>0)]
-        t_leaves = set()
-        for k, s in self.states.items():
-            if k in self.transitions and len(self.transitions[k]) > 0 and k in self.t_states.keys():
-                t_leaves.add(self.t_states[k])
-        return t_leaves
-        #return {self.t_states[k] for k,s in self.states.items() if s in self.transitions and len(self.transitions[s]) > 0 and k in self.t_states.keys()}
+        for sid, s in self.states.items():
+            if not self.is_expanded(sid) and not self.is_unsolvable(sid) and not self.is_goal(sid):
+                yield s
 
     def add_transitions(self, states, transitions, instance_id, unsolvable):
         """ Add a batch of states coming from the same instance to the sample.
