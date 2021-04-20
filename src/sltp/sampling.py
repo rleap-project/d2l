@@ -24,7 +24,6 @@ class TransitionSample:
         self.unsolvable = set()
         self.instance = dict()  # A mapping between states and the problem instances they came from
         self.vstar = {}
-        self.t_states = OrderedDict()
 
     def get_state_id(self, state):
         return self.state_to_id.get(state, None)
@@ -87,7 +86,7 @@ class TransitionSample:
         self.transitions[s].add(t)
         self.parents[t].add(s)
 
-    def get_t_leaves(self):
+    def get_leaves(self):
         #return [s for s in self.states if len(self.transitions[s]>0)]
         t_leaves = set()
         for k, s in self.states.items():
@@ -95,9 +94,6 @@ class TransitionSample:
                 t_leaves.add(self.t_states[k])
         return t_leaves
         #return {self.t_states[k] for k,s in self.states.items() if s in self.transitions and len(self.transitions[s]) > 0 and k in self.t_states.keys()}
-
-    def add_t_states(self, t_states):
-        self.t_states.update(t_states)
 
     def add_transitions(self, states, transitions, instance_id, unsolvable):
         """ Add a batch of states coming from the same instance to the sample.
@@ -115,31 +111,6 @@ class TransitionSample:
         self.unsolvable.update(unsolvable)
         # We consider a state expanded if it has some child or it is marked as a deadend
         self.expanded.update(s for s in states if (s in transitions.keys() and len(transitions[s]) > 0) or s in self.unsolvable)
-
-    def incremental_transitions(self, states, transitions, instance_id):
-        # ToDo update states only of the instance
-        # Update states
-        self.states.update(states)
-
-        # Update transition and parents
-        for source, targets in transitions.items():
-            self.transitions[source].update(targets)
-            for t in targets:
-                self.parents[t].add(source)
-        # Assign state instances
-        for s in states:
-            self.instance[s] = instance_id
-        # We consider a state expanded if it has some child or it is marked as a deadend
-        self.expanded.update(s for s in states if (s in transitions.keys() and len(transitions[s]) > 0) or s in self.unsolvable)
-
-        #mark_optimal_transitions(self)
-        optimal, alive, vstar = mark_all_optimal(self.goals, self.parents)
-        self.mark_as_alive(alive)
-        self.mark_as_optimal(optimal)
-        self.vstar.update(vstar)
-        for s in self.states.keys():
-            if s not in self.vstar or (s not in self.expanded and s not in self.goals):
-                self.vstar[s] = -2
 
     def mark_as_goals(self, goals):
         self.goals.update(goals)
@@ -259,16 +230,6 @@ def log_sampled_states(sample, filename):
         print("Symbols:\n*: goal, \n^: expanded, \nº: alive, \n=: root, \n"
               "+: source of some transition marked as optimal", file=f)
     logging.info('Resampled states logged at "{}"'.format(filename))
-
-
-def sample_first_x_states(root_states, sample_sizes):
-    """ Sample the first sample_sizes[i] states of instance i, i.e., the integers going from root_states[i] to
-    root_states[i] + sample_sizes[i] """
-    sampled = set()
-    assert len(root_states) == len(sample_sizes)
-    for root, size in zip(root_states, sample_sizes):
-        sampled.update(range(root, root+size))
-    return sampled
 
 
 def sample_generated_states(config, rng):
