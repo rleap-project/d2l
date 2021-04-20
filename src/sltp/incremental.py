@@ -87,8 +87,7 @@ def generate_plan_and_create_sample(domain, instance_id, instance, sample):
             raise RuntimeError(f"Action {op} from FD plan not applicable!")
 
         s = progress(s, op)
-    # Note that we don't need to add the last state, as it's been already added as a child of its parent:
-    # sample_writer.add_state(s, expand=False)
+    # Note that we don't need to add the last state, as it's been already added as a child of its parent
 
     if not model.is_goal(s):
         raise RuntimeError(f"State after executing FD plan is not a goal: {s}")
@@ -152,7 +151,7 @@ class SafePolicyGuidedSearch:
     def run(self):
         return self.search(self.model.init())
 
-    def search(self, root):
+    def search(self, root, verbose=True):
         """ Run the policy-guided search.
         When the policy is not defined in some state, return that state.
         When the policy enters a loop, return the entire loop.
@@ -168,18 +167,21 @@ class SafePolicyGuidedSearch:
             # logging.debug(f"brfs: Iteration {iteration}")
 
             if self.model.is_goal(current.state):
-                logging.info(f"Goal found after {stats.nexpansions} expansions")
+                if verbose:
+                    logging.info(f"Goal found after {stats.nexpansions} expansions")
                 return True, {current.state}
 
             child, operator = self.policy(current.state)
             if operator is None:
-                logging.error(f"Policy not defined on state {current.state}")
+                if verbose:
+                    logging.error(f"Policy not defined on state {current.state}")
                 return False, {current.state}
 
             current = make_child_node(current, operator, child)
             if current.state in closed:
                 loop = retrieve_loop_states(current)
-                logging.error(f"Size-{len(loop)} loop detected after {len(closed)} expansions. State: {current.state}")
+                if verbose:
+                    logging.error(f"Size-{len(loop)} loop detected after {len(closed)} expansions. State: {current.state}")
                 return False, loop
 
             closed.add(current.state)
@@ -238,16 +240,20 @@ def test_policy_and_compute_flaws(policy, instances, config, sample=None):
         # Collect all the states from which we want to test the policy
         roots = {problem.init}
         if config.refine_policy_from_entire_sample and sample is not None:
-            roots.update(sample.get_leaves())
+            roots.update(sample.get_leaves(instance_id))
 
-        testruns = [search.search(root) for root in roots]
-        if all(res is True for res, _ in testruns):
-            print("Policy solves instance")
+        flaws = set()
+        for root in roots:
+            res, f = search.search(root, verbose=False)
+            if not res:
+                flaws.update(f)
+            if len(flaws) > config.refinement_batch_size:
+                break
+
+        if not flaws:
+            print("Policy solves all instances")
             nsolved += 1
             continue
-
-        # result, visited_states = search.search(root)
-        flaws = set().union(*(flaws for res, flaws in testruns if res is not True))
 
         # If a sample was provided, add the found flaws to it
         if sample is not None:

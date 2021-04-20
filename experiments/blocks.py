@@ -85,12 +85,12 @@ def experiments():
 
         # print_hstar_in_feature_matrix=True,
     )
-    
+
     exps["clear-orig-inc"] = update_dict(
         exps["clear"],
         pipeline=pipelines.INCREMENTAL,
-        #instances=["training_clear_5.pddl"],
-        #validation_instances=["training_clear_5.pddl"],
+        # instances=["training_clear_5.pddl"],
+        # validation_instances=["training_clear_5.pddl"],
         instances=["training_clear_5.pddl"],
         validation_instances=["training_clear_5.pddl"],
         test_policy_instances=all_clear_test_instancess(),
@@ -104,13 +104,13 @@ def experiments():
     exps["clear-ipc-inc"] = update_dict(
         exps["clear"],
         pipeline=pipelines.INCREMENTAL,
-        #instances=["training_clear_5.pddl"],
-        #validation_instances=["training_clear_5.pddl"],
+        # instances=["training_clear_5.pddl"],
+        # validation_instances=["training_clear_5.pddl"],
         instances=[
-            #"test_clear_probBLOCKS-10-0.pddl",
+            # "test_clear_probBLOCKS-10-0.pddl",
             "test_clear_probBLOCKS-10-1.pddl", ],
         validation_instances=[
-            #"test_clear_probBLOCKS-10-0.pddl",
+            # "test_clear_probBLOCKS-10-0.pddl",
             "test_clear_probBLOCKS-10-1.pddl", ],
         test_policy_instances=all_clear_test_instancess(),
 
@@ -231,7 +231,9 @@ def experiments():
         test_policy_instances=all_on_test_instancess(),
         sampling_strategy="full",
         initial_sample_size=999999,
-		verbosity=2,
+        verbosity=2,
+        refine_policy_from_entire_sample=True,
+        refinement_batch_size=2,
     )
 
     exps["on-sd2l"] = update_dict(
@@ -331,7 +333,7 @@ def experiments():
         verbosity=2,
         sampling_strategy="goal"
     )
-        
+
     exps["all_at_5-orig-inc"] = update_dict(
         exps["all_at_5"],
         pipeline=pipelines.INCREMENTAL,
@@ -350,16 +352,16 @@ def experiments():
                               ],
         sampling_strategy="full",
         initial_sample_size=999999,
-		verbosity=2,
-    ) 
-    
+        verbosity=2,
+    )
+
     exps["all_at_5-ipc-inc"] = update_dict(
         exps["all_at_5"],
         pipeline=pipelines.INCREMENTAL,
         instances=[
-            "test_atomic_11_2.pddl" ],
+            "test_atomic_11_2.pddl"],
         validation_instances=[
-            "test_atomic_11_2.pddl" ],
+            "test_atomic_11_2.pddl"],
         test_policy_instances=[
                                   "training_arbitrary_5_atomic.pddl",
                               ] + [
@@ -367,7 +369,7 @@ def experiments():
                               ],
         sampling_strategy="full",
         initial_sample_size=999999,
-		verbosity=2,
+        verbosity=2,
     )
 
     exps["all_at_5-sd2l"] = update_dict(

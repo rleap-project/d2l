@@ -86,9 +86,12 @@ class TransitionSample:
         self.transitions[s].add(t)
         self.parents[t].add(s)
 
-    def get_leaves(self):
+    def get_leaves(self, instance_id):
+        """ Return all of those states in the same that belong to the given instance ID and are leaves, i.e., are not
+        alive, but not expanded. """
         for sid, s in self.states.items():
-            if not self.is_expanded(sid) and not self.is_unsolvable(sid) and not self.is_goal(sid):
+            if not self.is_expanded(sid) and not self.is_unsolvable(sid) and \
+                    not self.is_goal(sid) and self.instance[sid] == instance_id:
                 yield s
 
     def add_transitions(self, states, transitions, instance_id, unsolvable):
