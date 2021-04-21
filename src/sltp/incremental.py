@@ -223,17 +223,17 @@ def tarski_model_to_d2l_sample_representation(state):
     return tuple(sorted(atoms))
 
 
-def test_policy_and_compute_flaws(policy, instances, config, sample=None):
+def test_policy_and_compute_flaws(policy, validation_data, config, sample=None):
     """
     If sample is not None, the computed flaws are added to it.
     """
     nsolved = 0
-    for instance_id, instance in enumerate(instances):
-        # Parse the domain & instance and create a model generator
-        problem, dl_model_factory = create_model_factory(config.domain, instance, config.parameter_generator)
-        static_atoms, _ = compute_static_atoms(problem)
-
-        search_model = GroundForwardSearchModel(problem, ground_problem_schemas_into_plain_operators(problem))
+    for instance_id, val_data in enumerate(validation_data):
+        search_model = val_data['search_model']
+        dl_model_factory = val_data['dl_model_factory']
+        static_atoms = val_data['static_atoms']
+        problem = val_data['problem']
+        
         d2l_policy = D2LPolicy(search_model, policy, dl_model_factory, static_atoms)
         search = SafePolicyGuidedSearch(search_model, d2l_policy)
 
@@ -286,6 +286,15 @@ def run(config, data, rng):
 
     config.validation_instances = [os.path.join(BENCHMARK_DIR, config.domain_dir, i) for i in
                                    config.validation_instances]
+    
+    validation_data = []
+    for instance_id, instance in enumerate(config.validation_instances):
+        # Parse the domain & instance and create a model generator
+        problem, dl_model_factory = create_model_factory(config.domain, instance, config.parameter_generator)
+        static_atoms, _ = compute_static_atoms(problem)
+
+        search_model = GroundForwardSearchModel(problem, ground_problem_schemas_into_plain_operators(problem))
+        validation_data.append(dict(search_model=search_model, problem=problem, static_atoms=static_atoms, dl_model_factory=dl_model_factory))
 
     # Compute a plan for each of the training instances, and put all states in the plan into the sample, along with
     # all of their (possibly non-expanded) children.
@@ -305,7 +314,7 @@ def run(config, data, rng):
             break
 
         # Test the policy on the validation set
-        nsolved = test_policy_and_compute_flaws(policy, config.validation_instances, config, sample)
+        nsolved = test_policy_and_compute_flaws(policy, validation_data, config, sample)
         if nsolved == len(config.validation_instances):
             print("Policy solves all states in training set")
             break  # Policy test was successful, we're done.
