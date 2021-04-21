@@ -1,6 +1,7 @@
 import pipelines
 from sltp.util.misc import update_dict
-from sltp.util.names import blocksworld_names, blocksworld_parameters_for_clear, blocksworld_parameters_for_on
+from sltp.util.names import blocksworld_names, blocksworld_parameters_for_clear, blocksworld_parameters_for_on, \
+    blocksworld_declared_parameters_for_clear, blocksworld_declared_parameters_for_on
 
 
 def experiments():
@@ -104,6 +105,7 @@ def experiments():
     exps["clear-ipc-inc"] = update_dict(
         exps["clear"],
         pipeline=pipelines.INCREMENTAL,
+        parameter_generator=blocksworld_declared_parameters_for_clear,
         # instances=["training_clear_5.pddl"],
         # validation_instances=["training_clear_5.pddl"],
         instances=[
@@ -222,12 +224,11 @@ def experiments():
         pipeline=pipelines.INCREMENTAL,
         instances=[
             "test_on_probBLOCKS-11-0.pddl",
-            "test_on_probBLOCKS-11-1.pddl",
-            "test_on_probBLOCKS-11-2.pddl" ],
+            "test_on_probBLOCKS-11-1.pddl"],
         validation_instances=[
             "test_on_probBLOCKS-11-0.pddl",
-            "test_on_probBLOCKS-11-1.pddl",
-            "test_on_probBLOCKS-11-2.pddl" ],
+            "test_on_probBLOCKS-11-1.pddl"],
+        parameter_generator=blocksworld_declared_parameters_for_on,
         test_policy_instances=all_on_test_instancess(),
         sampling_strategy="full",
         initial_sample_size=999999,

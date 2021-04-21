@@ -57,7 +57,7 @@ def run(config, data, rng):
     return exitcode, dict(d2l_policy=policy)
 
 
-def parse_dnf_policy(config):
+def parse_dnf_policy(config, language=None):
     fval_map = {
         "=0": False,
         ">0": True,
@@ -65,7 +65,8 @@ def parse_dnf_policy(config):
         "DEC": FeatureValueChange.DEC,
         "NIL": FeatureValueChange.NIL,
     }
-    language = config.language_creator(config)
+    if language is None:
+        language = config.language_creator(config)
     policy = None
     fmap = {}
     for i, line in enumerate(read_file(config.experiment_dir + "/classifier.dnf"), 0):

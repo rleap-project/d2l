@@ -1,6 +1,7 @@
 import logging
 import os
 
+from tarski.dl import compute_dl_vocabulary
 from tarski.grounding.lp_grounding import ground_problem_schemas_into_plain_operators
 from tarski.io import FstripsReader
 from tarski.search import GroundForwardSearchModel
@@ -10,9 +11,14 @@ from tarski.search.model import progress
 from tarski.syntax.transform.action_grounding import ground_schema_into_plain_operator_from_grounding
 
 from . import cnfgen
+from .cnfgen import invoke_cpp_module, parse_dnf_policy
 from .driver import Step, BENCHMARK_DIR
-from .featuregen import generate_feature_pool
-from .features import create_model_factory, compute_static_atoms, generate_model_from_state
+from .featuregen import print_sample_info, deal_with_serialized_features, generate_output_from_handcrafted_features, \
+    invoke_cpp_generator, goal_predicate_name
+from .features import create_model_factory, compute_static_atoms, generate_model_from_state, report_use_goal_denotation, \
+    compute_predicates_appearing_in_goal, compute_instance_information, create_model_cache
+from .language import parse_pddl
+from .models import DLModelFactory
 from .outputs import print_transition_matrix
 from .returncodes import ExitCode
 from .sampling import log_sampled_states, TransitionSample, mark_optimal_transitions
@@ -41,9 +47,19 @@ class IncrementalPolicyGenerationSingleStep(Step):
         return run
 
 
-def compute_policy_for_sample(config, sample):
-    code, res = cnfgen.run(config, None, None)
-    return None if code != ExitCode.Success else res['d2l_policy']
+def compute_policy_for_sample(config, language):
+    exitcode = invoke_cpp_module(config, None)
+    if exitcode != ExitCode.Success:
+        return None
+
+    # Parse the DNF transition-classifier and transform it into a policy
+    policy = parse_dnf_policy(config, language)
+
+    policy.minimize()
+    print("Final Policy:")
+    policy.print_aaai20()
+
+    return policy
 
 
 def run_fd(domain, instance):
@@ -63,9 +79,9 @@ def run_fd(domain, instance):
     return plan
 
 
-def generate_plan_and_create_sample(domain, instance_id, instance, sample):
-    problem = parse_problem_with_tarski(domain, instance)
-    model = GroundForwardSearchModel(problem, ground_problem_schemas_into_plain_operators(problem))
+def generate_plan_and_create_sample(domain, instance, instance_data, sample):
+    problem = instance_data['problem']
+    model = instance_data['search_model']
 
     # Run Fast Downward and get a plan!
     plan = run_fd(domain, instance)
@@ -94,7 +110,7 @@ def generate_plan_and_create_sample(domain, instance_id, instance, sample):
 
     # Finally, add the states (plus their expansions) to the D2L Transitionsample object.
     for i, state in enumerate(allstates, start=0):
-        expand_state_into_sample(sample, state, instance_id, model, root=(i == 0))
+        expand_state_into_sample(sample, state, instance_data['id'], model, root=(i == 0))
 
 
 def expand_state_into_sample(sample, state, instance_id, model, root=False):
@@ -109,14 +125,14 @@ def expand_state_into_sample(sample, state, instance_id, model, root=False):
         sample.add_transition(sid, succid)
 
 
-def generate_initial_sample(config):
+def generate_initial_sample(config, all_instance_data):
     # To generate the initial sample, we compute one plan per training instance, and include in the sample all
     # states that are part of the plan, plus all their (possibly unexpanded) children.
     # _run_brfs(config, None, None)
 
     sample = TransitionSample()
-    for i, instance in enumerate(config.instances, start=0):
-        generate_plan_and_create_sample(config.domain, i, instance, sample)
+    for instance in config.instances:
+        generate_plan_and_create_sample(config.domain, instance, all_instance_data[instance], sample)
 
     mark_optimal_transitions(sample)
     logging.info(f"Entire sample: {sample.info()}")
@@ -223,12 +239,16 @@ def tarski_model_to_d2l_sample_representation(state):
     return tuple(sorted(atoms))
 
 
-def test_policy_and_compute_flaws(policy, validation_data, config, sample=None):
+def test_policy_and_compute_flaws(policy, all_instance_data, instances, config, sample=None):
     """
     If sample is not None, the computed flaws are added to it.
     """
+    if sample is not None:
+        logging.info(f"Computing policy flaws over {len(instances)} instances")
     nsolved = 0
-    for instance_id, val_data in enumerate(validation_data):
+    for val_instance in instances:
+        val_data = all_instance_data[val_instance]
+
         search_model = val_data['search_model']
         dl_model_factory = val_data['dl_model_factory']
         static_atoms = val_data['static_atoms']
@@ -240,7 +260,7 @@ def test_policy_and_compute_flaws(policy, validation_data, config, sample=None):
         # Collect all the states from which we want to test the policy
         roots = {problem.init}
         if config.refine_policy_from_entire_sample and sample is not None:
-            roots.update(sample.get_leaves(instance_id))
+            roots.update(sample.get_leaves(val_data['id']))
 
         flaws = set()
         for root in roots:
@@ -251,21 +271,70 @@ def test_policy_and_compute_flaws(policy, validation_data, config, sample=None):
                 break
 
         if not flaws:
-            print("Policy solves all instances")
             nsolved += 1
             continue
 
         # If a sample was provided, add the found flaws to it
         if sample is not None:
+            logging.info(f"Adding {len(flaws)} flaws to size-{len(sample.states)} sample")
             for state in flaws:
                 sid = sample.get_state_id(state)
                 if sid is not None and sample.is_expanded(sid):
                     # If the state is already in the sample and already expanded, no need to do anything about it
                     continue
 
-                expand_state_into_sample(sample, state, instance_id, search_model, root=False)
+                expand_state_into_sample(sample, state, val_data['id'], search_model, root=False)
 
     return nsolved
+
+
+def generate_feature_pool(config, sample, all_instance_data):
+    logging.info(f"Starting generation of feature pool. State sample used to detect redundancies: {sample.info()}")
+
+    all_objects = []
+    all_predicates, all_functions = set(), set()
+    goal_predicate_info = set()
+
+    infos = []
+    for instance_name in config.instances:
+        instance_data = all_instance_data[instance_name]
+        lang = instance_data['language']
+        info = instance_data['info']
+        all_objects.append(set(c.symbol for c in lang.constants()))
+        all_predicates.update((p.name, p.arity) for p in lang.predicates if not p.builtin)
+        all_functions.update((p.name, p.arity) for p in lang.functions if not p.builtin)
+
+        # Add goal predicates and functions
+        goal_predicate_info.update((goal_predicate_name(p.name), p.uniform_arity())
+                                  for p in lang.predicates if not p.builtin and p.name in info.goal_predicates)
+        goal_predicate_info.update((goal_predicate_name(f.name), f.uniform_arity())
+                                   for f in lang.functions if not f.builtin and f.name in info.goal_predicates)
+        all_predicates.update(goal_predicate_info)
+
+        # Add type predicates
+        all_predicates.update((p.name, 1) for p in lang.sorts if not p.builtin and p != lang.Object)
+
+        nominals = instance_data['nominals']
+        infos.append(info)
+
+    # We assume all problems languages are the same and simply pick the last one
+    vocabulary = compute_dl_vocabulary(lang)
+    model_cache = create_model_cache(vocabulary, sample.states, sample.instance, nominals, infos)
+
+    # Write out all input data for the C++ feature generator code
+    print_sample_info(sample, infos, model_cache, all_predicates, all_functions, nominals,
+                      all_objects, goal_predicate_info, config)
+
+    # If user provides handcrafted features, no need to go further than here
+    if config.feature_generator is not None:
+        features = deal_with_serialized_features(lang, config.feature_generator, config.serialized_feature_filename)
+        generate_output_from_handcrafted_features(sample, config, features, model_cache)
+        return ExitCode.Success, dict(enforced_feature_idxs=[], model_cache=model_cache)
+
+    if invoke_cpp_generator(config) != 0:
+        return ExitCode.FeatureGenerationUnknownError, dict()
+
+    return ExitCode.Success, dict(enforced_feature_idxs=[], model_cache=model_cache)
 
 
 def run(config, data, rng):
@@ -282,41 +351,34 @@ def run(config, data, rng):
     config.good_features_filename = compute_info_filename(config.__dict__, "good_features.io")
     config.wsat_varmap_filename = compute_info_filename(config.__dict__, "varmap.wsat")
     config.wsat_allvars_filename = compute_info_filename(config.__dict__, "allvars.wsat")
-    #config.refine_policy_from_entire_sample=True
 
     config.validation_instances = [os.path.join(BENCHMARK_DIR, config.domain_dir, i) for i in
                                    config.validation_instances]
-    
-    validation_data = []
-    for instance_id, instance in enumerate(config.validation_instances):
-        # Parse the domain & instance and create a model generator
-        problem, dl_model_factory = create_model_factory(config.domain, instance, config.parameter_generator)
-        static_atoms, _ = compute_static_atoms(problem)
 
-        search_model = GroundForwardSearchModel(problem, ground_problem_schemas_into_plain_operators(problem))
-        validation_data.append(dict(search_model=search_model, problem=problem, static_atoms=static_atoms, dl_model_factory=dl_model_factory))
+    all_instances = list(sorted(set(config.validation_instances).union(config.instances)))
+    all_instance_data, language = compute_instance_data(all_instances, config)
 
     # Compute a plan for each of the training instances, and put all states in the plan into the sample, along with
     # all of their (possibly non-expanded) children.
     # All states will need to be labeled with their status (goal / unsolvable / alive)
-    sample = generate_initial_sample(config)
+    sample = generate_initial_sample(config, all_instance_data)
     iteration = 1
     while True:
         # TODO: This could be optimized to avoid recomputing the features over the states that already were in the
         #       sample on the previous iteration.
-        print(f"### MAIN ITERATION: {iteration}; SAMPLE SIZE: {sample.num_states()}")
-        code, res = generate_feature_pool(config, sample)
+        logging.info(f"### MAIN ITERATION: {iteration}; SAMPLE SIZE: {sample.num_states()}")
+        code, res = generate_feature_pool(config, sample, all_instance_data)
         assert code == ExitCode.Success
 
-        policy = compute_policy_for_sample(config, sample)
+        policy = compute_policy_for_sample(config, language)
         if not policy:
-            print("No policy found under given complexity bound")
+            logging.info("No policy found under given complexity bound")
             break
 
         # Test the policy on the validation set
-        nsolved = test_policy_and_compute_flaws(policy, validation_data, config, sample)
+        nsolved = test_policy_and_compute_flaws(policy, all_instance_data, config.validation_instances, config, sample)
         if nsolved == len(config.validation_instances):
-            print("Policy solves all states in training set")
+            logging.info("Policy solves all states in training set")
             break  # Policy test was successful, we're done.
 
         log_sampled_states(sample, config.resampled_states_filename)
@@ -326,6 +388,28 @@ def run(config, data, rng):
 
     # Run on the test set and report coverage. No need to add flaws to sample here
     if policy:
-        nsolved = test_policy_and_compute_flaws(policy, config.test_policy_instances, config)
+        all_instances = list(sorted(set(config.test_policy_instances)))
+        test_instance_data, _ = compute_instance_data(all_instances, config)
+        nsolved = test_policy_and_compute_flaws(policy, test_instance_data, config.test_policy_instances, config)
         print(f"Learnt policy solves {nsolved}/{len(config.test_policy_instances)} in the test set")
     return ExitCode.Success, {}
+
+
+def compute_instance_data(all_instances, config):
+    all_instance_data = {instance: {"id": i} for i, instance in enumerate(all_instances, 0)}
+    for instance_filename, data in all_instance_data.items():
+        # Parse the domain & instance and create a model generator and related instance-dependent information
+        problem, language, nominals = parse_pddl(config.domain, instance_filename)
+        if config.parameter_generator is not None:
+            nominals += config.parameter_generator(language)
+
+        vocabulary = compute_dl_vocabulary(language)
+        use_goal_denotation = config.parameter_generator is None
+        goal_predicates = compute_predicates_appearing_in_goal(problem, use_goal_denotation)
+        info = compute_instance_information(problem, goal_predicates)
+        dl_model_factory = DLModelFactory(vocabulary, nominals, info)
+        search_model = GroundForwardSearchModel(problem, ground_problem_schemas_into_plain_operators(problem))
+        data.update(dict(language=language, problem=problem, nominals=nominals,
+                         info=info,
+                         search_model=search_model, static_atoms=info.static_atoms, dl_model_factory=dl_model_factory))
+    return all_instance_data, language

@@ -215,10 +215,11 @@ def make_script(filename, code):
     os.chmod(filename, st.st_mode | stat.S_IEXEC)
 
 
-def generate_feature_pool(config, sample):
+def generate_feature_pool(config, sample, parsed_problems=None):
     logging.info(f"Starting generation of feature pool. State sample used to detect redundancies: {sample.info()}")
 
-    parsed_problems = parse_all_instances(config.domain, config.instances)  # Parse all problem instances
+    if parsed_problems is None:
+        parsed_problems = parse_all_instances(config.domain, config.instances)  # Parse all problem instances
 
     language, nominals, model_cache, infos, all_goal_predicates = compute_models(
         config.domain, sample, parsed_problems, config.parameter_generator)
@@ -232,7 +233,7 @@ def generate_feature_pool(config, sample):
         all_functions.update((p.name, p.arity) for p in lang.functions if not p.builtin)
 
         # Add goal predicates and functions
-        goal_predicate_info = set((goal_predicate_name(p.name), p.uniform_arity())
+        goal_predicate_info = set([goal_predicate_name(p.name), p.uniform_arity()]
                                   for p in lang.predicates if not p.builtin and p.name in all_goal_predicates)
         goal_predicate_info.update((goal_predicate_name(f.name), f.uniform_arity())
                                    for f in lang.functions if not f.builtin and f.name in all_goal_predicates)

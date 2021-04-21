@@ -140,6 +140,15 @@ def blocksworld_parameters_for_on(language):
     return [language.constant("a", "object"), language.constant("b", "object")]
 
 
+def blocksworld_declared_parameters_for_clear(language):
+    # We simply add block "a" as a domain constant
+    return [language.get("a")]
+
+
+def blocksworld_declared_parameters_for_on(language):
+    return [language.get("a"), language.get("b")]
+
+
 def reward_names(feature):
     s = str(feature)
     base = {
