@@ -1,9 +1,11 @@
+import copy
 import logging
 import os
+import tempfile
 
 from tarski.dl import compute_dl_vocabulary
 from tarski.grounding.lp_grounding import ground_problem_schemas_into_plain_operators
-from tarski.io import FstripsReader
+from tarski.io import FstripsReader, FstripsWriter
 from tarski.search import GroundForwardSearchModel
 from tarski.search.applicability import is_applicable
 from tarski.search.blind import make_child_node, make_root_node, SearchStats
@@ -62,13 +64,15 @@ def compute_policy_for_sample(config, language):
     return policy
 
 
-def run_fd(domain, instance):
+def run_fd(domain, instance, verbose):
     """ Run Fast Downward on the given problem, and return a plan, or None if
     the problem is not solvable. """
     # e.g. fast-downward.py --alias seq-opt-lmcut /home/frances/projects/code/downward-benchmarks/gripper/prob01.pddl
-    logging.info(f'Invoking Fast Downward on instance {instance}')
-    args = f'--alias seq-opt-lmcut --plan-file plan.txt {domain} {instance}'.split()
-    retcode = execute(['fast-downward.py'] + args)
+
+    with tempfile.NamedTemporaryFile(mode='w', delete=True) as tf:
+        args = f'--alias seq-opt-lmcut --plan-file plan.txt {domain} {instance}'.split()
+        stdout = None if verbose else tf.name
+        retcode = execute(['fast-downward.py'] + args, stdout=stdout)
     if retcode != 0:
         logging.error("Fast Downward error")
         return None
@@ -79,25 +83,33 @@ def run_fd(domain, instance):
     return plan
 
 
-def generate_plan_and_create_sample(domain, instance, instance_data, sample):
-    problem = instance_data['problem']
-    model = instance_data['search_model']
+def generate_instance_file(problem, pddl_constants):
+    pddl_constants = []
+    writer = FstripsWriter(problem)
+    with tempfile.NamedTemporaryFile(mode='w', delete=False) as tf:
+        tf.write(writer.print_instance(pddl_constants))
+    return tf.name
+
+
+def compute_plan(model, domain_filename, instance_filename=None, pddl_constants=None):
+    if instance_filename is None:
+        instance_filename = generate_instance_file(model.problem, pddl_constants)
 
     # Run Fast Downward and get a plan!
-    plan = run_fd(domain, instance)
+    plan = run_fd(domain_filename, instance_filename, verbose=False)
     if plan is None:
         # instance is unsolvable
         print("Unsolvable instance")
-        return
+        return None
 
     # Collect all states in the plan
     allstates = []
-    s = problem.init
+    s = model.init()
     for action in plan:
         allstates.append(s)
         components = action.rstrip(')').lstrip('(').split()
         assert len(components) > 0
-        a = problem.get_action(components[0])
+        a = model.problem.get_action(components[0])
         op = ground_schema_into_plain_operator_from_grounding(a, components[1:])
         if not is_applicable(s, op):
             raise RuntimeError(f"Action {op} from FD plan not applicable!")
@@ -108,9 +120,16 @@ def generate_plan_and_create_sample(domain, instance, instance_data, sample):
     if not model.is_goal(s):
         raise RuntimeError(f"State after executing FD plan is not a goal: {s}")
 
-    # Finally, add the states (plus their expansions) to the D2L Transitionsample object.
-    for i, state in enumerate(allstates, start=0):
-        expand_state_into_sample(sample, state, instance_data['id'], model, root=(i == 0))
+    return allstates
+
+
+def generate_plan_and_create_sample(domain_filename, instance_filename, model, instance_data, sample):
+    allstates = compute_plan(model, domain_filename, instance_filename, instance_data['pddl_constants'])
+
+    if allstates is not None:
+        # Add the states (plus their expansions) to the D2L Transitionsample object.
+        for i, state in enumerate(allstates, start=0):
+            expand_state_into_sample(sample, state, instance_data['id'], model, root=(i == 0))
 
 
 def expand_state_into_sample(sample, state, instance_id, model, root=False):
@@ -132,7 +151,8 @@ def generate_initial_sample(config, all_instance_data):
 
     sample = TransitionSample()
     for instance in config.instances:
-        generate_plan_and_create_sample(config.domain, instance, all_instance_data[instance], sample)
+        instance_data = all_instance_data[instance]
+        generate_plan_and_create_sample(config.domain, instance, instance_data['search_model'], instance_data, sample)
 
     mark_optimal_transitions(sample)
     logging.info(f"Entire sample: {sample.info()}")
@@ -278,12 +298,16 @@ def test_policy_and_compute_flaws(policy, all_instance_data, instances, config, 
         if sample is not None:
             logging.info(f"Adding {len(flaws)} flaws to size-{len(sample.states)} sample")
             for state in flaws:
-                sid = sample.get_state_id(state)
-                if sid is not None and sample.is_expanded(sid):
-                    # If the state is already in the sample and already expanded, no need to do anything about it
-                    continue
 
-                expand_state_into_sample(sample, state, val_data['id'], search_model, root=False)
+                if config.compute_plan_on_flaws:
+                    newmodel = copy.deepcopy(search_model)
+                    newmodel.problem.init = state
+                    generate_plan_and_create_sample(config.domain, None, newmodel, val_data, sample)
+                else:
+                    sid = sample.get_state_id(state)
+                    if sid is None or not sample.is_expanded(sid):
+                        # If the state is already in the sample and already expanded, no need to do anything about it
+                        expand_state_into_sample(sample, state, val_data['id'], search_model, root=False)
 
     return nsolved
 
@@ -399,7 +423,8 @@ def compute_instance_data(all_instances, config):
     all_instance_data = {instance: {"id": i} for i, instance in enumerate(all_instances, 0)}
     for instance_filename, data in all_instance_data.items():
         # Parse the domain & instance and create a model generator and related instance-dependent information
-        problem, language, nominals = parse_pddl(config.domain, instance_filename)
+        problem, language, pddl_constants = parse_pddl(config.domain, instance_filename)
+        nominals = pddl_constants[:]
         if config.parameter_generator is not None:
             nominals += config.parameter_generator(language)
 
@@ -410,6 +435,6 @@ def compute_instance_data(all_instances, config):
         dl_model_factory = DLModelFactory(vocabulary, nominals, info)
         search_model = GroundForwardSearchModel(problem, ground_problem_schemas_into_plain_operators(problem))
         data.update(dict(language=language, problem=problem, nominals=nominals,
-                         info=info,
+                         info=info, pddl_constants=pddl_constants,
                          search_model=search_model, static_atoms=info.static_atoms, dl_model_factory=dl_model_factory))
     return all_instance_data, language

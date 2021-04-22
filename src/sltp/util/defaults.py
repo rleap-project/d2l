@@ -190,6 +190,9 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
         consistency_bound=10,
 
         refine_policy_from_entire_sample=True,
+
+        # Compute a plan from every detected policy flaw
+        compute_plan_on_flaws=False,
     )
 
     parameters = {**defaults, **kwargs}  # Copy defaults, overwrite with user-specified parameters

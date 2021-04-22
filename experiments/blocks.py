@@ -235,6 +235,7 @@ def experiments():
         verbosity=2,
         refine_policy_from_entire_sample=True,
         refinement_batch_size=2,
+        compute_plan_on_flaws=True,
     )
 
     exps["on-sd2l"] = update_dict(
