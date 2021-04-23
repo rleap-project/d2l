@@ -89,9 +89,12 @@ def experiments():
             'instance_7_2_2.pddl',
         ],
         test_policy_instances=all_test_instances(),
-        verbosity=2,
+        sampling_strategy="full",
         initial_sample_size=999999,
-        sampling_strategy="full"
+        verbosity=2,
+        refine_policy_from_entire_sample=True,
+        refinement_batch_size=20,
+        compute_plan_on_flaws=True,
     )
     
     exps["small-sd2l"] = update_dict(

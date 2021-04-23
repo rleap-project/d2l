@@ -303,8 +303,12 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
     const unsigned max_d = compute_D();
     if (options.verbosity>0) {
         std::cout << "Generating CNF encoding for " << sample_.expanded_states().size() << " expanded states, "
+                  << sample_.alive_states().size() << " alive states,"
                   <<  transition_ids_.size() << " alive-to-solvable and alive-to-dead transitions and "
                   << class_representatives_.size() << " transition equivalence classes with a d_max=" << max_d << std::endl;
+        /*for( auto s : sample_.alive_states() ){
+            std::cout << "V^*(" << s << "): " << get_vstar(s) << std::endl;
+        }*/
     }
 
     /////// CNF variables ///////

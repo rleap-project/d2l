@@ -1,14 +1,14 @@
 import pipelines
 from sltp.util.misc import update_dict
-from sltp.util.names import floortile_names
+#from sltp.util.names import satellite_names
 
 
 def experiments():
     base = dict(
-        domain_dir="floortile-opt11-strips",
+        domain_dir="rovers",
         domain="domain.pddl",
         test_domain="domain.pddl",
-        feature_namer=floortile_names,
+        feature_namer=None,
         pipeline="d2l_pipeline",
         num_states="all",
         concept_generator=None,
@@ -17,29 +17,26 @@ def experiments():
 
         # concept_generation_timeout=120,  # in seconds
         maxsat_timeout=None,
-
-        distinguish_goals=True,
     )
 
     exps = dict()
 
-    floortile_base = update_dict(
+    rovers_base = update_dict(
         base,
-        name="floortile",
+        name="rovers",
         n_instances=1,
         dimensions="(X,X,X)",
     )
 
     exps["small"] = update_dict(
-        floortile_base,
-        instances=["training1.pddl"],
-        # instances=["testing.pddl"],
+        rovers_base,
+        instances=[
+            'instances/instance-1.pddl',
+        ],
         test_instances=[],
-        test_policy_instances=["opt-p01-002.pddl"],
+        test_policy_instances=all_test_instances(),
 
         max_concept_size=8,
-        distance_feature_max_complexity=10,
-
         parameter_generator=None,
         use_equivalence_classes=True,
         # use_feature_dominance=True,
@@ -49,15 +46,20 @@ def experiments():
         exps["small"],
         distinguish_goals=True,
         pipeline=pipelines.INCREMENTAL,
-        instances=["training1.pddl"],
-        validation_instances=["training1.pddl"],
-        test_policy_instances=["opt-p01-002.pddl"],
+        instances=['instances/instance-1.pddl',],
+        validation_instances=['instances/instance-1.pddl',],
+        test_policy_instances=all_test_instances(),
 
         sampling_strategy="full",
         initial_sample_size=999999,
         verbosity=2,
         refine_policy_from_entire_sample=False,
-        refinement_batch_size=2,
+        refinement_batch_size=20,
     )
 
     return exps
+
+
+def all_test_instances():
+    return ["instances/instance-{}.pddl".format(i) for i in range(2, 5)]
+

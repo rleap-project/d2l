@@ -1,3 +1,4 @@
+import pipelines
 from sltp.util.misc import update_dict
 from sltp.util.names import logistics_names
 
@@ -23,9 +24,16 @@ def experiments():
 
     exps = dict()
 
+    logistics_base = update_dict(
+        base,
+        name="logistics",
+        n_instances=2,
+        dimensions="(X,X,X)",
+    )
+
     # Goal: arbitrary logistics goal
     exps["small"] = update_dict(
-        base,
+        logistics_base,
         instances=[f'sample{i}.pddl' for i in [2]],
         # test_instances=["prob{:02d}.pddl".format(i) for i in range(2, 5)],
         test_instances=[],
@@ -33,11 +41,26 @@ def experiments():
 
         distance_feature_max_complexity=8,
         max_concept_size=8,
-
         use_equivalence_classes=True,
-        # use_feature_dominance=True,
-        verbosity=2
+        sampling_strategy="goal",
+        verbosity=2,
     )
+
+    exps["small-ipc-inc"] = update_dict(
+        exps["small"],
+        distinguish_goals=True,
+        pipeline=pipelines.INCREMENTAL,
+        instances=[f'sample{i}.pddl' for i in [2]],
+        validation_instances=[f'sample{i}.pddl' for i in [2]],
+        test_policy_instances=all_instances(),
+
+        sampling_strategy="full",
+        initial_sample_size=999999,
+        verbosity=2,
+        refine_policy_from_entire_sample=True,
+        refinement_batch_size=20,
+    )
+    
     exps["small-sd2l"] = update_dict(
         base,
         instances=[f'sample{i}.pddl' for i in [2]],

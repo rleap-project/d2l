@@ -68,15 +68,17 @@ def experiments():
     exps["small-ipc-inc"] = update_dict(
         exps["small"],
         pipeline=pipelines.INCREMENTAL,
-        instances=["prob05.pddl"],
-        validation_instances=["prob05.pddl"],
+        instances=["prob04-fixed.pddl","prob05.pddl"],
+        validation_instances=["prob04-fixed.pddl","prob05.pddl"],
         # instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
         # validation_instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
-        test_policy_instances=[f"prob{i:02d}.pddl" for i in range(5, 21)],
-        verbosity=2,
-        refine_policy_from_entire_sample=False,
+        test_policy_instances=["sample-tiny.pddl"]+[f"prob{i:02d}.pddl" for i in range(5, 21)],
+        sampling_strategy="full",
         initial_sample_size=999999,
-        sampling_strategy="full"
+        verbosity=2,
+        refine_policy_from_entire_sample=True,
+        refinement_batch_size=10,
+        compute_plan_on_flaws=True,
 
     )
 

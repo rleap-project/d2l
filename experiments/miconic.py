@@ -70,24 +70,27 @@ def experiments():
         instances=[ 's4-0.pddl', 'training2.pddl',],
         validation_instances=[ 's4-0.pddl', 'training2.pddl',],
         test_policy_instances=all_test_instances(),
-        verbosity=2,
         
-        refine_policy_from_entire_sample=False,
         sampling_strategy="full",
         initial_sample_size=999999,
+        verbosity=2,
+        refine_policy_from_entire_sample=True,
+        refinement_batch_size=10,
+        compute_plan_on_flaws=True,
     )
 
     exps["small-ipc-inc"] = update_dict(
         exps["small"],
         pipeline=pipelines.INCREMENTAL,
-        instances=["s7-0.pddl"],
-        validation_instances=["s7-0.pddl"],
+        instances=["s5-0.pddl","s5-4.pddl"],
+        validation_instances=["s5-0.pddl","s5-4.pddl"],
         test_policy_instances=all_test_instances(),
-        verbosity=2,
-        
-        refine_policy_from_entire_sample=False,
         sampling_strategy="full",
         initial_sample_size=999999,
+        verbosity=2,
+        refine_policy_from_entire_sample=True,
+        refinement_batch_size=10,
+        compute_plan_on_flaws=True,
     )
     
     exps["small-sd2l"] = update_dict(

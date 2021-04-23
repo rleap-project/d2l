@@ -123,13 +123,18 @@ def compute_plan(model, domain_filename, instance_filename=None, pddl_constants=
     return allstates
 
 
-def generate_plan_and_create_sample(domain_filename, instance_filename, model, instance_data, sample):
+def generate_plan_and_create_sample(domain_filename, instance_filename, model, instance_data, sample, initial_sample=False):
     allstates = compute_plan(model, domain_filename, instance_filename, instance_data['pddl_constants'])
 
     if allstates is not None:
         # Add the states (plus their expansions) to the D2L Transitionsample object.
         for i, state in enumerate(allstates, start=0):
-            expand_state_into_sample(sample, state, instance_data['id'], model, root=(i == 0))
+            # ToDo maybe the initial_sample is unnecessary
+            #sid = sample.get_state_id(state)
+            #if sid is None or sample.is_expanded(sid):
+            #    continue
+            expand_state_into_sample(sample, state, instance_data['id'], model, root=((i == 0) and initial_sample))
+
 
 
 def expand_state_into_sample(sample, state, instance_id, model, root=False):
@@ -152,7 +157,7 @@ def generate_initial_sample(config, all_instance_data):
     sample = TransitionSample()
     for instance in config.instances:
         instance_data = all_instance_data[instance]
-        generate_plan_and_create_sample(config.domain, instance, instance_data['search_model'], instance_data, sample)
+        generate_plan_and_create_sample(config.domain, instance, instance_data['search_model'], instance_data, sample, True)
 
     mark_optimal_transitions(sample)
     logging.info(f"Entire sample: {sample.info()}")
@@ -404,6 +409,14 @@ def run(config, data, rng):
         if nsolved == len(config.validation_instances):
             logging.info("Policy solves all states in training set")
             break  # Policy test was successful, we're done.
+
+        mark_optimal_transitions(sample)
+
+        # Since we have only generated some (optimal) plan, we don't know the actual V* value for states that are in the
+        # sample but not in the plan. We mark that accordingly with the special -2 "unknown" value
+        for s in sample.states.keys():
+            if s not in sample.expanded and s not in sample.goals:
+                sample.vstar[s] = -2
 
         log_sampled_states(sample, config.resampled_states_filename)
         print_transition_matrix(sample, config.transitions_info_filename)
