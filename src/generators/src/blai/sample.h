@@ -45,7 +45,7 @@ public:
         os
             << "[states: " << transitions_.num_states()
             << ", transitions: " << transitions_.num_transitions()
-            << " (from alive state: " << num_alive << ")"
+            << " (from alive state: " << transitions_.all_alive().size() << ")"
             << ", unsolvable: " << transitions_.num_unsolvable()
             << ", goals: " << transitions_.all_goals().size()
             << ", features: " << matrix_.num_features()

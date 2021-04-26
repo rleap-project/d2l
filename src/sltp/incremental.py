@@ -136,7 +136,8 @@ def generate_plan_and_create_sample(domain_filename, instance_filename, model, i
             #sid = sample.get_state_id(state)
             #if sid is None or sample.is_expanded(sid):
             #    continue
-            expand_state_into_sample(sample, state, instance_data['id'], model, root=((i == 0) and initial_sample))
+            #expand_state_into_sample(sample, state, instance_data['id'], model, root=((i == 0) and initial_sample))
+            expand_state_into_sample(sample, state, instance_data['id'], model, root=(i == 0))
 
 
 def expand_state_into_sample(sample, state, instance_id, model, root=False):
@@ -394,13 +395,12 @@ def run(config, data, rng):
     config.wsat_varmap_filename = compute_info_filename(config.__dict__, "varmap.wsat")
     config.wsat_allvars_filename = compute_info_filename(config.__dict__, "allvars.wsat")
 
-    config.validation_instances = [os.path.join(BENCHMARK_DIR, config.domain_dir, i) for i in
-                                   config.validation_instances]
+    #config.validation_instances = [os.path.join(BENCHMARK_DIR, config.domain_dir, i) for i in
+    #                               config.validation_instances]
 
     rng = np.random.default_rng(config.seed)
 
-    all_instances = list(sorted(set(config.validation_instances).union(config.instances)))
-    all_instance_data, language = compute_instance_data(all_instances, config)
+    all_instance_data, language = compute_instance_data(config.instances, config)
 
     # Compute a plan for each of the training instances, and put all states in the plan into the sample, along with
     # all of their (possibly non-expanded) children.
@@ -419,9 +419,9 @@ def run(config, data, rng):
             logging.info("No policy found under given complexity bound")
             break
 
-        # Test the policy on the validation set
-        nsolved = test_policy_and_compute_flaws(policy, all_instance_data, config.validation_instances, config, sample)
-        if nsolved == len(config.validation_instances):
+        # Validate the policy on roots of the training set
+        nsolved = test_policy_and_compute_flaws(policy, all_instance_data, config.instances, config, sample)
+        if nsolved == len(config.instances):
             logging.info("Policy solves all states in training set")
             break  # Policy test was successful, we're done.
 
