@@ -193,6 +193,10 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
 
         # Compute a plan from every detected policy flaw
         compute_plan_on_flaws=False,
+
+        num_random_walks=0,
+
+        random_walk_length=10,
     )
 
     parameters = {**defaults, **kwargs}  # Copy defaults, overwrite with user-specified parameters

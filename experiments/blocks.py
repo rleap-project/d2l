@@ -240,6 +240,7 @@ def experiments():
         refine_policy_from_entire_sample=True,
         refinement_batch_size=10,
         compute_plan_on_flaws=True,
+        num_random_walks=2,
     )
 
     exps["on-sd2l"] = update_dict(

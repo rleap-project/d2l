@@ -2,6 +2,7 @@ import copy
 import logging
 import os
 import tempfile
+import random
 
 from tarski.dl import compute_dl_vocabulary
 from tarski.grounding.lp_grounding import ground_problem_schemas_into_plain_operators
@@ -12,7 +13,6 @@ from tarski.search.blind import make_child_node, make_root_node, SearchStats
 from tarski.search.model import progress
 from tarski.syntax.transform.action_grounding import ground_schema_into_plain_operator_from_grounding
 
-from . import cnfgen
 from .cnfgen import invoke_cpp_module, parse_dnf_policy
 from .driver import Step, BENCHMARK_DIR
 from .featuregen import print_sample_info, deal_with_serialized_features, generate_output_from_handcrafted_features, \
@@ -27,7 +27,6 @@ from .sampling import log_sampled_states, TransitionSample, mark_optimal_transit
 from .util.command import execute
 from .util.naming import compute_sample_filenames, compute_info_filename, compute_maxsat_filename
 
-from collections import OrderedDict
 
 
 class IncrementalPolicyGenerationSingleStep(Step):
@@ -90,10 +89,7 @@ def generate_instance_file(problem, pddl_constants):
     return tf.name
 
 
-def compute_plan(model, domain_filename, instance_filename=None, pddl_constants=None):
-    if instance_filename is None:
-        instance_filename = generate_instance_file(model.problem, pddl_constants)
-
+def compute_plan(model, domain_filename, instance_filename, init):
     # Run Fast Downward and get a plan!
     plan = run_fd(domain_filename, instance_filename, verbose=False)
     if plan is None:
@@ -103,7 +99,7 @@ def compute_plan(model, domain_filename, instance_filename=None, pddl_constants=
 
     # Collect all states in the plan
     allstates = []
-    s = model.init()
+    s = init
     for action in plan:
         allstates.append(s)
         components = action.rstrip(')').lstrip('(').split()
@@ -122,8 +118,15 @@ def compute_plan(model, domain_filename, instance_filename=None, pddl_constants=
     return allstates
 
 
-def generate_plan_and_create_sample(domain_filename, instance_filename, model, instance_data, sample, initial_sample=False):
-    allstates = compute_plan(model, domain_filename, instance_filename, instance_data['pddl_constants'])
+def generate_plan_and_create_sample(domain_filename, instance_filename, model, init, instance_data, sample, initial_sample=False):
+    if instance_filename is None:
+        # If there is no associated instance filename, we print the given initial state into a PDDL instance file
+        assert init is not None
+        prob_init = copy.copy(model.problem)
+        prob_init.init = init
+        instance_filename = generate_instance_file(prob_init, instance_data['pddl_constants'])
+
+    allstates = compute_plan(model, domain_filename, instance_filename, init)
 
     if allstates is not None:
         # Add the states (plus their expansions) to the D2L Transitionsample object.
@@ -133,7 +136,6 @@ def generate_plan_and_create_sample(domain_filename, instance_filename, model, i
             #if sid is None or sample.is_expanded(sid):
             #    continue
             expand_state_into_sample(sample, state, instance_data['id'], model, root=((i == 0) and initial_sample))
-
 
 
 def expand_state_into_sample(sample, state, instance_id, model, root=False):
@@ -148,6 +150,13 @@ def expand_state_into_sample(sample, state, instance_id, model, root=False):
         sample.add_transition(sid, succid)
 
 
+def random_walk(model, length):
+    s = model.problem.init
+    for i in range(0, length):
+        s = random.choice([succ for _, succ in model.successors(s)])
+    return s
+
+
 def generate_initial_sample(config, all_instance_data):
     # To generate the initial sample, we compute one plan per training instance, and include in the sample all
     # states that are part of the plan, plus all their (possibly unexpanded) children.
@@ -156,7 +165,13 @@ def generate_initial_sample(config, all_instance_data):
     sample = TransitionSample()
     for instance in config.instances:
         instance_data = all_instance_data[instance]
-        generate_plan_and_create_sample(config.domain, instance, instance_data['search_model'], instance_data, sample, True)
+        model = instance_data['search_model']
+        generate_plan_and_create_sample(config.domain, instance, model, model.init(),
+                                        instance_data, sample, True)
+
+        for rwi in range(0, config.num_random_walks):
+            s = random_walk(model, length=config.random_walk_length)
+            generate_plan_and_create_sample(config.domain, None, model, s, instance_data, sample, True)
 
     mark_optimal_transitions(sample)
     logging.info(f"Entire sample: {sample.info()}")
@@ -304,9 +319,7 @@ def test_policy_and_compute_flaws(policy, all_instance_data, instances, config, 
             for state in flaws:
 
                 if config.compute_plan_on_flaws:
-                    newmodel = copy.deepcopy(search_model)
-                    newmodel.problem.init = state
-                    generate_plan_and_create_sample(config.domain, None, newmodel, val_data, sample)
+                    generate_plan_and_create_sample(config.domain, None, search_model, state, val_data, sample)
                 else:
                     sid = sample.get_state_id(state)
                     if sid is None or not sample.is_expanded(sid):
