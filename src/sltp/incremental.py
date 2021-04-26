@@ -84,7 +84,6 @@ def run_fd(domain, instance, verbose):
 
 
 def generate_instance_file(problem, pddl_constants):
-    pddl_constants = []
     writer = FstripsWriter(problem)
     with tempfile.NamedTemporaryFile(mode='w', delete=False) as tf:
         tf.write(writer.print_instance(pddl_constants))
