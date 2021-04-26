@@ -92,14 +92,15 @@ def experiments():
         pipeline=pipelines.INCREMENTAL,
         # instances=["training_clear_5.pddl"],
         # validation_instances=["training_clear_5.pddl"],
-        instances=["training_clear_5.pddl"],
-        validation_instances=["training_clear_5.pddl"],
+        instances=["training_clear_5-fixed.pddl"],
         test_policy_instances=all_clear_test_instancess(),
 
-        refine_policy_from_entire_sample=False,
         sampling_strategy="full",
         initial_sample_size=999999,
         verbosity=2,
+        refine_policy_from_entire_sample=True,
+        refinement_batch_size=2,
+        compute_plan_on_flaws=True,
     )
 
     exps["clear-ipc-inc"] = update_dict(
@@ -120,8 +121,10 @@ def experiments():
         initial_sample_size=999999,
         verbosity=2,
         refine_policy_from_entire_sample=True,
-        refinement_batch_size=10,
+        refinement_batch_size=2,
         compute_plan_on_flaws=True,
+        num_random_walks=2,
+        random_walk_length=10,
     )
 
     exps["clear-sd2l"] = update_dict(
@@ -216,24 +219,7 @@ def experiments():
             "training_on_5.pddl",
         ],
         test_policy_instances=all_on_test_instancess(),
-        sampling_strategy="full",
-        initial_sample_size=999999,
-        verbosity=2,
-    )
-
-    exps["on-ipc-inc"] = update_dict(
-        exps["on"],
-        pipeline=pipelines.INCREMENTAL,
-        instances=[
-            "test_on_probBLOCKS-11-0.pddl",
-            "test_on_probBLOCKS-11-1.pddl",
-            "test_on_probBLOCKS-11-2.pddl",],
-        validation_instances=[
-            "test_on_probBLOCKS-11-0.pddl",
-            "test_on_probBLOCKS-11-1.pddl",
-            "test_on_probBLOCKS-11-2.pddl",],
-        parameter_generator=blocksworld_declared_parameters_for_on,
-        test_policy_instances=all_on_test_instancess(),
+        
         sampling_strategy="full",
         initial_sample_size=999999,
         verbosity=2,
@@ -241,6 +227,26 @@ def experiments():
         refinement_batch_size=10,
         compute_plan_on_flaws=True,
         num_random_walks=2,
+    )
+
+    exps["on-ipc-inc"] = update_dict(
+        exps["on"],
+        pipeline=pipelines.INCREMENTAL,
+        instances=[
+            #"test_on_probBLOCKS-11-0.pddl",
+            #"test_on_probBLOCKS-11-1.pddl",
+            "test_on_probBLOCKS-11-2.pddl",],
+        parameter_generator=blocksworld_declared_parameters_for_on,
+        test_policy_instances=all_on_test_instancess(),
+        
+        sampling_strategy="full",
+        initial_sample_size=999999,
+        verbosity=2,
+        refine_policy_from_entire_sample=True,
+        refinement_batch_size=2,
+        compute_plan_on_flaws=True,
+        num_random_walks=4,
+        random_walk_length=10,
     )
 
     exps["on-sd2l"] = update_dict(
@@ -360,6 +366,11 @@ def experiments():
         sampling_strategy="full",
         initial_sample_size=999999,
         verbosity=2,
+        refine_policy_from_entire_sample=True,
+        refinement_batch_size=2,
+        compute_plan_on_flaws=True,
+        num_random_walks=2,
+        random_walk_length=10,
     )
 
     exps["all_at_5-ipc-inc"] = update_dict(
@@ -378,8 +389,10 @@ def experiments():
         initial_sample_size=999999,
         verbosity=2,
         refine_policy_from_entire_sample=True,
-        refinement_batch_size=10,
+        refinement_batch_size=2,
         compute_plan_on_flaws=True,
+        num_random_walks=2,
+        random_walk_length=10,
     )
 
     exps["all_at_5-sd2l"] = update_dict(
