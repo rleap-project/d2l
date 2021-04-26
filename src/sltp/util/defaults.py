@@ -107,9 +107,6 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
         # What optimization criteria to use in the max-sat problem
         optimization=OptimizationPolicy.TOTAL_FEATURE_COMPLEXITY,
 
-        # Set a random seed for reproducibility (default: 1)
-        random_seed=1,
-
         # the max-sat solver to use. Accepted: openwbo, openwbo-inc, wpm3, maxino
         maxsat_solver='openwbo',
         maxsat_timeout=None,
@@ -157,7 +154,7 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
         # A function to create the FOL language, used to be able to parse the features.
         language_creator=pddl_language_creator,
 
-        # The random seed
+        # Set a random seed for reproducibility (default: 1)
         seed=123,
 
         # The hyper-parameters of the incremental approach

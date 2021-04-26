@@ -2,7 +2,8 @@ import copy
 import logging
 import os
 import tempfile
-import random
+
+import numpy as np
 
 from tarski.dl import compute_dl_vocabulary
 from tarski.grounding.lp_grounding import ground_problem_schemas_into_plain_operators
@@ -150,14 +151,14 @@ def expand_state_into_sample(sample, state, instance_id, model, root=False):
         sample.add_transition(sid, succid)
 
 
-def random_walk(model, length):
+def random_walk(rng, model, length):
     s = model.problem.init
     for i in range(0, length):
-        s = random.choice([succ for _, succ in model.successors(s)])
+        s = rng.choice([succ for _, succ in model.successors(s)])
     return s
 
 
-def generate_initial_sample(config, all_instance_data):
+def generate_initial_sample(rng, config, all_instance_data):
     # To generate the initial sample, we compute one plan per training instance, and include in the sample all
     # states that are part of the plan, plus all their (possibly unexpanded) children.
     # _run_brfs(config, None, None)
@@ -170,7 +171,7 @@ def generate_initial_sample(config, all_instance_data):
                                         instance_data, sample, True)
 
         for rwi in range(0, config.num_random_walks):
-            s = random_walk(model, length=config.random_walk_length)
+            s = random_walk(rng, model, length=config.random_walk_length)
             generate_plan_and_create_sample(config.domain, None, model, s, instance_data, sample, True)
 
     mark_optimal_transitions(sample)
@@ -396,13 +397,15 @@ def run(config, data, rng):
     config.validation_instances = [os.path.join(BENCHMARK_DIR, config.domain_dir, i) for i in
                                    config.validation_instances]
 
+    rng = np.random.default_rng(config.seed)
+
     all_instances = list(sorted(set(config.validation_instances).union(config.instances)))
     all_instance_data, language = compute_instance_data(all_instances, config)
 
     # Compute a plan for each of the training instances, and put all states in the plan into the sample, along with
     # all of their (possibly non-expanded) children.
     # All states will need to be labeled with their status (goal / unsolvable / alive)
-    sample = generate_initial_sample(config, all_instance_data)
+    sample = generate_initial_sample(rng, config, all_instance_data)
     iteration = 1
     while True:
         # TODO: This could be optimized to avoid recomputing the features over the states that already were in the
