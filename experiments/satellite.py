@@ -43,15 +43,11 @@ def experiments():
         # use_feature_dominance=True,
     )
 
-    exps["small-ipc-inc"] = update_dict(
+    exps["small-orig-inc"] = update_dict(
         exps["small"],
         distinguish_goals=True,
         pipeline=pipelines.INCREMENTAL,
         instances=[
-            'p01-pfile1.pddl',
-            'p02-pfile2.pddl',
-        ],
-        validation_instances=[
             'p01-pfile1.pddl',
             'p02-pfile2.pddl',
         ],
@@ -60,8 +56,31 @@ def experiments():
         sampling_strategy="full",
         initial_sample_size=999999,
         verbosity=2,
-        refine_policy_from_entire_sample=False,
-        refinement_batch_size=20,
+        refine_policy_from_entire_sample=True,
+        refinement_batch_size=2,
+        compute_plan_on_flaws=True,
+        num_random_walks=2,
+        random_walk_length=10,
+    )
+
+    exps["small-ipc-inc"] = update_dict(
+        exps["small"],
+        distinguish_goals=True,
+        pipeline=pipelines.INCREMENTAL,
+        instances=[
+            'p01-pfile1.pddl',
+            'p02-pfile2.pddl',
+        ],
+        test_policy_instances=all_test_instances(),
+
+        sampling_strategy="full",
+        initial_sample_size=999999,
+        verbosity=2,
+        refine_policy_from_entire_sample=True,
+        refinement_batch_size=2,
+        compute_plan_on_flaws=True,
+        num_random_walks=2,
+        random_walk_length=10,
     )
 
     return exps
