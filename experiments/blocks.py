@@ -90,6 +90,8 @@ def experiments():
     exps["clear-orig-inc"] = update_dict(
         exps["clear"],
         pipeline=pipelines.INCREMENTAL,
+        parameter_generator=blocksworld_declared_parameters_for_clear,
+        
         # instances=["training_clear_5.pddl"],
         # validation_instances=["training_clear_5.pddl"],
         instances=["training_clear_5.pddl"],
@@ -209,6 +211,8 @@ def experiments():
     exps["on-orig-inc"] = update_dict(
         exps["on"],
         pipeline=pipelines.INCREMENTAL,
+        parameter_generator=blocksworld_declared_parameters_for_clear,
+
         instances=[
             "training_on_5.pddl",
         ],
