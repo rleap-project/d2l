@@ -77,6 +77,7 @@ def run_fd(domain, instance, verbose):
         logging.error("Fast Downward error")
         return None
 
+    plan = []
     with open('plan.txt', 'r') as f:
         # Read up all lines in plan file that do not start with a comment character ";"
         plan = [line for line in f.read().splitlines() if not line.startswith(';')]
@@ -91,6 +92,10 @@ def generate_instance_file(problem, pddl_constants):
 
 
 def compute_plan(model, domain_filename, instance_filename, init):
+    if init is None:
+        print("Initial state is empty")
+        return None
+
     # Run Fast Downward and get a plan!
     plan = run_fd(domain_filename, instance_filename, verbose=False)
     if plan is None:
