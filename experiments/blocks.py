@@ -214,7 +214,7 @@ def experiments():
     exps["on-orig-inc"] = update_dict(
         exps["on"],
         pipeline=pipelines.INCREMENTAL,
-        parameter_generator=blocksworld_declared_parameters_for_clear,
+        parameter_generator=blocksworld_declared_parameters_for_on,
 
         instances=[
             "training_on_5.pddl",
