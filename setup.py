@@ -60,7 +60,7 @@ def main():
             'psutil',
             'bitarray',
             'natsort>=7.0.1',
-            "tarski@git+git://github.com/aig-upf/tarski.git@1aac617#egg=tarski",
+            "tarski@git+git://github.com/aig-upf/tarski.git@288d900#egg=tarski",
         ],
 
         # ext_modules=[
