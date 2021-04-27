@@ -49,7 +49,7 @@ def experiments():
         pipeline=pipelines.INCREMENTAL,
         instances=[
             'p01-pfile1.pddl',
-            'p02-pfile2.pddl',
+            #'p02-pfile2.pddl',
         ],
         test_policy_instances=all_test_instances(),
 
