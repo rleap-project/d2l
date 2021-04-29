@@ -37,8 +37,8 @@ def experiments():
         test_instances=[],
         test_policy_instances=["opt-p01-002.pddl"],
 
-        max_concept_size=8,
-        distance_feature_max_complexity=10,
+        max_concept_size=6,
+        distance_feature_max_complexity=6,
 
         parameter_generator=None,
         use_equivalence_classes=True,
@@ -50,14 +50,24 @@ def experiments():
         distinguish_goals=True,
         pipeline=pipelines.INCREMENTAL,
         instances=["training1.pddl"],
-        validation_instances=["training1.pddl"],
         test_policy_instances=["opt-p01-002.pddl"],
 
+        #sampling_strategy="full",
+        #initial_sample_size=999999,
+        #verbosity=2,
+        #refine_policy_from_entire_sample=True,
+        #refinement_batch_size=2,
+        #compute_plan_on_flaws=True,
+        #num_random_walks=2,
+        #random_walk_length=10,
         sampling_strategy="full",
         initial_sample_size=999999,
         verbosity=2,
-        refine_policy_from_entire_sample=False,
-        refinement_batch_size=2,
+        refine_policy_from_entire_sample=True,
+        refinement_batch_size=1,
+        compute_plan_on_flaws=True,
+        num_random_walks=0,
+        random_walk_length=0,
     )
 
     return exps

@@ -39,26 +39,53 @@ def experiments():
         test_instances=[],
         test_policy_instances=all_instances(),
 
-        distance_feature_max_complexity=8,
-        max_concept_size=8,
+        distance_feature_max_complexity=14,
+        max_concept_size=9,
         use_equivalence_classes=True,
         sampling_strategy="goal",
         verbosity=2,
     )
 
-    exps["small-ipc-inc"] = update_dict(
+    exps["small-orig-inc"] = update_dict(
         exps["small"],
         distinguish_goals=True,
         pipeline=pipelines.INCREMENTAL,
         instances=[f'sample{i}.pddl' for i in [2]],
-        validation_instances=[f'sample{i}.pddl' for i in [2]],
         test_policy_instances=all_instances(),
-
+        
         sampling_strategy="full",
         initial_sample_size=999999,
         verbosity=2,
         refine_policy_from_entire_sample=True,
-        refinement_batch_size=20,
+        refinement_batch_size=2,
+        compute_plan_on_flaws=True,
+        num_random_walks=2,
+        random_walk_length=10,
+    )
+    
+    exps["small-ipc-inc"] = update_dict(
+        exps["small"],
+        distinguish_goals=True,
+        pipeline=pipelines.INCREMENTAL,
+        instances=[f'sample{i}.pddl' for i in [1,2,3]],
+        test_policy_instances=all_instances(),
+        
+        #sampling_strategy="full",
+        #initial_sample_size=999999,
+        #verbosity=2,
+        #refine_policy_from_entire_sample=True,
+        #refinement_batch_size=2,
+        #compute_plan_on_flaws=True,
+        #num_random_walks=2,
+        #random_walk_length=10,
+        sampling_strategy="full",
+        initial_sample_size=999999,
+        verbosity=2,
+        refine_policy_from_entire_sample=True,
+        refinement_batch_size=1,
+        compute_plan_on_flaws=True,
+        num_random_walks=0,
+        random_walk_length=0,
     )
     
     exps["small-sd2l"] = update_dict(
@@ -86,4 +113,4 @@ def experiments():
 
 
 def all_instances():
-    return [f"prob0{i}.pddl" for i in range(1, 3)]
+    return [f"prob0{i}.pddl" for i in range(1, 36)]

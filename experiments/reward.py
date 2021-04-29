@@ -55,25 +55,39 @@ def experiments():
         #instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
         #validation_instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
         test_policy_instances=all_test_instances(),
-        verbosity=2,
+
+        sampling_strategy="full",
         initial_sample_size=999999,
-        sampling_strategy="full"
+        verbosity=2,
+        refine_policy_from_entire_sample=True,
+        refinement_batch_size=2,
+        compute_plan_on_flaws=True,
+        num_random_walks=10,
+        random_walk_length=20,
     )
 
     exps["small-ipc-inc"] = update_dict(
         exps["small"],
         pipeline=pipelines.INCREMENTAL,
-        instances=["instance_10x10_0.pddl","instance_10x10_1.pddl","instance_10x10_2.pddl","instance_10x10_3.pddl","instance_10x10_4.pddl"],
-        validation_instances=["instance_10x10_0.pddl","instance_10x10_1.pddl","instance_10x10_2.pddl","instance_10x10_3.pddl","instance_10x10_4.pddl"],
-        #instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
-        #validation_instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
+        instances=["instance_10x10_0.pddl"],
         test_policy_instances=all_test_instances(),
+      
+        #sampling_strategy="full",
+        #initial_sample_size=999999,
+        #verbosity=2,
+        #refine_policy_from_entire_sample=True,
+        #refinement_batch_size=2,
+        #compute_plan_on_flaws=True,
+        #num_random_walks=2,
+        #random_walk_length=10,
         sampling_strategy="full",
         initial_sample_size=999999,
         verbosity=2,
         refine_policy_from_entire_sample=True,
-        refinement_batch_size=10,
+        refinement_batch_size=1,
         compute_plan_on_flaws=True,
+        num_random_walks=0,
+        random_walk_length=0,
     )
     
     exps["small-sd2l"] = update_dict(

@@ -53,19 +53,53 @@ def experiments():
         verbosity=2
     )
 
-    exps["small-inc"] = update_dict(
+    exps["small-orig-inc"] = update_dict(
         exps["small"],
         pipeline=pipelines.INCREMENTAL,
         instances=[
-            'child-snack_pfile06.pddl',
-        ],
-        validation_instances=[
-            'child-snack_pfile06.pddl',
+            'sample01.pddl',
+            'sample02.pddl',
         ],
         test_policy_instances=all_test_instances(),
-        verbosity=0,
+        
+        #sampling_strategy="full",
+        #initial_sample_size=999999,
+        #verbosity=2,
+        #refine_policy_from_entire_sample=True,
+        #refinement_batch_size=2,
+        #compute_plan_on_flaws=True,
+        sampling_strategy="full",
         initial_sample_size=999999,
-        sampling_strategy="full"
+        verbosity=2,
+        refine_policy_from_entire_sample=True,
+        refinement_batch_size=1,
+        compute_plan_on_flaws=True,
+        num_random_walks=0,
+        random_walk_length=0,
+    )
+
+    exps["small-ipc-inc"] = update_dict(
+        exps["small"],
+        pipeline=pipelines.INCREMENTAL,
+        instances=[
+            'child-snack_pfile01.pddl',
+        ],
+        test_policy_instances=all_test_instances(),
+        
+        #sampling_strategy="full",
+        #initial_sample_size=999999,
+        #verbosity=2,
+        #refine_policy_from_entire_sample=True,
+        #refinement_batch_size=2,
+        #compute_plan_on_flaws=True,
+        sampling_strategy="full",
+        initial_sample_size=999999,
+        verbosity=2,
+        refine_policy_from_entire_sample=True,
+        refinement_batch_size=1,
+        compute_plan_on_flaws=True,
+        num_random_walks=0,
+        random_walk_length=0,
     )
     
     exps["small-sd2l"] = update_dict(

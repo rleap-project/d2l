@@ -75,22 +75,36 @@ def experiments():
         initial_sample_size=999999,
         verbosity=2,
         refine_policy_from_entire_sample=True,
-        refinement_batch_size=10,
+        refinement_batch_size=2,
         compute_plan_on_flaws=True,
+        num_random_walks=2,
+        random_walk_length=10,
     )
 
     exps["small-ipc-inc"] = update_dict(
         exps["small"],
         pipeline=pipelines.INCREMENTAL,
-        instances=["s5-0.pddl","s5-4.pddl"],
-        validation_instances=["s5-0.pddl","s5-4.pddl"],
+        #instances=["s5-0.pddl","s5-4.pddl"],
+        #validation_instances=["s5-0.pddl","s5-4.pddl"],
+        instances=["s7-0.pddl"],
         test_policy_instances=all_test_instances(),
+        
+        #sampling_strategy="full",
+        #initial_sample_size=999999,
+        #verbosity=2,
+        #refine_policy_from_entire_sample=True,
+        #refinement_batch_size=2,
+        #compute_plan_on_flaws=True,
+        #num_random_walks=2,
+        #random_walk_length=10,
         sampling_strategy="full",
         initial_sample_size=999999,
         verbosity=2,
         refine_policy_from_entire_sample=True,
-        refinement_batch_size=10,
+        refinement_batch_size=1,
         compute_plan_on_flaws=True,
+        num_random_walks=0,
+        random_walk_length=0,
     )
     
     exps["small-sd2l"] = update_dict(

@@ -40,13 +40,16 @@ class TransitionSample:
     def is_goal(self, state_id):
         return state_id in self.goals
 
+    def add_optimal_transition(self, parent_id, child_id ):
+        self.optimal_transitions.add((parent_id, child_id))
+
     def _register_new_state(self, state):
         sid = len(self.states)
         self.states[sid] = state
         self.state_to_id[state] = sid
         return sid
 
-    def _update_state_info(self, sid, instance_id, expanded, goal, unsolvable, root):
+    def _update_state_info(self, sid, instance_id, expanded, goal, unsolvable, vstar, root):
         self.instance[sid] = instance_id
         if expanded:
             self.expanded.add(sid)
@@ -68,7 +71,11 @@ class TransitionSample:
         else:
             self.roots.discard(sid)
 
-    def add_state(self, state, instance_id, expanded, goal, unsolvable, root, update_if_duplicate=True):
+        self.vstar[sid] = vstar
+        if vstar > 0:
+            self.alive_states.add(sid)
+
+    def add_state(self, state, instance_id, expanded, goal, unsolvable, vstar, root, update_if_duplicate=True):
         """ Add a state and associated info to the sample. """
         sid = self.state_to_id.get(state)
         if sid is not None:  # The state is already in the sample
@@ -78,7 +85,7 @@ class TransitionSample:
         else:  # Otherwise, the state is new
             sid = self._register_new_state(state)
 
-        self._update_state_info(sid, instance_id, expanded, goal, unsolvable, root)
+        self._update_state_info(sid, instance_id, expanded, goal, unsolvable, vstar, root)
         return sid
 
     def add_transition(self, s, t):

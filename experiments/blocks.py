@@ -114,19 +114,24 @@ def experiments():
         instances=[
             # "test_clear_probBLOCKS-10-0.pddl",
             "test_clear_probBLOCKS-10-1.pddl", ],
-        validation_instances=[
-            # "test_clear_probBLOCKS-10-0.pddl",
-            "test_clear_probBLOCKS-10-1.pddl", ],
         test_policy_instances=all_clear_test_instancess(),
 
+        #sampling_strategy="full",
+        #initial_sample_size=999999,
+        #verbosity=2,
+        #refine_policy_from_entire_sample=True,
+        #refinement_batch_size=2,
+        #compute_plan_on_flaws=True,
+        #num_random_walks=2,
+        #random_walk_length=10,
         sampling_strategy="full",
         initial_sample_size=999999,
         verbosity=2,
         refine_policy_from_entire_sample=True,
-        refinement_batch_size=2,
+        refinement_batch_size=1,
         compute_plan_on_flaws=True,
-        num_random_walks=2,
-        random_walk_length=10,
+        num_random_walks=0,
+        random_walk_length=0,
     )
 
     exps["clear-sd2l"] = update_dict(
@@ -228,9 +233,10 @@ def experiments():
         initial_sample_size=999999,
         verbosity=2,
         refine_policy_from_entire_sample=True,
-        refinement_batch_size=10,
+        refinement_batch_size=2,
         compute_plan_on_flaws=True,
-        num_random_walks=2,
+        num_random_walks=4,
+        random_walk_length=10,
     )
 
     exps["on-ipc-inc"] = update_dict(
@@ -243,14 +249,22 @@ def experiments():
         parameter_generator=blocksworld_declared_parameters_for_on,
         test_policy_instances=all_on_test_instancess(),
         
+        #sampling_strategy="full",
+        #initial_sample_size=999999,
+        #verbosity=2,
+        #refine_policy_from_entire_sample=True,
+        #refinement_batch_size=2,
+        #compute_plan_on_flaws=True,
+        #num_random_walks=4,
+        #random_walk_length=10,
         sampling_strategy="full",
         initial_sample_size=999999,
         verbosity=2,
         refine_policy_from_entire_sample=True,
-        refinement_batch_size=2,
+        refinement_batch_size=1,
         compute_plan_on_flaws=True,
-        num_random_walks=4,
-        random_walk_length=10,
+        num_random_walks=0,
+        random_walk_length=0,
     )
 
     exps["on-sd2l"] = update_dict(
@@ -367,36 +381,50 @@ def experiments():
                               ] + [
                                   f"test_atomic_{n}_{i}.pddl" for n in range(10, 31) for i in range(0, 5)
                               ],
+        #sampling_strategy="full",
+        #initial_sample_size=999999,
+        #verbosity=2,
+        #refine_policy_from_entire_sample=True,
+        #refinement_batch_size=2,
+        #compute_plan_on_flaws=True,
+        #num_random_walks=2,
+        #random_walk_length=10,
         sampling_strategy="full",
         initial_sample_size=999999,
         verbosity=2,
         refine_policy_from_entire_sample=True,
-        refinement_batch_size=2,
+        refinement_batch_size=1,
         compute_plan_on_flaws=True,
-        num_random_walks=2,
-        random_walk_length=10,
+        num_random_walks=0,
+        random_walk_length=0,
     )
 
     exps["all_at_5-ipc-inc"] = update_dict(
         exps["all_at_5"],
         pipeline=pipelines.INCREMENTAL,
         instances=[
-            "test_atomic_11_2.pddl"],
-        validation_instances=[
-            "test_atomic_11_2.pddl"],
+            "test_atomic_7_2.pddl"],
         test_policy_instances=[
                                   "training_arbitrary_5_atomic.pddl",
                               ] + [
                                   f"test_atomic_{n}_{i}.pddl" for n in range(10, 31) for i in range(0, 5)
                               ],
+        #sampling_strategy="full",
+        #initial_sample_size=999999,
+        #verbosity=2,
+        #refine_policy_from_entire_sample=True,
+        #refinement_batch_size=1,
+        #compute_plan_on_flaws=True,
+        #num_random_walks=2,
+        #random_walk_length=10,
         sampling_strategy="full",
         initial_sample_size=999999,
         verbosity=2,
         refine_policy_from_entire_sample=True,
-        refinement_batch_size=2,
+        refinement_batch_size=1,
         compute_plan_on_flaws=True,
-        num_random_walks=2,
-        random_walk_length=10,
+        num_random_walks=0,
+        random_walk_length=0,
     )
 
     exps["all_at_5-sd2l"] = update_dict(

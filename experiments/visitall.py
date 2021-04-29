@@ -58,10 +58,14 @@ def experiments():
         # validation_instances=["problem{:02d}-full.pddl".format(i) for i in range(2, 6)],
         test_policy_instances=["problem{:02d}-full.pddl".format(i) for i in range(6, 12)],
 
-        refine_policy_from_entire_sample=False,
         sampling_strategy="full",
         initial_sample_size=999999,
         verbosity=2,
+        refine_policy_from_entire_sample=True,
+        refinement_batch_size=2,
+        compute_plan_on_flaws=True,
+        num_random_walks=2,
+        random_walk_length=10,
     )
 
     exps["small-ipc-inc"] = update_dict(
@@ -74,12 +78,22 @@ def experiments():
         # validation_instances=["problem{:02d}-full.pddl".format(i) for i in range(2, 6)],
         test_policy_instances=["problem{:02d}-full.pddl".format(i) for i in range(6, 12)],
 
+        #sampling_strategy="full",
+        #initial_sample_size=999999,
+        #verbosity=2,
+        #refine_policy_from_entire_sample=True,
+        #refinement_batch_size=2,
+        #compute_plan_on_flaws=True,
+        #num_random_walks=2,
+        #random_walk_length=10,
         sampling_strategy="full",
         initial_sample_size=999999,
         verbosity=2,
         refine_policy_from_entire_sample=True,
-        refinement_batch_size=10,
+        refinement_batch_size=1,
         compute_plan_on_flaws=True,
+        num_random_walks=0,
+        random_walk_length=0,
     )
     
     exps["small-sd2l"] = update_dict(

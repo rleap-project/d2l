@@ -73,7 +73,7 @@ def generate_atomic_bw_language(nblocks):
 
 
 def main():
-    for nblocks in range(10, 31):
+    for nblocks in range(6, 31):
         for run in range(0, 5):
             problem, domain_constants = generate_problem(nblocks=nblocks, run=run)
             writer = FstripsWriter(problem)

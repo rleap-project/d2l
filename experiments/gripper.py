@@ -57,11 +57,16 @@ def experiments():
         validation_instances=["prob01.pddl"],
         # instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
         # validation_instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
-        test_policy_instances=[f"prob{i:02d}.pddl" for i in range(5, 21)],
-        verbosity=2,
-        refine_policy_from_entire_sample=False,
+        test_policy_instances=["sample-tiny.pddl"]+[f"prob{i:02d}.pddl" for i in range(5, 21)],
+
+        sampling_strategy="full",
         initial_sample_size=999999,
-        sampling_strategy="full"
+        verbosity=2,
+        refine_policy_from_entire_sample=True,
+        refinement_batch_size=2,
+        compute_plan_on_flaws=True,
+        num_random_walks=2,
+        random_walk_length=10,
 
     )
 
@@ -69,16 +74,27 @@ def experiments():
         exps["small"],
         pipeline=pipelines.INCREMENTAL,
         instances=["prob04-fixed.pddl","prob05.pddl"],
-        validation_instances=["prob04-fixed.pddl","prob05.pddl"],
+        #validation_instances=["prob04-fixed.pddl","prob05.pddl"],
         # instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
         # validation_instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
         test_policy_instances=["sample-tiny.pddl"]+[f"prob{i:02d}.pddl" for i in range(5, 21)],
+
+        #sampling_strategy="full",
+        #initial_sample_size=999999,
+        #verbosity=2,
+        #refine_policy_from_entire_sample=True,
+        #refinement_batch_size=2,
+        #compute_plan_on_flaws=True,
+        #num_random_walks=10,
+        #random_walk_length=10,
         sampling_strategy="full",
         initial_sample_size=999999,
         verbosity=2,
         refine_policy_from_entire_sample=True,
-        refinement_batch_size=10,
+        refinement_batch_size=1,
         compute_plan_on_flaws=True,
+        num_random_walks=0,
+        random_walk_length=0,
 
     )
 

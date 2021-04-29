@@ -64,13 +64,14 @@ def compute_policy_for_sample(config, language):
     return policy
 
 
-def run_fd(domain, instance, verbose):
+def run_fd(config, domain, instance, verbose):
     """ Run Fast Downward on the given problem, and return a plan, or None if
     the problem is not solvable. """
     # e.g. fast-downward.py --alias seq-opt-lmcut /home/frances/projects/code/downward-benchmarks/gripper/prob01.pddl
 
+    exp_dir = config.__dict__["experiment_dir"]
     with tempfile.NamedTemporaryFile(mode='w', delete=True) as tf:
-        args = f'--alias seq-opt-lmcut --plan-file plan.txt {domain} {instance}'.split()
+        args = f'--alias seq-opt-lmcut --plan-file {exp_dir}/plan.txt {domain} {instance}'.split()
         stdout = None if verbose else tf.name
         retcode = execute(['fast-downward.py'] + args, stdout=stdout)
     if retcode != 0:
@@ -78,7 +79,7 @@ def run_fd(domain, instance, verbose):
         return None
 
     plan = []
-    with open('plan.txt', 'r') as f:
+    with open(f'{exp_dir}/plan.txt', 'r') as f:
         # Read up all lines in plan file that do not start with a comment character ";"
         plan = [line for line in f.read().splitlines() if not line.startswith(';')]
     return plan
@@ -91,13 +92,13 @@ def generate_instance_file(problem, pddl_constants):
     return tf.name
 
 
-def compute_plan(model, domain_filename, instance_filename, init):
+def compute_plan(config, model, domain_filename, instance_filename, init):
     if init is None:
         print("Initial state is empty")
         return None
 
     # Run Fast Downward and get a plan!
-    plan = run_fd(domain_filename, instance_filename, verbose=False)
+    plan = run_fd(config, domain_filename, instance_filename, verbose=False)
     if plan is None:
         # instance is unsolvable
         print("Unsolvable instance")
@@ -121,40 +122,64 @@ def compute_plan(model, domain_filename, instance_filename, init):
     if not model.is_goal(s):
         raise RuntimeError(f"State after executing FD plan is not a goal: {s}")
 
+    allstates.append(s)
+
     return allstates
 
 
-def generate_plan_and_create_sample(domain_filename, instance_filename, model, init, instance_data, sample, initial_sample=False):
+def generate_plan_and_create_sample(config, domain_filename, instance_filename, model, flaw, instance_data, sample, initial_sample=False, search=None):
     if instance_filename is None:
         # If there is no associated instance filename, we print the given initial state into a PDDL instance file
-        assert init is not None
+        assert flaw is not None
         prob_init = copy.copy(model.problem)
-        prob_init.init = init
+        prob_init.init = flaw['state']
         instance_filename = generate_instance_file(prob_init, instance_data['pddl_constants'])
 
-    allstates = compute_plan(model, domain_filename, instance_filename, init)
+    allstates = compute_plan(config, model, domain_filename, instance_filename, flaw['state'])
 
-    if allstates is not None:
-        # Add the states (plus their expansions) to the D2L Transitionsample object.
-        for i, state in enumerate(allstates, start=0):
-            # ToDo maybe the initial_sample is unnecessary
-            #sid = sample.get_state_id(state)
-            #if sid is None or sample.is_expanded(sid):
-            #    continue
-            #expand_state_into_sample(sample, state, instance_data['id'], model, root=((i == 0) and initial_sample))
-            expand_state_into_sample(sample, state, instance_data['id'], model, root=(i == 0))
+    if allstates is None :
+        # Search for the first alive-to-unsolvable transition
+        alive, unsolvable = search.get_alive_to_unsolvable(config, flaw['root'], model, domain_filename, instance_data)
+        assert unsolvable is not None
+        if alive is not None and alive['state'] is not None and alive['vstar'] is not None:
+            expand_state_into_sample(sample, alive['state'], instance_data['id'], model, unsolvable=False, vstar=alive['vstar'], root=True)
+        expand_state_into_sample(sample, unsolvable['state'], instance_data['id'], model, unsolvable=True, vstar=-1, root=False)
+
+    elif len(allstates) == 1 :
+        assert model.is_goal(allstates[0])
+    elif initial_sample :
+        # Expand all the states besides the goal state
+        for i in range(0,len(allstates)-1):
+        #for i, state in enumerate(allstates, start=0):
+            expand_state_into_sample(sample, allstates[i], instance_data['id'], model, unsolvable=False,
+                                     vstar=len(allstates)-1-i, root=(i == 0))
+    else :
+        # Expand the latest new state of the plan (skip the goal and initial state) and add its optimal transition
+        for i in range(len(allstates)-2, 0, -1):
+            sid = sample.get_state_id(allstates[i])
+            if sid is None or not sample.is_expanded(sid):
+                expand_state_into_sample(sample, allstates[i], instance_data['id'], model, unsolvable=False,
+                                         vstar=(len(allstates)-1-i), root=False)
+                sample.add_optimal_transition(sample.get_state_id(allstates[i]), sample.get_state_id(allstates[i+1]))
+
+        # Expand the first state of the plan
+        expand_state_into_sample(sample, allstates[0], instance_data['id'], model, unsolvable=False,
+                                 vstar=len(allstates) - 1, root=True)
+        # Add the optimal transition between the first and second state of the trace
+        sample.add_optimal_transition(sample.get_state_id(allstates[0]), sample.get_state_id(allstates[1]))
 
 
-def expand_state_into_sample(sample, state, instance_id, model, root=False):
-    sid = sample.add_state(state, instance_id=instance_id, expanded=True, goal=model.is_goal(state),
-                           unsolvable=False, root=root)
+def expand_state_into_sample(sample, state, instance_id, model, unsolvable=False, vstar=-2, root=False):
+    sid = sample.add_state(state, instance_id=instance_id, expanded=(not unsolvable), goal=model.is_goal(state),
+                           unsolvable=unsolvable, vstar=vstar, root=root)
 
-    for op, sprime in model.successors(state):
-        # Note that we set update_if_duplicate=False to prevent this from updating a previously seen
-        # state that is in the plan trace.
-        succid = sample.add_state(sprime, instance_id=instance_id, expanded=False, goal=model.is_goal(sprime),
-                                  unsolvable=False, root=False, update_if_duplicate=False)
-        sample.add_transition(sid, succid)
+    if not unsolvable:
+         for op, sprime in model.successors(state):
+             # Note that we set update_if_duplicate=False to prevent this from updating a previously seen
+             # state that is in the plan trace.
+             succid = sample.add_state(sprime, instance_id=instance_id, expanded=False, goal=model.is_goal(sprime),
+                                  unsolvable=False, vstar=-2, root=False, update_if_duplicate=False)
+             sample.add_transition(sid, succid)
 
 
 def random_walk(rng, model, length):
@@ -173,12 +198,14 @@ def generate_initial_sample(rng, config, all_instance_data):
     for instance in config.instances:
         instance_data = all_instance_data[instance]
         model = instance_data['search_model']
-        generate_plan_and_create_sample(config.domain, instance, model, model.init(),
-                                        instance_data, sample, True)
+        s = {'state':model.init(),'root':model.init()}
+        generate_plan_and_create_sample(config, config.domain, instance, model, s, instance_data, sample, True)
 
+        # ToDo possible bug if the state s after the random walk is a deadend
         for rwi in range(0, config.num_random_walks):
-            s = random_walk(rng, model, length=config.random_walk_length)
-            generate_plan_and_create_sample(config.domain, None, model, s, instance_data, sample, True)
+            s = {'state': random_walk(rng, model, length=config.random_walk_length), 'root': None}
+            s['root'] = s['state']
+            generate_plan_and_create_sample(config, config.domain, None, model, s, instance_data, sample, True)
 
     mark_optimal_transitions(sample)
     logging.info(f"Entire sample: {sample.info()}")
@@ -249,6 +276,41 @@ class SafePolicyGuidedSearch:
             closed.add(current.state)
             stats.nexpansions += 1
 
+    # ToDo it can be improved with a binary search over the trace
+    # reducing the number of calls to the planner
+    def get_alive_to_unsolvable(self, config, root, model, domain_filename, instance_data):
+        """Run the policy-guided search.
+        Return an alive to unsolvable transition from the policy trace.
+        It is known that such a transition exists in advanced.
+        """
+        current = make_root_node(root)
+        parent = {'state' : None, 'vstar' : None }
+
+        while True:
+            current_data = {'state' : current.state, 'vstar' : -1}
+
+            # Call FD from current.state
+            prob_init = copy.copy(model.problem)
+            prob_init.init = current.state
+            instance_filename = generate_instance_file(prob_init, instance_data['pddl_constants'])
+            allstates = compute_plan( config, model, domain_filename, instance_filename, current.state)
+
+            # Alive to unsolvable transition has been found!
+            # Parent is None when the root is unsolvable and a leaf of the
+            # expanded graph, so the alive state was previously expanded
+            if allstates is None :
+                return parent, current_data
+
+            current_data['vstar'] = len(allstates) - 1
+
+            child, operator = self.policy(current.state)
+            assert operator is not None
+            current = make_child_node(current, operator, child)
+
+            parent = current_data
+
+
+
 
 def retrieve_loop_states(node):
     """ Retrieve the states that are part of a loopy trajectory within the state space of the problem. """
@@ -304,16 +366,28 @@ def test_policy_and_compute_flaws(policy, all_instance_data, instances, config, 
         search = SafePolicyGuidedSearch(search_model, d2l_policy)
 
         # Collect all the states from which we want to test the policy
-        roots = {problem.init}
+        roots = [problem.init]
         if config.refine_policy_from_entire_sample and sample is not None:
-            roots.update(sample.get_leaves(val_data['id']))
+            roots = roots + list(sample.get_leaves(val_data['id']))
 
-        flaws = set()
-        for root in roots:
+        flaws = []
+        for i, root in enumerate(roots):
             res, f = search.search(root, verbose=False)
             if not res:
-                flaws.update(f)
-            if len(flaws) > config.refinement_batch_size:
+                # Retrieve only the leaf node from a loopy trajectory
+                if len(f) > 1:
+                    for s in f:
+                        sid = sample.get_state_id(s)
+                        if sid is not None and not sample.is_expanded(sid):
+                            flaw = {'state': s, 'root': root}
+                            flaws.append(flaw)
+                            break
+                # Add the incompatible state to the sample
+                else :
+                    flaw = {'state': next(iter(f)), 'root': root}
+                    flaws.append(flaw)
+
+            if len(flaws) >= config.refinement_batch_size:
                 break
 
         if not flaws:
@@ -323,15 +397,14 @@ def test_policy_and_compute_flaws(policy, all_instance_data, instances, config, 
         # If a sample was provided, add the found flaws to it
         if sample is not None:
             logging.info(f"Adding {len(flaws)} flaws to size-{len(sample.states)} sample")
-            for state in flaws:
-
+            for f in flaws:
                 if config.compute_plan_on_flaws:
-                    generate_plan_and_create_sample(config.domain, None, search_model, state, val_data, sample)
+                    generate_plan_and_create_sample(config, config.domain, None, search_model, f, val_data, sample, False, search)
                 else:
-                    sid = sample.get_state_id(state)
+                    sid = sample.get_state_id(f['state'])
                     if sid is None or not sample.is_expanded(sid):
                         # If the state is already in the sample and already expanded, no need to do anything about it
-                        expand_state_into_sample(sample, state, val_data['id'], search_model, root=False)
+                        expand_state_into_sample(sample, f['state'], val_data['id'], search_model, root=False)
 
     return nsolved
 
@@ -430,13 +503,13 @@ def run(config, data, rng):
             logging.info("Policy solves all states in training set")
             break  # Policy test was successful, we're done.
 
-        mark_optimal_transitions(sample)
+        #mark_optimal_transitions(sample)
 
         # Since we have only generated some (optimal) plan, we don't know the actual V* value for states that are in the
         # sample but not in the plan. We mark that accordingly with the special -2 "unknown" value
-        for s in sample.states.keys():
-            if s not in sample.expanded and s not in sample.goals:
-                sample.vstar[s] = -2
+        #for s in sample.states.keys():
+        #    if s not in sample.expanded and s not in sample.goals:
+        #        sample.vstar[s] = -2
 
         log_sampled_states(sample, config.resampled_states_filename)
         print_transition_matrix(sample, config.transitions_info_filename)
