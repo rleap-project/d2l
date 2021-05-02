@@ -25,6 +25,7 @@ from .models import DLModelFactory
 from .outputs import print_transition_matrix
 from .returncodes import ExitCode
 from .sampling import log_sampled_states, TransitionSample, mark_optimal_transitions
+from .separation import generate_user_provided_policy
 from .util.command import execute
 from .util.naming import compute_sample_filenames, compute_info_filename, compute_maxsat_filename
 
@@ -268,6 +269,7 @@ class SafePolicyGuidedSearch:
 
             current = make_child_node(current, operator, child)
             if current.state in closed:
+                # print(current.state)
                 loop = retrieve_loop_states(current)
                 if verbose:
                     logging.error(f"Size-{len(loop)} loop detected after {len(closed)} expansions. State: {current.state}")
@@ -347,7 +349,7 @@ def tarski_model_to_d2l_sample_representation(state):
     return tuple(sorted(atoms))
 
 
-def test_policy_and_compute_flaws(policy, all_instance_data, instances, config, sample=None):
+def test_policy_and_compute_flaws(policy, all_instance_data, instances, config, sample=None, verbose=False):
     """
     If sample is not None, the computed flaws are added to it.
     """
@@ -372,7 +374,7 @@ def test_policy_and_compute_flaws(policy, all_instance_data, instances, config, 
 
         flaws = []
         for i, root in enumerate(roots):
-            res, f = search.search(root, verbose=False)
+            res, f = search.search(root, verbose=verbose)
             if not res:
                 # Retrieve only the leaf node from a loopy trajectory
                 if len(f) > 1:
@@ -478,6 +480,9 @@ def run(config, data, rng):
 
     rng = np.random.default_rng(config.seed)
 
+    # Check if user has provided some policy to be tested
+    user_policy = None if config.d2l_policy is None else generate_user_provided_policy(config)
+
     all_instance_data, language = compute_instance_data(config.instances, config)
 
     # Compute a plan for each of the training instances, and put all states in the plan into the sample, along with
@@ -491,6 +496,15 @@ def run(config, data, rng):
         logging.info(f"### MAIN ITERATION: {iteration}; SAMPLE SIZE: {sample.num_states()}")
         code, res = generate_feature_pool(config, sample, all_instance_data)
         assert code == ExitCode.Success
+
+        if user_policy:
+            policy = user_policy
+            logging.info("Testing user-provided policy:")
+            policy.minimize()
+            policy.print_aaai20()
+            nsolved = test_policy_and_compute_flaws(user_policy, all_instance_data, config.instances, config, sample, verbose=False)
+            logging.info(f"User-provided policy solves {nsolved}/{len(config.instances)} in the training set")
+            break
 
         policy = compute_policy_for_sample(config, language)
         if not policy:

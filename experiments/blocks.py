@@ -397,6 +397,9 @@ def experiments():
         compute_plan_on_flaws=True,
         num_random_walks=0,
         random_walk_length=0,
+
+        # Uncomment to test AAAI21 paper policy:
+        d2l_policy=debug_aaai21_policy,
     )
 
     exps["all_at_5-ipc-inc"] = update_dict(
@@ -609,6 +612,21 @@ def debug_features_clear(lang):
     handempty = "Atom[handempty]"
     return [cleara, handempty, nx]
     # return [nx, nontable, holding, cleara]
+
+
+def debug_aaai21_policy():
+    c = "Num[clear]"
+    tprime = "Num[Not(Equal(on_g,on))]"
+    bwp = "Num[Forall(Star(on),Equal(on_g,on))]"
+
+    s0 = [(c, '>0'), (tprime, '>0'), (bwp, '>0')]
+    return [
+        s0 + [(c, 'INC'), (tprime, 'NIL'), (bwp, 'NIL')],
+        s0 + [(c, 'INC'), (tprime, 'DEC'), (bwp, 'NIL')],
+        s0 + [(c, 'DEC'), (tprime, 'DEC'), (bwp, 'NIL')],
+
+        s0 + [(c, 'INC'), (bwp, 'INC')],
+    ]
 
 
 def all_clear_test_instancess():

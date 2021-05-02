@@ -290,5 +290,5 @@ class TransitionClassificationPolicy:
                 atoms.append(DNFAtom(f, value))
 
             policy.add_clause(frozenset(atoms))
-
+        policy.features = list(allfeatures.values())
         return policy
