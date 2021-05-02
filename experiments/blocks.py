@@ -399,7 +399,7 @@ def experiments():
         random_walk_length=0,
 
         # Uncomment to test AAAI21 paper policy:
-        d2l_policy=debug_aaai21_policy,
+        # d2l_policy=debug_aaai21_policy,
     )
 
     exps["all_at_5-ipc-inc"] = update_dict(
