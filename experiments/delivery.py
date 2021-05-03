@@ -87,8 +87,11 @@ def experiments():
         instances=[
             #'instance_3_3_0.pddl',  # Use one small instance with three packages
             #'instance_4_2_0.pddl',  # And a slightly larger one with two packages
-            'instance_5_3_0.pddl',
-            'instance_7_2_2.pddl',
+            #'instance_5_3_0.pddl',
+            #'instance_5_3_1.pddl',
+            'instance_3_2_0.pddl',
+            'instance_4_3_1.pddl',
+            'instance_5_2_2.pddl',
         ],
         test_policy_instances=all_test_instances(),
         

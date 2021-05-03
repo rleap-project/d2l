@@ -84,7 +84,7 @@ def experiments():
     exps["small-ipc-inc"] = update_dict(
         exps["small"],
         pipeline=pipelines.INCREMENTAL,
-        instances=["s5-0.pddl","s5-4.pddl"],
+        instances=["s5-0.pddl","s7-0.pddl"],
         #instances=["s7-0.pddl"],
         test_policy_instances=all_test_instances(),
         

@@ -46,7 +46,7 @@ def experiments():
         test_policy_instances=all_test_instances(),
         
         # create_goal_features_automatically=True,
-        max_concept_size=10,
+        max_concept_size=8,
         use_equivalence_classes=True,
         # use_feature_dominance=True,
         sampling_strategy="goal",
@@ -57,8 +57,8 @@ def experiments():
         exps["small"],
         pipeline=pipelines.INCREMENTAL,
         instances=[
+            'sample_mini.pddl',
             'sample01.pddl',
-            'sample02.pddl',
         ],
         test_policy_instances=all_test_instances(),
         
@@ -83,6 +83,8 @@ def experiments():
         pipeline=pipelines.INCREMENTAL,
         instances=[
             'child-snack_pfile01.pddl',
+            #'sample01.pddl',
+            #'sample04.pddl',
         ],
         test_policy_instances=all_test_instances(),
         

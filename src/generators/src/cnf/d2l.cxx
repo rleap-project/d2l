@@ -25,6 +25,7 @@ void D2LEncoding::compute_equivalence_relations() {
     std::unordered_map<transition_trace, unsigned> from_trace_to_class_repr;
 
     for (const auto s:sample_.expanded_states()) {
+    //for (const auto s:sample_.alive_states()) {
         for (unsigned sprime:sample_.successors(s)) {
             auto tx = std::make_pair((state_id_t) s, (state_id_t) sprime);
             auto id = (unsigned) transition_ids_inv_.size(); // Assign a sequential ID to the transition
@@ -284,9 +285,6 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
 
     auto varmapstream = utils::get_ofstream(options.workspace + "/varmap.wsat");
 
-    // A map from pairs of states (s, s') to the ID of the SAT variable reach(s, s')
-    std::unordered_map<state_pair, cnfvar_t, boost::hash<state_pair>> reach;
-
     // Map from state and card. const. var pairs (s,y) to SAT variable ID of the variable CardConstraint(s,y)
     std::unordered_map<std::pair<unsigned,unsigned>, cnfvar_t, boost::hash<state_pair> > card_constraint_vars;
 
@@ -333,7 +331,8 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
     }
 
     // Create variables V(s, d) variables for all alive state s and d in 1..D
-    for (const auto s:sample_.expanded_states()) {
+    //for (const auto s:sample_.expanded_states()) {
+    for (const auto s:sample_.alive_states()) {
         const auto min_vs = get_vstar(s);
         const auto max_vs = get_max_v(s);
 //        std::cout << min_vs << ", " << max_vs << std::endl;
@@ -350,12 +349,15 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
             variables.vs.emplace(std::make_pair(s, d), v_s_d);
 //                std::cout << s << ", " << d << std::endl;
 
-            if (min_vs < 0 || (d >= min_vs && d <= max_vs)) {
+            //if (min_vs < 0 || (d >= min_vs && d <= max_vs)) {
+            if (d >= min_vs && d <= max_vs) {
                 within_range_clause.push_back(Wr::lit(v_s_d, true));
             }
         }
 
         // Add clauses (4), (5)
+        assert(not within_range_clause.empty());
+
         wr.cl(within_range_clause);
         n_v_function_clauses += 1;
 
@@ -408,11 +410,10 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
         std::cout << "\tSelect(f): " << variables.selecteds.size() << std::endl;
         std::cout << "\tGood(s, s'): " << variables.goods.size() << std::endl;
         std::cout << "\tV(s, d): " << variables.vs.size() << std::endl;
-        std::cout << "\tReach(s, s'): " << reach.size() << std::endl;
     }
 
     // Check our variable count is correct
-    assert(wr.nvars() == variables.selecteds.size() + variables.goods.size() + variables.vs.size() + reach.size());
+    assert(wr.nvars() == variables.selecteds.size() + variables.goods.size() + variables.vs.size() );
 
     /////// CNF constraints ///////
     // [1] For each expanded state s, post a constraint OR_{s' solvable child of s} Good(s, s')
@@ -438,13 +439,13 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
         ++n_good_tx_clauses;
     }
 
-
     for (const auto s:sample_.expanded_states()) {
+    //for( const auto s : sample_.alive_states()){
         for (const auto sprime:sample_.successors(s)) {
             if (is_necessarily_bad(get_transition_id(s, sprime))) continue; // includes alive-to-dead transitions
-//                if (!sample_.is_alive(sprime)) continue;
             if (sample_.is_goal(sprime)) continue;
-            if (!sample_.is_expanded(sprime)) continue;
+            //if (!sample_.is_expanded(sprime)) continue;
+            if (!sample_.is_alive(sprime)) continue;
 
             const auto good_s_prime = variables.goods.at(get_class_representative(s, sprime));
 

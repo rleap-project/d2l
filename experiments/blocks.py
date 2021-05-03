@@ -374,7 +374,7 @@ def experiments():
         ],
         validation_instances=[
             "training_arbitrary_5_atomic.pddl",
-            "training_arbitrary_5_atomic_tower.pddl"
+            "training_arbitrary_4_atomic_tower.pddl"
         ],
         test_policy_instances=[
                                   "training_arbitrary_5_atomic.pddl",
@@ -399,7 +399,9 @@ def experiments():
         random_walk_length=0,
 
         # Uncomment to test AAAI21 paper policy:
-        # d2l_policy=debug_aaai21_policy,
+        #d2l_policy=debug_aaai21_policy,
+        #feature_generator=debug_aaai21_bw_features,
+        #use_equivalence_classes=True,
     )
 
     exps["all_at_5-ipc-inc"] = update_dict(
@@ -428,6 +430,7 @@ def experiments():
         compute_plan_on_flaws=True,
         num_random_walks=0,
         random_walk_length=0,
+        #feature_generator=debug_aaai21_bw_features,
     )
 
     exps["all_at_5-sd2l"] = update_dict(
@@ -613,6 +616,8 @@ def debug_features_clear(lang):
     return [cleara, handempty, nx]
     # return [nx, nontable, holding, cleara]
 
+def debug_aaai21_bw_features(lang):
+	return [ "Num[clear]", "Num[Not(Equal(on_g,on))]", "Num[Forall(Star(on),Equal(on_g,on))]" ]
 
 def debug_aaai21_policy():
     c = "Num[clear]"
