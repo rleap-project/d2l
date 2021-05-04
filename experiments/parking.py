@@ -5,7 +5,7 @@ from sltp.util.misc import update_dict
 
 def experiments():
     base = dict(
-        domain_dir="parking-sequential-satisficing",
+        domain_dir="parking-sequential-optimal",
         domain="domain.pddl",
         test_domain="domain.pddl",
         #feature_namer=visitall_names,
@@ -39,13 +39,19 @@ def experiments():
         verbosity=2,
     )
 
-    exps["small-inc"] = update_dict(
+    exps["small-ipc-inc"] = update_dict(
         exps["small"],
         pipeline=pipelines.INCREMENTAL,
         instances=['instances/instance-1.pddl' ],
-        validation_instances=['instances/instance-1.pddl' ],
         test_policy_instances=all_test_instances(),
-        verbosity=0,
+        sampling_strategy="full",
+        initial_sample_size=999999,
+        verbosity=2,
+        refine_policy_from_entire_sample=True,
+        refinement_batch_size=1,
+        compute_plan_on_flaws=True,
+        num_random_walks=0,
+        random_walk_length=0,
     )
     
     exps["small-sd2l"] = update_dict(
