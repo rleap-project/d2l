@@ -565,21 +565,29 @@ def run(config, data, rng):
 
 
 def compute_instance_data(all_instances, config):
+    use_goal_denotation = config.parameter_generator is None
+    all_goal_predicates = set()  # We will store here all predicates appearing in the goal of *any* training instance
+
+    assert len(all_instances) > 0
     all_instance_data = {instance: {"id": i} for i, instance in enumerate(all_instances, 0)}
     for instance_filename, data in all_instance_data.items():
         # Parse the domain & instance and create a model generator and related instance-dependent information
-        problem, language, pddl_constants = parse_pddl(config.domain, instance_filename)
-        nominals = pddl_constants[:]
+        data['problem'], data['language'], data['pddl_constants'] = parse_pddl(config.domain, instance_filename)
+        all_goal_predicates |= compute_predicates_appearing_in_goal(data['problem'], use_goal_denotation)
+
+    # We assume the domain language is common to all instances
+    language = all_instance_data[all_instances[0]]['language']
+
+    # Note that we use two iterations; the first one, we parse all instances and collect all goal predicates;
+    # the second one we use the aggregated set of goal predicates to compute the additional data that we'll need.
+    for _, data in all_instance_data.items():
+        data['nominals'] = data['pddl_constants'][:]
         if config.parameter_generator is not None:
-            nominals += config.parameter_generator(language)
+            data['nominals'] += config.parameter_generator(data['language'])
 
         vocabulary = compute_dl_vocabulary(language)
-        use_goal_denotation = config.parameter_generator is None
-        goal_predicates = compute_predicates_appearing_in_goal(problem, use_goal_denotation)
-        info = compute_instance_information(problem, goal_predicates)
-        dl_model_factory = DLModelFactory(vocabulary, nominals, info)
-        search_model = GroundForwardSearchModel(problem, ground_problem_schemas_into_plain_operators(problem))
-        data.update(dict(language=language, problem=problem, nominals=nominals,
-                         info=info, pddl_constants=pddl_constants,
-                         search_model=search_model, static_atoms=info.static_atoms, dl_model_factory=dl_model_factory))
+        info = compute_instance_information(data['problem'], all_goal_predicates)
+        data['dl_model_factory'] = DLModelFactory(vocabulary, data['nominals'], info)
+        data['search_model'] = GroundForwardSearchModel(data['problem'], ground_problem_schemas_into_plain_operators(data['problem']))
+        data.update(dict(info=info, static_atoms=info.static_atoms))
     return all_instance_data, language
