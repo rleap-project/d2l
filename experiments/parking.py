@@ -22,9 +22,18 @@ def experiments():
     )
 
     exps = dict()
+    
+    
+    parking_base = update_dict(
+		base,
+		# Required info for latex table
+		name = "parking",
+        n_instances = 1,
+        dimensions = "(X,X,X)",
+    )
 
     exps["small"] = update_dict(
-        base,
+        parking_base,
         instances=[
             'instances/instance-1.pddl'            
         ],
