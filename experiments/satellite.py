@@ -38,7 +38,7 @@ def experiments():
         test_policy_instances=all_test_instances(),
 
         max_concept_size=12,
-        distance_feature_max_complexity=16,
+        distance_feature_max_complexity=5,
         parameter_generator=None,
         use_equivalence_classes=True,
         # use_feature_dominance=True,
@@ -49,8 +49,13 @@ def experiments():
         distinguish_goals=True,
         pipeline=pipelines.INCREMENTAL,
         instances=[
-            #'mini_sample1.pddl',
-            'mini_sample2.pddl',
+            #'mini_sample1.pddl',            
+            #'mini_sample2.pddl',
+            'mini_sample_pointing.pddl',
+            'mini_sample_power.pddl',
+            'mini_sample_on.pddl',
+            'mini_sample_calibrated.pddl',
+            'mini_sample_take_images.pddl',
         ],
         test_policy_instances=all_test_instances(),
 
