@@ -194,6 +194,10 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
         num_random_walks=0,
 
         random_walk_length=10,
+
+        expand_entire_training_instances=False,
+
+        num_random_rollouts=10,
     )
 
     parameters = {**defaults, **kwargs}  # Copy defaults, overwrite with user-specified parameters

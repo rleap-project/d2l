@@ -1,6 +1,7 @@
 import copy
 import logging
 import os
+import sys
 import tempfile
 
 import numpy as np
@@ -79,7 +80,6 @@ def run_fd(config, domain, instance, verbose):
         logging.error("Fast Downward error")
         return None
 
-    plan = []
     with open(f'{exp_dir}/plan.txt', 'r') as f:
         # Read up all lines in plan file that do not start with a comment character ";"
         plan = [line for line in f.read().splitlines() if not line.startswith(';')]
@@ -94,10 +94,6 @@ def generate_instance_file(problem, pddl_constants):
 
 
 def compute_plan(config, model, domain_filename, instance_filename, init):
-    if init is None:
-        print("Initial state is empty")
-        return None
-
     # Run Fast Downward and get a plan!
     plan = run_fd(config, domain_filename, instance_filename, verbose=False)
     if plan is None:
@@ -118,13 +114,11 @@ def compute_plan(config, model, domain_filename, instance_filename, init):
             raise RuntimeError(f"Action {op} from FD plan not applicable!")
 
         s = progress(s, op)
-    # Note that we don't need to add the last state, as it's been already added as a child of its parent
 
     if not model.is_goal(s):
         raise RuntimeError(f"State after executing FD plan is not a goal: {s}")
 
     allstates.append(s)
-
     return allstates
 
 
@@ -185,42 +179,147 @@ def expand_state_into_sample(sample, state, instance_id, model, unsolvable=False
 
 def random_walk(rng, model, length):
     s = model.problem.init
-    for i in range(0, length):
-        s = rng.choice([succ for _, succ in model.successors(s)])
+    for _ in range(0, length):
+        s = choose_random_successor(rng, model, s)
     return s
 
 
-def generate_initial_sample(rng, config, all_instance_data):
-    # To generate the initial sample, we compute one plan per training instance, and include in the sample all
-    # states that are part of the plan, plus all their (possibly unexpanded) children.
-    # _run_brfs(config, None, None)
+def choose_random_successor(rng, model, s):
+    succs = [succ for _, succ in model.successors(s)]
+    return rng.choice(succs) if succs else None
 
-    sample = TransitionSample()
-    for instance in config.instances:
-        instance_data = all_instance_data[instance]
-        model = instance_data['search_model']
-        s = {'state':model.init(),'root':model.init()}
-        generate_plan_and_create_sample(config, config.domain, instance, model, s, instance_data, sample, True)
 
-        # ToDo possible bug if the state s after the random walk is a deadend
-        for rwi in range(0, config.num_random_walks):
-            s = {'state': random_walk(rng, model, length=config.random_walk_length), 'root': None}
-            s['root'] = s['state']
-            generate_plan_and_create_sample(config, config.domain, None, model, s, instance_data, sample, True)
+class SimpleSample:
+    def __init__(self):
+        self.states = []
+        self.state_to_id = dict()
+        self.state_to_hstar = dict()
 
-    mark_optimal_transitions(sample)
-    logging.info(f"Entire sample: {sample.info()}")
+    def add_state(self, state, hstar):
+        sid = self.state_to_id.get(state)
+        if sid is not None:
+            return sid
+        sid = self.state_to_id[state] = len(self.states)
+        self.states.append(state)
+        self.state_to_hstar[state] = hstar
+        return sid
 
-    # Since we have only generated some (optimal) plan, we don't know the actual V* value for states that are in the
-    # sample but not in the plan. We mark that accordingly with the special -2 "unknown" value
-    for s in sample.states.keys():
-        if s not in sample.expanded and s not in sample.goals:
-            sample.vstar[s] = -2
+    def in_sample(self, state):
+        return state in self.state_to_id
 
-    print_transition_matrix(sample, config.transitions_info_filename)
-    log_sampled_states(sample, config.resampled_states_filename)
+    def get_id(self, state):
+        return self.state_to_id[state]
 
-    return sample
+
+class SampleGenerator:
+    def __init__(self, config, rng, training_instances_data):
+        self.rng = rng
+        self.config = config
+        self.domain_filename = config.domain
+        self.training_instances_data = training_instances_data
+        self.sample = SimpleSample()
+        self.positive = set()
+        self.negative = set()
+        self.planner_runs = 0
+        self.unsolvable_hit = 0
+        self.hstar_cache = dict()
+
+    def compute_plan(self, config, model, pddl_constants, state):
+        prob = copy.copy(model.problem)
+        prob.init = state
+        instance_filename = generate_instance_file(prob, pddl_constants)
+        self.planner_runs += 1
+        plan = compute_plan(config, model, self.domain_filename, instance_filename, state)
+        if plan is None:
+            self.unsolvable_hit += 1
+        return plan
+
+    def compute_hstar_uncached(self, model, instance_data, state):
+        plan_states = self.compute_plan(self.config, model, instance_data['pddl_constants'], state)
+        if plan_states is None:
+            return sys.maxsize
+
+        sids = []
+        for d, state in enumerate(reversed(plan_states), start=0):
+            sids.append(self.sample.add_state(state, d))
+            if d > 0:
+                # By definition, all transitions in an optimal plan are h*-decreasing
+                self.positive.add((sids[-1], sids[-2]))
+        return len(plan_states)-1
+
+    def compute_hstar(self, model, instance_data, state):
+        hstar = self.hstar_cache.get(state)
+        if hstar is not None:
+            return hstar
+
+        hstar = self.hstar_cache[state] = self.compute_hstar_uncached(model, instance_data, state)
+        return hstar
+
+    def add_point(self, sid, succ_id, positive):
+        if positive:
+            self.positive.add((sid, succ_id))
+        else:
+            self.negative.add((sid, succ_id))
+
+    def generate(self):
+        for instance in self.config.instances:
+            instance_data = self.training_instances_data[instance]
+            model = instance_data['search_model']
+
+            for _ in range(0, self.config.num_random_rollouts):
+                s = model.init()
+
+                self.process(instance_data, model, s)
+                for _ in range(0, self.config.random_walk_length):
+                    s = choose_random_successor(self.rng, model, s)
+                    if s is None:
+                        break
+                    self.process(instance_data, model, s)
+
+        print_transition_matrix(self.sample, self.config.transitions_info_filename)
+        log_sampled_states(self.sample, self.config.resampled_states_filename)
+    
+        return self.sample
+
+    def process(self, instance_data, model, s):
+        succs_hstar = [(self.compute_hstar(model, instance_data, sprime), sprime) for op, sprime in model.successors(s)]
+        hstar = min(h for h, _ in succs_hstar) + 1 if succs_hstar else sys.maxsize
+        self.sample.add_state(s, hstar)
+        for hsucc, succ in succs_hstar:
+            self.add_point(self.sample.get_id(s), self.sample.get_id(succ), hsucc < hstar)
+
+    def process_state(self, instance_data, model, state):
+
+        allstates = self.compute_plan(self.config, model, instance_data['pddl_constants'], state)
+        if allstates is None:
+            logging.warning(f"Found unsolvable state: {state}")
+            return
+
+        # Add the states (plus their expansions) to the D2L Transitionsample object.
+        sids = []
+        for i, state in enumerate(allstates, start=0):
+            hstar = len(allstates) - i
+            sids.append(self.sample.add_state(state, instance_data['id'], expanded=True, goal=model.is_goal(state),
+                                         unsolvable=False, vstar=hstar, root=(i == 0)))
+            if i > 0:
+                self.positive.add((sids[-2], sids[-1]))
+    
+            if i < len(allstates) - 1:
+                for op, sprime in model.successors(state):
+                    if sprime == allstates[i + 1]:
+                        continue
+    
+                    succid = self.sample.add_state(sprime, instance_id=instance_data['id'], expanded=False,
+                                              goal=model.is_goal(sprime), unsolvable=None, vstar=-2, root=False,
+                                              update_if_duplicate=False)
+                    self.sample.add_transition(sids[-1], succid)
+    
+                    piprime = self.compute_plan(self.config, model, instance_data['pddl_constants'], sprime)
+                    hstar_prime = 9999999999 if piprime is None else len(piprime) - 1
+                    if hstar_prime < hstar:
+                        self.positive.add((sids[-1], succid))
+                    else:
+                        self.negative.add((sids[-1], succid))
 
 
 def parse_problem_with_tarski(domain_file, inst_file):
@@ -488,7 +587,9 @@ def run(config, data, rng):
     # Compute a plan for each of the training instances, and put all states in the plan into the sample, along with
     # all of their (possibly non-expanded) children.
     # All states will need to be labeled with their status (goal / unsolvable / alive)
-    sample = generate_initial_sample(rng, config, all_instance_data)
+    generator = SampleGenerator(config, rng, all_instance_data)
+    sample = generator.generate()
+
     iteration = 1
     while True:
         # TODO: This could be optimized to avoid recomputing the features over the states that already were in the
