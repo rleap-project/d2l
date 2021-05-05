@@ -92,17 +92,23 @@ def experiments():
         pipeline=pipelines.INCREMENTAL,
         parameter_generator=blocksworld_declared_parameters_for_clear,
         
-        # instances=["training_clear_5.pddl"],
-        # validation_instances=["training_clear_5.pddl"],
         instances=["training_clear_5-fixed.pddl"],
         test_policy_instances=all_clear_test_instancess(),
 
+        #sampling_strategy="full",
+        #initial_sample_size=999999,
+        #verbosity=2,
+        #refine_policy_from_entire_sample=True,
+        #refinement_batch_size=2,
+        #compute_plan_on_flaws=True,
         sampling_strategy="full",
         initial_sample_size=999999,
         verbosity=2,
         refine_policy_from_entire_sample=True,
-        refinement_batch_size=2,
+        refinement_batch_size=1,
         compute_plan_on_flaws=True,
+        num_random_walks=0,
+        random_walk_length=0,
     )
 
     exps["clear-ipc-inc"] = update_dict(
@@ -229,14 +235,22 @@ def experiments():
         ],
         test_policy_instances=all_on_test_instancess(),
         
+        #sampling_strategy="full",
+        #initial_sample_size=999999,
+        #verbosity=2,
+        #refine_policy_from_entire_sample=True,
+        #refinement_batch_size=2,
+        #compute_plan_on_flaws=True,
+        #num_random_walks=4,
+        #random_walk_length=10,
         sampling_strategy="full",
         initial_sample_size=999999,
         verbosity=2,
         refine_policy_from_entire_sample=True,
-        refinement_batch_size=2,
+        refinement_batch_size=1,
         compute_plan_on_flaws=True,
-        num_random_walks=4,
-        random_walk_length=10,
+        num_random_walks=0,
+        random_walk_length=0,
     )
 
     exps["on-ipc-inc"] = update_dict(
@@ -369,10 +383,6 @@ def experiments():
         exps["all_at_5"],
         pipeline=pipelines.INCREMENTAL,
         instances=[
-            "training_arbitrary_5_atomic.pddl",
-            "training_arbitrary_5_atomic_tower.pddl"
-        ],
-        validation_instances=[
             "training_arbitrary_5_atomic.pddl",
             "training_arbitrary_4_atomic_tower.pddl"
         ],

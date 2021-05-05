@@ -1,6 +1,7 @@
 import copy
 import logging
 import os
+import resource
 import tempfile
 
 import numpy as np
@@ -140,6 +141,7 @@ def generate_plan_and_create_sample(config, domain_filename, instance_filename, 
     allstates = compute_plan(config, model, domain_filename, instance_filename, flaw['state'])
 
     if allstates is None:
+        assert search is not None
         # Search for the first alive-to-unsolvable transition
         alive, unsolvable = search.get_alive_to_unsolvable(config, flaw['root'], model, domain_filename, instance_data)
         assert unsolvable is not None
@@ -151,14 +153,14 @@ def generate_plan_and_create_sample(config, domain_filename, instance_filename, 
 
     elif len(allstates) == 1:
         assert model.is_goal(allstates[0])
-    #elif initial_sample:
+    # elif initial_sample:
     else:
         # Expand all the states besides the goal state
         for i in range(0, len(allstates) - 1):
             # for i, state in enumerate(allstates, start=0):
             expand_state_into_sample(sample, allstates[i], instance_data['id'], model, unsolvable=False,
                                      vstar=len(allstates) - 1 - i, root=(i == 0))
-    #else:
+        # else:
 
         """
         # Expand the latest new state of the plan (skip the goal and initial state) and add its optimal transition
@@ -364,6 +366,12 @@ def tarski_model_to_d2l_sample_representation(state):
     return tuple(sorted(atoms))
 
 
+def elapsed_time():
+    info_children = resource.getrusage(resource.RUSAGE_CHILDREN)
+    info_self = resource.getrusage(resource.RUSAGE_SELF)
+    return info_children.ru_utime + info_children.ru_stime + info_self.ru_utime + info_self.ru_stime
+
+
 def test_policy_and_compute_flaws(policy, all_instance_data, instances, config, sample=None, verbose=False):
     """
     If sample is not None, the computed flaws are added to it.
@@ -395,6 +403,7 @@ def test_policy_and_compute_flaws(policy, all_instance_data, instances, config, 
                 solved = False
                 if sample is None:
                     break
+                """
                 # Retrieve only the leaf node from a loopy trajectory
                 if len(f) > 1:
                     for s in f:
@@ -404,13 +413,12 @@ def test_policy_and_compute_flaws(policy, all_instance_data, instances, config, 
                             flaws.append(flaw)
                             break
                 # Add the incompatible state to the sample
-                else :
+                else:
                     flaw = {'state': next(iter(f)), 'root': root}
                     flaws.append(flaw)
                 """
                 for s in f:
                     flaws.append({'state': s, 'root': root})
-                """
 
             if len(flaws) >= config.refinement_batch_size:
                 break
@@ -485,6 +493,8 @@ def generate_feature_pool(config, sample, all_instance_data):
 
 
 def run(config, data, rng):
+    start_time = elapsed_time()
+
     config.sample_files = compute_sample_filenames(**config.__dict__)
     config.test_sample_files = []
     config.resampled_states_filename = compute_info_filename(config.__dict__, 'sample.txt')
@@ -555,6 +565,10 @@ def run(config, data, rng):
 
         iteration += 1
 
+    logging.info(f"Number of iterations: {iteration}")
+    total_time = elapsed_time() - start_time
+    logging.info("Total training time: {:.1f}".format(total_time))
+
     # Run on the test set and report coverage. No need to add flaws to sample here
     if policy:
         all_instances = list(sorted(set(config.test_policy_instances)))
@@ -588,6 +602,7 @@ def compute_instance_data(all_instances, config):
         vocabulary = compute_dl_vocabulary(language)
         info = compute_instance_information(data['problem'], all_goal_predicates)
         data['dl_model_factory'] = DLModelFactory(vocabulary, data['nominals'], info)
-        data['search_model'] = GroundForwardSearchModel(data['problem'], ground_problem_schemas_into_plain_operators(data['problem']))
+        data['search_model'] = GroundForwardSearchModel(data['problem'],
+                                                        ground_problem_schemas_into_plain_operators(data['problem']))
         data.update(dict(info=info, static_atoms=info.static_atoms))
     return all_instance_data, language

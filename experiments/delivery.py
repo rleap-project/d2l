@@ -64,21 +64,24 @@ def experiments():
             'instance_4_2_0.pddl',  # And a slightly larger one with two packages
             #'instance_7_2_2.pddl',
         ],
-        validation_instances=[
-            'instance_3_3_0.pddl',  # Use one small instance with three packages
-            'instance_4_2_0.pddl',  # And a slightly larger one with two packages
-            #'instance_7_2_2.pddl',
-        ],
         test_policy_instances=all_test_instances(),
         
+        #sampling_strategy="full",
+        #initial_sample_size=999999,
+        #verbosity=2,
+        #refine_policy_from_entire_sample=True,
+        #refinement_batch_size=2,
+        #compute_plan_on_flaws=True,
+        #num_random_walks=2,
+        #random_walk_length=10,
         sampling_strategy="full",
         initial_sample_size=999999,
         verbosity=2,
         refine_policy_from_entire_sample=True,
-        refinement_batch_size=2,
+        refinement_batch_size=1,
         compute_plan_on_flaws=True,
-        num_random_walks=2,
-        random_walk_length=10,
+        num_random_walks=0,
+        random_walk_length=0,
     )
 
     exps["small-ipc-inc"] = update_dict(
@@ -89,9 +92,10 @@ def experiments():
             #'instance_4_2_0.pddl',  # And a slightly larger one with two packages
             #'instance_5_3_0.pddl',
             #'instance_5_3_1.pddl',
-            'instance_3_2_0.pddl',
-            'instance_4_3_1.pddl',
-            'instance_5_2_2.pddl',
+            #'instance_3_2_0.pddl',
+            'instance_4_3_0.pddl',
+            'instance_5_3_1.pddl',
+            'instance_7_2_2.pddl',
         ],
         test_policy_instances=all_test_instances(),
         

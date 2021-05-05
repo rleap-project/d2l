@@ -56,14 +56,22 @@ def experiments():
         #validation_instances=[f"prob{i:02d}.pddl" for i in range(3, 5)],
         test_policy_instances=all_test_instances(),
 
+        #sampling_strategy="full",
+        #initial_sample_size=999999,
+        #verbosity=2,
+        #refine_policy_from_entire_sample=True,
+        #refinement_batch_size=2,
+        #compute_plan_on_flaws=True,
+        #num_random_walks=10,
+        #random_walk_length=20,
         sampling_strategy="full",
         initial_sample_size=999999,
         verbosity=2,
         refine_policy_from_entire_sample=True,
-        refinement_batch_size=2,
+        refinement_batch_size=1,
         compute_plan_on_flaws=True,
-        num_random_walks=10,
-        random_walk_length=20,
+        num_random_walks=0,
+        random_walk_length=0,
     )
 
     exps["small-ipc-inc"] = update_dict(

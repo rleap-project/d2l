@@ -439,8 +439,8 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
         ++n_good_tx_clauses;
     }
 
-    for (const auto s:sample_.expanded_states()) {
-    //for( const auto s : sample_.alive_states()){
+    //for (const auto s:sample_.expanded_states()) {
+    for( const auto s : sample_.alive_states()){
         for (const auto sprime:sample_.successors(s)) {
             if (is_necessarily_bad(get_transition_id(s, sprime))) continue; // includes alive-to-dead transitions
             if (sample_.is_goal(sprime)) continue;
