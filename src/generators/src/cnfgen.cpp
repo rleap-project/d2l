@@ -146,12 +146,6 @@ int run(const Options& options) {
             read_transition_data(options.workspace, options.verbosity));
     std::cout << "Done. Training sample: " << dataset << std::endl;
 
-    if (options.verbosity && options.sampling_strategy != "full") {
-        std::cout << "Sampling " << options.initial_sample_size << " alive states at random" << std::endl;
-    }
-
-    if (options.verbosity) std::cout << dataset << std::endl;
-
     SATPolicyComputationStrategy strategy;
     const auto& [output, dnf] = strategy.run(options, dataset, time);
 
