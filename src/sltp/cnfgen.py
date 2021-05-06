@@ -16,23 +16,14 @@ def invoke_cpp_module(config, data, validate_features=None):
     args = ["--workspace", config.experiment_dir]
     args += ["--validate-features", ",".join(map(str, validate_features))] if validate_features is not None else []
     args += ["--use-equivalence-classes"] if config.use_equivalence_classes else []
-    args += ["--use-feature-dominance"] if config.use_feature_dominance else []
-    args += ["--v_slack", str(config.v_slack)]
     args += ["--distinguish-goals"] if config.distinguish_goals else []
     args += ["--initial-sample-size", str(config.initial_sample_size)]
     args += ["--refinement-batch-size", str(config.refinement_batch_size)]
     args += ["--seed", str(config.seed)]
     args += ["--verbosity", str(config.verbosity)]
-    args += ["--acyclicity", str(config.acyclicity)]
     args += ["--encodings_dir", str(config.encodings_dir)]
     args += ["--sampling_strategy", str(config.sampling_strategy)]
-    args += ["--optimal_steps", str(config.optimal_steps)]
-    args += ["--consistency_bound", str(config.consistency_bound)]
     args += ["--n_features", str(config.n_features)]
-    args += ["--closed"] if config.closed else []
-    args += ["--name", str(config.name)]
-    args += ["--n_instances", str(config.n_instances)]
-    args += ["--dimensions", str(config.dimensions)]
     retcode = execute([cmd] + args)
 
     return {  # Let's map the numeric code returned by the c++ app into an ExitCode object

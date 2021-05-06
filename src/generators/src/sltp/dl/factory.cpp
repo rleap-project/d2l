@@ -226,6 +226,7 @@ bool Factory::check_some_transition_pair_distinguished(const feature_sample_deno
     int prev_instance_id = -1;
     bool feature_can_distinguish_some_transition = false;
     int last_sf = -1, last_sfprime = -1;
+//    for (auto s:transitions.positive()) {
     for (auto s:transitions.all_alive()) {
         const State &state = sample.state(s);
 
@@ -312,11 +313,13 @@ bool Factory::prune_feature_denotation(
 
         return true;
     }
+    /* ATM We don't want this pruning, but we could recover it.
 
     if (!check_some_transition_pair_distinguished(fd, sample, transitions)) {
 //         std::cout << "REJECT (NO DISTINCTION): " << f.fullstr() << std::endl;
         return true;
     }
+    */
 
 //    std::cout << "ACCEPT: " << f.fullstr() << std::endl;
     return false;

@@ -17,21 +17,11 @@ struct Options {
     //! among transitions given by the feature pool
     bool use_equivalence_classes;
 
-    //! In the d2L encoding, whether we want to exploit the dominance among features to ignore
-    //! dominated features and reduce the size of the encoding.
-    bool use_feature_dominance;
-
     //! The level of verbosity - higher value means more verbosity
     unsigned verbosity;
 
-    //! The slack value for the maximum allowed value for V_\pi(s) = slack * V^*(s)
-    unsigned v_slack;
-
     //! In the d2L encoding, whether to post constraints to ensure distinguishability of goals
     bool distinguish_goals;
-
-    //! The acyclicity encoding to be used
-    std::string acyclicity;
 
     //! The directory where the ASP encodings are
     std::string encodings_dir;
@@ -54,24 +44,6 @@ struct Options {
 
     //! The number of features of the policy graph abstraction
     unsigned n_features;
-
-    //! Whether to enforce policy-closedness constraints
-    bool closed;
-
-    //! The upper bound to follow optimal transitions, i.e. Good(s,s') -> V^*(s') < V^*(s) if V^*(s) <= optimal_steps
-    unsigned optimal_steps;
-
-    //! V consistency when V^*(s) <= K, so that V(s') < V(s) and V^*(s) <= V(s) <= v_slack * V^*(s)
-    unsigned consistency_bound;
-
-    //! Name of the experiments
-    std::string exp_name;
-
-    //! Number of training instances
-    unsigned n_instances;
-
-    //! Dimension of input instances
-    std::string dimensions;
 };
 
 Options parse_options(int argc, const char** argv);

@@ -100,9 +100,7 @@ def print_sample_info(sample, infos, model_cache, all_predicates, all_functions,
     state_info = []
     atoms_per_instance = defaultdict(set)
     # Iterate over all states and collect the necessary information
-    for expected_id, (id_, state) in enumerate(sample.states.items(), 0):
-        # Check all ids are consecutive, as expected
-        assert expected_id == id_
+    for id_, state in enumerate(sample.states, 0):
         instance_id = sample.instance[id_]  # The instance to which the state belongs
         full_state = serialize_dl_model(model_cache.models[id_], infos[instance_id])
         atoms_per_instance[instance_id].update(full_state)

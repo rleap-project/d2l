@@ -1,5 +1,10 @@
-from sltp.incremental import IncrementalPolicyGenerationSingleStep
+from sltp.milestones import MilestonesFeatureGenerationStep, HStarDecreasingClassifierGenerationStep
 
 INCREMENTAL = [
-    IncrementalPolicyGenerationSingleStep,
+]
+
+
+MILESTONES = [
+    MilestonesFeatureGenerationStep,
+    HStarDecreasingClassifierGenerationStep,
 ]

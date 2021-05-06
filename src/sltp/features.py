@@ -163,7 +163,7 @@ def create_model_cache(vocabulary, states, state_instances, nominals, infos):
 
     # Then create the model corresponding to each state in the sample
     models = {}
-    for sid, state in states.items():
+    for sid, state in enumerate(states, start=0):
         instance = state_instances[sid]
         models[sid] = model_factories[instance].create_model(state)
     return DLModelCache(models)

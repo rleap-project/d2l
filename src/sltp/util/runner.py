@@ -1,6 +1,7 @@
 import importlib
 import os
 import sys
+import traceback
 
 from ..util import console
 from ..util.bootstrap import setup_argparser
@@ -25,7 +26,8 @@ def import_experiment_file(filename):
 
     try:
         return importlib.import_module(filename)
-    except ImportError:
+    except ImportError as e:
+        traceback.print_exception(*sys.exc_info())
         report_and_exit(f'No script named "{filename}.py" found on current directory')
 
 

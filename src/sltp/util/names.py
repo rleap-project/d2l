@@ -314,3 +314,13 @@ def barman_names(feature):
     }
 
     return extend_namer_to_all_features(base).get(s, s)
+
+
+def freecell_names(feature):
+    s = str(feature)
+    base = {
+        "bottomcol": "ncols-with-cards",
+        "incell": "ncards-in-freecell",
+        "Forall(on,<empty>)": "ncards-with-nothin-on-them",
+    }
+    return extend_namer_to_all_features(base).get(s, s)
