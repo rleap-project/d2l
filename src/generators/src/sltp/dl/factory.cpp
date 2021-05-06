@@ -217,40 +217,6 @@ bool Factory::attempt_cardinality_feature_insertion(
     return true;
 }
 
-bool Factory::check_some_transition_pair_distinguished(const feature_sample_denotation_t &fsd, const Sample &sample,
-                                                       const TransitionSample &transitions) {
-// Make sure that the feature is useful to distinguish at least some pair of transitions
-// coming from the same instance.
-// Since the notion of distinguishability is transitive, we'll just check for one pair distinguished from the previous
-// one
-    int prev_instance_id = -1;
-    bool feature_can_distinguish_some_transition = false;
-    int last_sf = -1, last_sfprime = -1;
-//    for (auto s:transitions.positive()) {
-    for (auto s:transitions.all_alive()) {
-        const State &state = sample.state(s);
-
-        int sf = fsd[s];
-
-        for (unsigned sprime:transitions.successors(s)) {
-            int sfprime = fsd[sprime];
-
-            if (last_sfprime > 0 && are_transitions_d1d2_distinguished(last_sf, last_sfprime, sf, sfprime)) {
-                feature_can_distinguish_some_transition = true;
-            }
-
-            last_sfprime = sfprime;
-            last_sf = sf;
-        }
-
-        if (prev_instance_id < 0) prev_instance_id = (int) state.instance_id();
-        if (state.instance_id() != prev_instance_id) {
-            last_sfprime = -1;
-        }
-    }
-    return feature_can_distinguish_some_transition;
-}
-
 // TODO Ideally we'd want to unify this function with Factory::attempt_cardinality_feature_insertion, but
 //  at we're not there yet
 bool Factory::attempt_feature_insertion(
@@ -907,7 +873,7 @@ std::vector<const Concept*> Factory::generate_goal_concepts_and_roles(Cache &cac
 
 void Factory::output_feature_matrix(std::ostream &os, const Cache &cache, const Sample &sample, const sltp::TransitionSample& transitions) const {
     auto num_features = features_.size();
-    unsigned nfeatures_to_print = options.print_hstar ? num_features+1 : num_features;
+    unsigned nfeatures_to_print = num_features;
 
     os << ";; Feature matrix of " << nfeatures_to_print << " features times " << sample.num_states() << " states."
        << " Format: all space-separated values. Line 0: This header line. Line 1: Feature names; Line 2: Feature complexities; Line i, 3<=i<=n: Feature valuation in state #i"
@@ -919,7 +885,6 @@ void Factory::output_feature_matrix(std::ostream &os, const Cache &cache, const 
         os << feature.as_str();
         if (1 + i < num_features) os << " ";
     }
-    if (options.print_hstar) os << " hstar";
     os << std::endl;
 
     // Line #2: feature complexities
@@ -928,7 +893,6 @@ void Factory::output_feature_matrix(std::ostream &os, const Cache &cache, const 
         os << feature.complexity();
         if (1 + i < num_features) os << " ";
     }
-    if (options.print_hstar) os << " -1";
     os << std::endl;
 
 
@@ -944,7 +908,6 @@ void Factory::output_feature_matrix(std::ostream &os, const Cache &cache, const 
             if (1 + j < num_features) os << " ";
         }
 
-        if (options.print_hstar) os << " " << transitions.vstar(i);
         os << std::endl;
     }
 }

@@ -25,19 +25,7 @@ protected:
     //! The reverse mapping: a vector from transition id to corresponding pair of states
     std::vector<state_pair> transition_ids_inv_;
 
-    //! trdata_[s] contains the IDs of all neighbors of s in the state space
-    std::vector<std::vector<unsigned>> trdata_;
-
-    std::vector<bool> is_state_expanded_;
-    std::vector<bool> is_state_alive_;
-    std::vector<bool> is_state_goal_;
-    std::vector<bool> is_state_unsolvable_;
-    std::vector<int> hstar_;
-
-    std::vector<unsigned> alive_states_;
-    std::vector<unsigned> goal_states_;
-    std::vector<unsigned> unsolvable_states_;
-
+    //! A list of positive and negative transitions, for easier access
     using transition_set_t = std::unordered_set<unsigned>;
     transition_set_t positive_transitions_;
     transition_set_t negative_transitions_;
@@ -45,16 +33,7 @@ protected:
 public:
     TransitionSample(std::size_t num_states, std::size_t num_transitions)
             : num_states_(num_states),
-              num_transitions_(num_transitions),
-              trdata_(num_states),
-              is_state_expanded_(num_states, false),
-              is_state_alive_(num_states, false),
-              is_state_goal_(num_states, false),
-              is_state_unsolvable_(num_states, false),
-              hstar_(num_states, -2),
-              alive_states_(),
-              goal_states_(),
-              unsolvable_states_()
+              num_transitions_(num_transitions)
     {
         if (num_states_ > std::numeric_limits<state_id_t>::max()) {
             throw std::runtime_error("Number of states too high - revise source code and change state_id_t datatype");
@@ -78,36 +57,10 @@ public:
     const transition_set_t& positive() const { return positive_transitions_; }
     const transition_set_t& negative() const { return negative_transitions_; }
 
-    int vstar(unsigned sid) const {
-        auto vstar = hstar_.at(sid);
-        return vstar;
-//        return vstar < 0 ? -1 : vstar;
-    }
-
-    const std::vector<unsigned>& successors(unsigned s) const {
-        return trdata_.at(s);
-    }
-
-    bool is_expanded(unsigned state) const { return is_state_expanded_.at(state); }
-    bool is_alive(unsigned state) const { return is_state_alive_.at(state); }
-    bool is_goal(unsigned state) const { return is_state_goal_.at(state); }
-    bool is_unsolvable(unsigned state) const { return is_state_unsolvable_.at(state); }
-
-    unsigned num_unsolvable() const { return unsolvable_states_.size(); }
-
-    const std::vector<unsigned>& all_alive() const { return alive_states_; }
-    const std::vector<unsigned>& all_goals() const { return goal_states_; }
-
     //! Print a representation of the object to the given stream.
     friend std::ostream& operator<<(std::ostream &os, const TransitionSample& o) { return o.print(os); }
     std::ostream& print(std::ostream &os) const {
         os << "Transition sample [states: " << num_states_ << ", transitions: " << num_transitions_ << std::endl;
-//        for (unsigned s = 0; s < num_states_; ++s) {
-//            const auto& dsts = trdata_[s];
-//            if (!dsts.empty()) os << "state " << s << ":";
-//            for (auto dst:dsts) os << " " << dst;
-//            os << std::endl;
-//        }
         return os;
     }
 

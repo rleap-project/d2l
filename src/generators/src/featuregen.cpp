@@ -69,9 +69,7 @@ sltp::dl::Options parse_options(int argc, const char **argv) {
     options.dist_complexity_bound = vm["dist-complexity-bound"].as<unsigned>();
     options.cond_complexity_bound = vm["cond-complexity-bound"].as<unsigned>();
     options.comparison_features = vm.count("comparison-features") > 0;
-    options.generate_goal_concepts = vm.count("generate-goal-concepts") > 0;
     options.print_denotations = vm.count("print-denotations") > 0;
-    options.print_hstar = vm.count("print_hstar") > 0;
     options.generate_or_concepts = vm.count("generate_or_concepts") > 0;
     options.infty_feat_as_zero = vm.count("infty_feat_as_zero") > 0;
     return options;

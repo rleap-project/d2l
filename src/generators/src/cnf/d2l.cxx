@@ -157,7 +157,7 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
     if (options.verbosity>0) {
         // Print a breakdown of the clauses
         std::cout << "A total of " << wr.nclauses() << " clauses were created" << std::endl;
-        std::cout << "\tTransition separation [5,6]: " << n_separation_clauses << std::endl;
+        std::cout << "\tTransition separation: " << n_separation_clauses << std::endl;
         std::cout << "\t(Weighted) Select(f): " << n_selected_clauses << std::endl;
         assert(wr.nclauses() == n_selected_clauses + n_separation_clauses);
     }

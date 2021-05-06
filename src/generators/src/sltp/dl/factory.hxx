@@ -36,9 +36,7 @@ struct Options {
     unsigned dist_complexity_bound;
     unsigned cond_complexity_bound;
     bool comparison_features;
-    bool generate_goal_concepts;
     bool print_denotations;
-    bool print_hstar;
     bool generate_or_concepts;
     bool infty_feat_as_zero;
 };
@@ -183,9 +181,6 @@ public:
 
     //! Return all generated concepts in a single, *unlayered* vector, and sorted by increasing complexity
     std::vector<const Concept*> consolidate_concepts() const;
-
-    static bool check_some_transition_pair_distinguished(
-            const feature_sample_denotation_t &fsd, const Sample &sample, const TransitionSample &transitions) ;
 
     int generate_goal_equality_concepts(const Sample& sample, Cache& cache);
 };

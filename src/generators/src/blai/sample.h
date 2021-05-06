@@ -36,18 +36,9 @@ public:
         auto est_size = (double) matrix_.num_features() * matrix_.num_states() * sizeof(FeatureMatrix::feature_value_t) /
                         (1024.0 * 1024.0);
 
-        unsigned num_alive = 0;
-        for (const auto s:transitions_.all_alive()) {
-            auto nsuccessors = transitions_.successors(s).size();
-            num_alive += nsuccessors;
-        }
-
         os
             << "[states: " << transitions_.num_states()
             << ", transitions: " << transitions_.num_transitions()
-            << " (from alive state: " << transitions_.all_alive().size() << ")"
-            << ", unsolvable: " << transitions_.num_unsolvable()
-            << ", goals: " << transitions_.all_goals().size()
             << ", features: " << matrix_.num_features()
             << ", est. size: " << std::setprecision(2) << std::fixed << est_size << " MB.]";
         return os;
