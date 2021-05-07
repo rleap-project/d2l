@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 project(sltp VERSION 0.1 LANGUAGES CXX)
 
+set(PROJECT_ROOT .)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -50,14 +52,17 @@ set(CNFGEN_SOURCE_FILES
 
 add_executable(featuregen ${SOURCE_FILES} ${COMMON_FILES})
 add_executable(cnfgen ${CNFGEN_SOURCE_FILES} ${COMMON_FILES})
-set_target_properties(featuregen PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(cnfgen PROPERTIES LINKER_LANGUAGE CXX)
 
 
+set_target_properties(featuregen PROPERTIES
+        LINKER_LANGUAGE CXX
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE  ${CMAKE_CURRENT_SOURCE_DIR})
 
-set(PROJECT_ROOT .)
-#MESSAGE(WARNING "Your FS_ROOT home directory is: ${PROJECT_ROOT}" )
+set_target_properties(cnfgen PROPERTIES
+        LINKER_LANGUAGE CXX
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE  ${CMAKE_CURRENT_SOURCE_DIR})
 
+#MESSAGE(WARNING "Your PROJECT_ROOT directory is: ${PROJECT_ROOT}" )
 include_directories(${PROJECT_ROOT}/src)
 
 # Allow custom boost installations
