@@ -26,7 +26,7 @@ def experiments():
 
     exps = dict()
 
-    exps["small"] = update_dict(
+    exps["milestones"] = update_dict(
         base,
         pipeline=pipelines.MILESTONES,
         instances=["p01.pddl"],
@@ -45,8 +45,12 @@ def experiments():
         sampling_strategy="goal",
         verbosity=2,
 
-        num_random_rollouts=20,
-        random_walk_length=10,
+        num_random_rollouts=50,
+        random_walk_length=20,
+    )
+
+    exps["debug"] = update_dict(
+        exps["milestones"],
     )
 
     return exps

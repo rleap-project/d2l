@@ -89,7 +89,7 @@ def run_fd(config, domain, instance, verbose):
     with tempfile.NamedTemporaryFile(mode='w', delete=True) as tf:
         args = f'--alias seq-opt-lmcut --plan-file {exp_dir}/plan.txt {domain} {instance}'.split()
         stdout = None if verbose else tf.name
-        retcode = execute(['fast-downward.py'] + args, stdout=stdout)
+        retcode = execute(['fast-downward.py'] + args, stdout=stdout, verbose=verbose)
         if retcode in (11, 12):
             return None
         elif retcode != 0:
@@ -198,8 +198,11 @@ class SampleGenerator:
         prob = copy.copy(model.problem)
         prob.init = state
         instance_filename = generate_instance_file(prob, pddl_constants)
-        self.planner_runs += 1
+
+        if self.planner_runs % 50 == 0:
+            print(f'Starting FD run #{self.planner_runs}')
         plan = compute_plan(config, model, self.domain_filename, instance_filename, state)
+        self.planner_runs += 1
         if plan is None:
             self.unsolvable_hit += 1
         return plan
@@ -230,22 +233,30 @@ class SampleGenerator:
     def add_point(self, sid, succ_id, positive):
         self.sample.add_transition(sid, succ_id, positive)
 
+    def run_rollout(self, model, instance_data):
+        s = model.init()
+
+        nsteps = 0
+        for nsteps in range(1, self.config.random_walk_length+1):
+            self.process(instance_data, model, s)
+            if s is None:
+                print(f"Rollout ended in {nsteps} steps after hitting a dead-end")
+                return
+            elif model.is_goal(s):
+                print(f"Rollout ended in {nsteps} steps after hitting a goal state")
+                return
+            s = choose_random_successor(self.rng, model, s)
+        print(f"Rollout ended in {nsteps} steps after hitting rollout length limit")
+
     def generate(self):
-        for instance in self.config.instances:
+        for nrollout in range(1, self.config.num_random_rollouts+1):
+            instance = self.rng.choice(self.config.instances)
+            print(f"Starting random rollout #{nrollout} on instance {instance}")
             instance_data = self.training_instances_data[instance]
-            model = instance_data['search_model']
-
-            for _ in range(0, self.config.num_random_rollouts):
-                s = model.init()
-
-                self.process(instance_data, model, s)
-                for _ in range(0, self.config.random_walk_length):
-                    s = choose_random_successor(self.rng, model, s)
-                    if s is None:
-                        break
-                    self.process(instance_data, model, s)
+            self.run_rollout(instance_data['search_model'], instance_data)
 
         print_transition_matrix(self.sample, self.config.transitions_info_filename)
+        log_milestones(self.sample, Path(self.config.experiment_dir) / "milestones.txt")
         # log_sampled_states(self.sample, self.config.resampled_states_filename)
         print(f"Sample generated with {self.planner_runs} FD runs, of which"
               f" {self.unsolvable_hit} on an unsolvable instance")
@@ -257,6 +268,17 @@ class SampleGenerator:
         self.sample.add_state(s, instance_data['id'], hstar)
         for hsucc, succ in succs_hstar:
             self.add_point(self.sample.get_id(s), self.sample.get_id(succ), hsucc < hstar)
+
+
+def log_milestones(sample, filename):
+    with open(filename, 'w') as f:
+        for i, state in enumerate(sample.states, start=0):
+            atoms = ", ".join(str(atom) for atom in state.as_atoms())
+            print(f"#{i}\t{atoms}", file=f)
+
+        for (s, sprime, pos) in sample.transitions:
+            sym = "+" if pos else "-"
+            print(f"(#{s}, #{sprime}): {sym}", file=f)
 
 
 def parse_problem_with_tarski(domain_file, inst_file):

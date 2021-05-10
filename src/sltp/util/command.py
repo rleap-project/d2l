@@ -27,13 +27,15 @@ def read_file(filename):
 def execute(command, **kwargs):
     stdout = open(kwargs["stdout"], 'w') if "stdout" in kwargs else None
     stderr = open(kwargs["stderr"], 'w') if "stderr" in kwargs else None
+    verbose = kwargs.get('verbose', True)
     cwd = kwargs["cwd"] if "cwd" in kwargs else os.getcwd()
 
-    logging.info(f'Executing "{" ".join(map(str, command))}" on directory "{cwd}"')
-    if stdout:
-        logging.info(f'Standard output redirected to "{stdout.name}"')
-    if stderr:
-        logging.info(f'Standard error redirected to "{stderr.name}"')
+    if verbose:
+        logging.info(f'Executing "{" ".join(map(str, command))}" on directory "{cwd}"')
+        if stdout:
+            logging.info(f'Standard output redirected to "{stdout.name}"')
+        if stderr:
+            logging.info(f'Standard error redirected to "{stderr.name}"')
 
     retcode = subprocess.call(command, cwd=cwd, stdout=stdout, stderr=stderr)
 

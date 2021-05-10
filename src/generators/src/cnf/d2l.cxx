@@ -58,7 +58,8 @@ void D2LEncoding::compute_equivalence_relations() {
         return;
     }
 
-    std::cout << "Computing indistinguishability for " << positive.size() << " and " << negative.size() << " examples" << std::endl;
+    std::cout << "Computing indistinguishability for " << sample_.transitions().positive().size() << " positive and "
+              << sample_.transitions().negative().size() << " negative examples" << std::endl;
 
     // Note that the code above relies for correctness on the fact that negative examples are dealt with before
     // positive examples. This way, we can determine whether positive examples are redundant with respect to
@@ -123,10 +124,11 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
     assert(wr.nvars() == variables.selecteds.size() );
 
     /////// CNF constraints ///////
+    auto ninstances = sample_.sample().num_instances();
 
     // Let's group positive and negative transitions by the instance they belong to
-    std::vector<std::vector<unsigned>> pos_per_instance(sample_.sample().num_instances());
-    std::vector<std::vector<unsigned>> neg_per_instance(sample_.sample().num_instances());
+    std::vector<std::vector<unsigned>> pos_per_instance(ninstances);
+    std::vector<std::vector<unsigned>> neg_per_instance(ninstances);
     for (const auto tid:positive) {
         const auto& [s, sprime] = get_state_pair(tid);
         assert(sample_.sample().instance_id(s) == sample_.sample().instance_id(sprime));
@@ -135,19 +137,19 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
     for (const auto tid:negative) {
         const auto& [s, sprime] = get_state_pair(tid);
         assert(sample_.sample().instance_id(s) == sample_.sample().instance_id(sprime));
-        pos_per_instance.at(sample_.sample().instance_id(s)).push_back(tid);
+        neg_per_instance.at(sample_.sample().instance_id(s)).push_back(tid);
     }
 
 
     // Clauses (6), (7):
-//    for (unsigned iid=0; iid < sample_.sample().num_instances(); ++iid) {
-    for (unsigned iid=0; iid < 1; ++iid) {
-//        for (const auto pos_id:pos_per_instance.at(iid)) {
-        for (const auto pos_id:positive) {
+    for (unsigned iid=0; iid < ninstances; ++iid) {
+//    for (unsigned iid=0; iid < 1; ++iid) {
+        for (const auto pos_id:pos_per_instance.at(iid)) {
+//        for (const auto pos_id:positive) {
             const auto&[s, sprime] = get_state_pair(pos_id);
 
-//            for (const auto neg_id:neg_per_instance.at(iid)) {
-            for (const auto neg_id:negative) {
+            for (const auto neg_id:neg_per_instance.at(iid)) {
+//            for (const auto neg_id:negative) {
                 const auto&[t, tprime] = get_state_pair(neg_id);
                 cnfclause_t clause;
 
