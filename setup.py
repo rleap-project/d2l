@@ -60,6 +60,7 @@ def main():
             'psutil',
             'bitarray',
             'natsort>=7.0.1',
+            'numpy',
             "tarski@git+git://github.com/aig-upf/tarski.git@288d900#egg=tarski",
         ],
 
