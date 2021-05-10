@@ -229,7 +229,11 @@ public:
     ~Sample() = default;
 
     const Instance& instance(unsigned sid) const {
-        return instances_.at(state(sid).instance_id());
+        return instances_.at(instance_id(sid));
+    }
+
+    unsigned instance_id(unsigned sid) const {
+        return state(sid).instance_id();
     }
 
     unsigned num_objects(unsigned sid) const {
@@ -240,6 +244,9 @@ public:
         return instance(sid).atom(id);
     }
 
+    std::size_t num_instances() const {
+        return instances_.size();
+    }
     std::size_t num_predicates() const {
         return predicates_.size();
     }

@@ -47,6 +47,7 @@ struct Options {
 struct SampleDenotationProperties {
     bool denotation_is_bool = false;
     bool denotation_is_constant = false;
+    bool denotation_is_constant_over_states_of_same_instance = false;
 };
 
 //! A cache from features to their sample denotations

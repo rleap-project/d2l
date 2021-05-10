@@ -13,6 +13,7 @@ from .returncodes import ExitCode
 def invoke_cpp_module(config, data, validate_features=None):
     logging.info('Calling C++ MaxSAT module')
     cmd = os.path.realpath(os.path.join(config.generators_path, "cnfgen"))
+    # cmd = os.path.realpath(os.path.join(config.generators_path, "cmake-build-release", "cnfgen"))
     args = ["--workspace", config.experiment_dir]
     args += ["--validate-features", ",".join(map(str, validate_features))] if validate_features is not None else []
     args += ["--use-equivalence-classes"] if config.use_equivalence_classes else []

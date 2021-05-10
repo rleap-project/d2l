@@ -28,15 +28,8 @@ def experiments():
 
     exps = dict()
 
-    micon_base = update_dict(
-    	base,
-    	name = "micon",
-    	n_instances = 2,
-    	dimensions = "(4,8)",
-    )
-    
     exps["small"] = update_dict(
-        micon_base,
+        base,
         instances=[
             # 's2-0.pddl',
             # 's2-1.pddl',
@@ -64,122 +57,24 @@ def experiments():
         sampling_strategy="goal"
     )
 
-    exps["small-orig-inc"] = update_dict(
-        exps["small"],
-        pipeline=pipelines.INCREMENTAL,
-        instances=[ 's4-0.pddl', 'training2.pddl',],
-        validation_instances=[ 's4-0.pddl', 'training2.pddl',],
-        test_policy_instances=all_test_instances(),
-        
-        sampling_strategy="full",
-        initial_sample_size=999999,
+    exps["milestones"] = update_dict(
+        base,
+        pipeline=pipelines.MILESTONES,
+        instances=['s4-0.pddl',],
+        test_instances=[],
+
+        max_concept_size=6,
+        distance_feature_max_complexity=6,
+
+        # parameter_generator=gripper_parameters,  # Works also, but no real advantage
+        parameter_generator=None,
+        use_equivalence_classes=True,
+        # use_feature_dominance=True,
+        # print_hstar_in_feature_matrix=True,
         verbosity=2,
-        refine_policy_from_entire_sample=True,
-        refinement_batch_size=2,
-        compute_plan_on_flaws=True,
-        num_random_walks=2,
+
+        num_random_rollouts=20,
         random_walk_length=10,
-    )
-
-    exps["small-ipc-inc"] = update_dict(
-        exps["small"],
-        pipeline=pipelines.INCREMENTAL,
-        instances=["s5-0.pddl","s5-4.pddl"],
-        #instances=["s7-0.pddl"],
-        test_policy_instances=all_test_instances(),
-        
-        #sampling_strategy="full",
-        #initial_sample_size=999999,
-        #verbosity=2,
-        #refine_policy_from_entire_sample=True,
-        #refinement_batch_size=2,
-        #compute_plan_on_flaws=True,
-        #num_random_walks=2,
-        #random_walk_length=10,
-        sampling_strategy="full",
-        initial_sample_size=999999,
-        verbosity=2,
-        refine_policy_from_entire_sample=True,
-        refinement_batch_size=1,
-        compute_plan_on_flaws=True,
-        num_random_walks=0,
-        random_walk_length=0,
-    )
-    
-    exps["small-sd2l"] = update_dict(
-        micon_base,
-        instances=[
-            # 's2-0.pddl',
-            # 's2-1.pddl',
-            # 's2-2.pddl',
-            # 's2-3.pddl',
-            # 's3-0.pddl',
-            #'s4-0.pddl',
-            #'training2.pddl'#, #(updated with a new origin passenger)
-            's7-0.pddl'
-        ],
-        test_instances=[
-        ],
-        test_policy_instances=all_test_instances(),
-        
-    	n_instances = 1,
-    	dimensions = "(7,14)",
-
-        acyclicity="sd2l",
-        sampling_strategy="goal",
-		n_features=4,
-        max_concept_size=8,
-        distance_feature_max_complexity=8,
-        #initial_sample_size=999999,
-        #initial_sample_size=10,
-        consistency_bound=0,
-        optimal_steps=2,
-        v_slack=2,
-        verbosity=2,
-        use_equivalence_classes=True,
-    )
-    
-    exps["small-dtl"] = update_dict(
-        micon_base,
-        instances=[
-            # 's2-0.pddl',
-            # 's2-1.pddl',
-            # 's2-2.pddl',
-            # 's2-3.pddl',
-            # 's3-0.pddl',
-            #'s4-0.pddl',
-            #'training2.pddl'#, #(updated with a new origin passenger)
-            's7-0.pddl'
-        ],
-        test_instances=[
-        ],
-        test_policy_instances=all_test_instances(),
-        
-    	n_instances = 1,
-    	dimensions = "(7,14)",
-
-        acyclicity="dtl",
-        sampling_strategy="goal",
-		n_features=4,
-        max_concept_size=8,
-        distance_feature_max_complexity=8,
-        #initial_sample_size=999999,
-        #initial_sample_size=10,
-        consistency_bound=10,
-        optimal_steps=2,
-        v_slack=2,
-        verbosity=2,
-        use_equivalence_classes=True,
-    )
-    
-    
-
-    exps["small2"] = update_dict(
-        exps["small"],
-        instances=[
-            's3-0.pddl',
-            'training2.pddl',
-        ],
     )
 
     exps["debug"] = update_dict(

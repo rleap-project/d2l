@@ -10,8 +10,7 @@ from tarski.dl import compute_dl_vocabulary
 from tarski.grounding.lp_grounding import ground_problem_schemas_into_plain_operators
 from tarski.io import FstripsReader, FstripsWriter
 from tarski.search import GroundForwardSearchModel
-from tarski.search.applicability import is_applicable
-from tarski.search.model import progress
+from tarski.search.model import progress, is_applicable
 from tarski.syntax.transform.action_grounding import ground_schema_into_plain_operator_from_grounding
 
 from .cnfgen import invoke_cpp_module, parse_dnf_policy
@@ -42,7 +41,7 @@ class MilestonesFeatureGenerationStep(Step):
         return config
 
     def description(self):
-        return "Incremental policy generation step"
+        return "Feature generation step for the Milestone approach"
 
     def get_step_runner(self):
         return generate_features
@@ -60,7 +59,7 @@ class HStarDecreasingClassifierGenerationStep(Step):
         return config
 
     def description(self):
-        return "Incremental policy generation step"
+        return "Classifier computation step for the Milestone approach"
 
     def get_step_runner(self):
         return generate_policy
@@ -91,9 +90,10 @@ def run_fd(config, domain, instance, verbose):
         args = f'--alias seq-opt-lmcut --plan-file {exp_dir}/plan.txt {domain} {instance}'.split()
         stdout = None if verbose else tf.name
         retcode = execute(['fast-downward.py'] + args, stdout=stdout)
-    if retcode != 0:
-        logging.error("Fast Downward error")
-        return None
+        if retcode in (11, 12):
+            return None
+        elif retcode != 0:
+            raise RuntimeError(f"Fast Downward exited with unexpected code {retcode}")
 
     with open(f'{exp_dir}/plan.txt', 'r') as f:
         # Read up all lines in plan file that do not start with a comment character ";"
@@ -113,7 +113,7 @@ def compute_plan(config, model, domain_filename, instance_filename, init):
     plan = run_fd(config, domain_filename, instance_filename, verbose=False)
     if plan is None:
         # instance is unsolvable
-        print("Unsolvable instance")
+        # print("Unsolvable instance")
         return None
 
     # Collect all states in the plan
@@ -207,6 +207,7 @@ class SampleGenerator:
     def compute_hstar_uncached(self, model, instance_data, state):
         plan_states = self.compute_plan(self.config, model, instance_data['pddl_constants'], state)
         if plan_states is None:
+            self.sample.add_state(state, instance_data['id'], sys.maxsize)
             return sys.maxsize
 
         previous = None
@@ -246,6 +247,8 @@ class SampleGenerator:
 
         print_transition_matrix(self.sample, self.config.transitions_info_filename)
         # log_sampled_states(self.sample, self.config.resampled_states_filename)
+        print(f"Sample generated with {self.planner_runs} FD runs, of which"
+              f" {self.unsolvable_hit} on an unsolvable instance")
         return self.sample
 
     def process(self, instance_data, model, s):
@@ -400,7 +403,7 @@ def generate_policy(config, data, rng):
     classifier = compute_dnf_classifier(config, language)
     if not classifier:
         logging.info("No classifier found under given complexity bound")
-        return ExitCode.Success
+        return ExitCode.Success, {}
 
     # If we found a set of h*-decreasing rules, let's make sure they are correct over the training set
     sample = SampleGenerator(config, rng, all_instance_data).generate()

@@ -23,21 +23,13 @@ def experiments():
 
     exps = dict()
 
-    span_base = update_dict(
-    	base,
-    	name = "span",
-    	n_instances = 3,
-    	dimensions = "(6,10)",
-    )
-
     exps["small"] = update_dict(
-        span_base,
+        base,
         pipeline="d2l_pipeline",
         instances=[
             "prob-2-2-10.pddl",
             "prob-4-2-5.pddl",
             "prob-6_4_10.pddl",
-
         ],
         test_instances=[
         ],
@@ -57,95 +49,30 @@ def experiments():
         verbosity=2
     )
 
-    exps["small-ipc-inc"] = update_dict(
-        exps["small"],
-        pipeline=pipelines.INCREMENTAL,
+    exps["milestones"] = update_dict(
+        base,
+        pipeline=pipelines.MILESTONES,
         instances=[
             "prob-2-2-10.pddl",
             "prob-4-2-5.pddl",
-            "prob-6_4_10.pddl",
-
+            # "prob-6_4_10.pddl",
         ],
-        #instances=[
-        #    'pfile02-006.pddl',
-        #],
-        test_policy_instances=[
-            "prob-10-10-10-1540903568.pddl",
-            "prob-15-10-8-1540913795.pddl"
-        ] + all_test_instances(),
-        
-        sampling_strategy="full",
-        initial_sample_size=999999,
-        verbosity=2,
-        refine_policy_from_entire_sample=True,
-        refinement_batch_size=1,
-        compute_plan_on_flaws=True,
-        num_random_walks=0,
-        random_walk_length=0,
-    )
+        test_instances=[],
+        # test_policy_instances=["p01.pddl"],
 
-    exps["small-sd2l"] = update_dict(
-        span_base,
-        pipeline="d2l_pipeline",
-        instances=[
-            "prob-2-2-10.pddl",
-            "prob-4-2-5.pddl",
-            "prob-6_4_10.pddl",
+        max_concept_size=6,
+        distance_feature_max_complexity=6,
 
-        ],
-        test_instances=[
-        ],
-        test_policy_instances=[
-            "prob-10-10-10-1540903568.pddl",
-            "prob-15-10-8-1540913795.pddl"
-        ] + all_test_instances(),
-
-        acyclicity="sd2l",
-        sampling_strategy="goal",
-        
-        n_features=3,
-        max_concept_size=8,
-        distance_feature_max_complexity=8,
-        #initial_sample_size=999999,
-        #initial_sample_size=10,
-        v_slack=2,
-        consistency_bound=0,
-        optimal_steps=2,
-        verbosity=2,
+        # parameter_generator=gripper_parameters,  # Works also, but no real advantage
+        parameter_generator=None,
         use_equivalence_classes=True,
-    )
-
-    exps["small-dtl"] = update_dict(
-        span_base,
-        pipeline="d2l_pipeline",
-        instances=[
-            "prob-2-2-10.pddl",
-            "prob-4-2-5.pddl",
-            "prob-6_4_10.pddl",
-
-        ],
-        test_instances=[
-        ],
-        test_policy_instances=[
-            "prob-10-10-10-1540903568.pddl",
-            "prob-15-10-8-1540913795.pddl"
-        ] + all_test_instances(),
-
-        acyclicity="dtl",
-        sampling_strategy="goal",
-        
-        n_features=3,
-        max_concept_size=8,
-        distance_feature_max_complexity=8,
-        #initial_sample_size=999999,
-        #initial_sample_size=10,
-        v_slack=2,
-        consistency_bound=10,
-        optimal_steps=2,
+        # use_feature_dominance=True,
+        # print_hstar_in_feature_matrix=True,
         verbosity=2,
-        use_equivalence_classes=True,
+
+        num_random_rollouts=1,
+        random_walk_length=10,
     )
-    
 
     return exps
 
@@ -174,4 +101,4 @@ def debug_policy():
 
 def all_test_instances():
     import math
-    return [f"pfile0{math.ceil(i/5)}-0{i:02d}.pddl" for i in range(1, 31)]
+    return [f"pfile0{math.ceil(i / 5)}-0{i:02d}.pddl" for i in range(1, 31)]

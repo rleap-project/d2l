@@ -15,9 +15,19 @@ feature_sample_denotation_t compute_feature_sample_denotation(
     feature_sample_denotation_t fd;
     fd.reserve(m);
 
+    // We want to determine:
+    // - If the feature is boolean or numeric (this is simply determined empirically: we consider it boolean
+    //   if its value is always 0 or 1, and numeric otherwise),
+    // - whether the full sample denotation of the feature coincides with some previous feature and hence we can prune
+    //   it,
+    // - whether the feature is not truly informative for our encodings, e.g. because it has the same variation over all
+    //   transitions in the sample, or similar
     properties.denotation_is_bool = true;
     properties.denotation_is_constant = true;
+    properties.denotation_is_constant_over_states_of_same_instance = true;
     int previous_value = -1;
+
+    std::vector<int> previous_value_per_instance(sample.num_instances(), -1);
 
     for (unsigned sid = 0; sid < m; ++sid) {
         const State &state = sample.state(sid);
@@ -29,9 +39,17 @@ feature_sample_denotation_t compute_feature_sample_denotation(
         properties.denotation_is_bool = properties.denotation_is_bool && (value < 2);
         properties.denotation_is_constant = (previous_value == -1)
                                             || (properties.denotation_is_constant && (previous_value == value));
+
+        int prev_value_of_same_instance = previous_value_per_instance.at(state.instance_id());
+        if (prev_value_of_same_instance != -1 && value != prev_value_of_same_instance)  {
+            properties.denotation_is_constant_over_states_of_same_instance = false;
+        }
+
         previous_value = value;
+        previous_value_per_instance.at(state.instance_id()) = value;
     }
 
+    assert(!properties.denotation_is_constant || properties.denotation_is_constant_over_states_of_same_instance);
     return fd;
 }
 
@@ -253,16 +271,9 @@ bool Factory::prune_feature_denotation(
         feature_cache_t& seen_denotations,
         bool check_redundancy)
 {
-    // We want to determine:
-    // - whether the feature is boolean or numeric (this is simply determined empirically: we consider it boolean
-    //   if its value is always 0 or 1, and numeric otherwise),
-    // - whether the full sample denotation of the feature coincides with some previous feature and hence we can prune
-    //   it,
-    // - whether the feature is not truly informative for our encodings, e.g. because it has the same variation over all
-    //   transitions in the sample, or similar
     if (!check_redundancy) return false;
 
-    if (properties.denotation_is_constant) return true;
+    if (properties.denotation_is_constant_over_states_of_same_instance) return true;
 
     auto it = seen_denotations.find(fd);
     bool is_new = (it == seen_denotations.end());

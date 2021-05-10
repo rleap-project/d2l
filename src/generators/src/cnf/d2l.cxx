@@ -58,6 +58,8 @@ void D2LEncoding::compute_equivalence_relations() {
         return;
     }
 
+    std::cout << "Computing indistinguishability for " << positive.size() << " and " << negative.size() << " examples" << std::endl;
+
     // Note that the code above relies for correctness on the fact that negative examples are dealt with before
     // positive examples. This way, we can determine whether positive examples are redundant with respect to
     // a negative or a positive example and report this to the user accurately.
@@ -122,33 +124,59 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
 
     /////// CNF constraints ///////
 
+    // Let's group positive and negative transitions by the instance they belong to
+    std::vector<std::vector<unsigned>> pos_per_instance(sample_.sample().num_instances());
+    std::vector<std::vector<unsigned>> neg_per_instance(sample_.sample().num_instances());
+    for (const auto tid:positive) {
+        const auto& [s, sprime] = get_state_pair(tid);
+        assert(sample_.sample().instance_id(s) == sample_.sample().instance_id(sprime));
+        pos_per_instance.at(sample_.sample().instance_id(s)).push_back(tid);
+    }
+    for (const auto tid:negative) {
+        const auto& [s, sprime] = get_state_pair(tid);
+        assert(sample_.sample().instance_id(s) == sample_.sample().instance_id(sprime));
+        pos_per_instance.at(sample_.sample().instance_id(s)).push_back(tid);
+    }
+
+
     // Clauses (6), (7):
-    for (const auto pos_id:positive) {
-        const auto& [s, sprime] = get_state_pair(pos_id);
+//    for (unsigned iid=0; iid < sample_.sample().num_instances(); ++iid) {
+    for (unsigned iid=0; iid < 1; ++iid) {
+//        for (const auto pos_id:pos_per_instance.at(iid)) {
+        for (const auto pos_id:positive) {
+            const auto&[s, sprime] = get_state_pair(pos_id);
 
-        for (const auto neg_id:negative) {
-            const auto& [t, tprime] = get_state_pair(neg_id);
-            cnfclause_t clause;
+//            for (const auto neg_id:neg_per_instance.at(iid)) {
+            for (const auto neg_id:negative) {
+                const auto&[t, tprime] = get_state_pair(neg_id);
+                cnfclause_t clause;
 
-            // Compute first the Selected(f) terms
-            const auto dist = compute_d1d2_distinguishing_features(feature_ids, sample_.matrix(), s, sprime, t, tprime);
-            if (dist.empty()) {
-                std::cout << sltp::utils::warning()
-                          <<  "No feature distinguishes positive transition (" << s << ", " << sprime
-                          << ") from negative transition (" << t << ", " << tprime << "). Theory is UNSAT" << std::endl;
+                // Compute first the Selected(f) terms
+                const auto dist = compute_d1d2_distinguishing_features(feature_ids, sample_.matrix(), s, sprime, t,
+                                                                       tprime);
+                if (dist.empty()) {
+                    std::cout << sltp::utils::warning()
+                              << "No feature distinguishes positive transition (" << s << ", " << sprime
+                              << ") from negative transition (" << t << ", " << tprime << "). Theory is UNSAT"
+                              << std::endl;
+                }
+
+                for (feature_t f:dist) {
+                    clause.push_back(Wr::lit(variables.selecteds.at(f), true));
+                }
+
+                wr.cl(clause);
+                n_separation_clauses += 1;
             }
-
-            for (feature_t f:dist) {
-                clause.push_back(Wr::lit(variables.selecteds.at(f), true));
-            }
-
-            wr.cl(clause);
-            n_separation_clauses += 1;
         }
     }
 
 //        std::cout << "Posting (weighted) soft constraints for " << variables.selecteds.size() << " features" << std::endl;
     for (unsigned f:feature_ids) {
+        if (sample_.matrix().feature_cost(f) == 0) {
+            std::cout << sample_.matrix().feature_name(f) << std::endl;
+            std::cout << "Done" << std::endl;
+        }
         wr.cl({Wr::lit(variables.selecteds[f], false)}, sample_.matrix().feature_cost(f));
     }
 

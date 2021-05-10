@@ -143,7 +143,8 @@ int run(const Options& options) {
     std::cout << "Parsing training data... " << std::endl;
     sltp::TrainingSet dataset(
             read_feature_matrix(options.workspace, options.verbosity),
-            read_transition_data(options.workspace, options.verbosity));
+            read_transition_data(options.workspace, options.verbosity),
+            read_input_sample(options.workspace));
     std::cout << "Done. Training sample: " << dataset << std::endl;
 
     SATPolicyComputationStrategy strategy;

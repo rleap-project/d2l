@@ -20,14 +20,16 @@ class TrainingSet {
 public:
     const FeatureMatrix matrix_;
     const TransitionSample transitions_;
+    const Sample sample_;
 
-    TrainingSet(FeatureMatrix&& matrix, TransitionSample&& transitions) :
-        matrix_(std::move(matrix)), transitions_(std::move(transitions))
+    TrainingSet(FeatureMatrix&& matrix, TransitionSample&& transitions, Sample&& sample) :
+        matrix_(std::move(matrix)), transitions_(std::move(transitions)), sample_(std::move(sample))
     {}
     virtual ~TrainingSet() = default;
 
     const FeatureMatrix& matrix() const { return matrix_; }
     const TransitionSample& transitions() const { return transitions_; }
+    const Sample& sample() const { return sample_; }
 
 
     friend std::ostream& operator<<(std::ostream &os, const TrainingSet& o) { return o.print(os); }
@@ -39,6 +41,7 @@ public:
         os
             << "[states: " << transitions_.num_states()
             << ", transitions: " << transitions_.num_transitions()
+            << " (" << transitions_.positive().size() << " positive + " << transitions_.negative().size() << " negative)"
             << ", features: " << matrix_.num_features()
             << ", est. size: " << std::setprecision(2) << std::fixed << est_size << " MB.]";
         return os;
