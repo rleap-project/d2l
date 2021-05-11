@@ -7,10 +7,12 @@ from pathlib import Path
 import numpy as np
 
 from tarski.dl import compute_dl_vocabulary
+from tarski.fstrips.representation import compile_universal_effects_away
 from tarski.grounding.lp_grounding import ground_problem_schemas_into_plain_operators
 from tarski.io import FstripsReader, FstripsWriter
 from tarski.search import GroundForwardSearchModel
 from tarski.search.model import progress, is_applicable
+from tarski.syntax.transform import QuantifierEliminationMode, remove_quantifiers
 from tarski.syntax.transform.action_grounding import ground_schema_into_plain_operator_from_grounding
 
 from .cnfgen import invoke_cpp_module, parse_dnf_policy
@@ -448,11 +450,25 @@ def generate_policy(config, data, rng):
     return ExitCode.Success, {}
 
 
+def simplify_problem(problem):
+    language = problem.language
+    compile_universal_effects_away(problem, inplace=True)
+    problem.goal = remove_quantifiers(language, problem.goal, QuantifierEliminationMode.All, do_copy=False)
+    for action in problem.actions.values():
+        action.precondition = remove_quantifiers(language, action.precondition, QuantifierEliminationMode.All, do_copy=False)
+        for eff in action.effects:
+            if hasattr(eff, 'condition'):
+                eff.condition = remove_quantifiers(language, eff.condition, QuantifierEliminationMode.All, do_copy=False)
+    return problem
+
+
 def compute_instance_data(all_instances, config):
     all_instance_data = {instance: {"id": i} for i, instance in enumerate(all_instances, 0)}
     for instance_filename, data in all_instance_data.items():
         # Parse the domain & instance and create a model generator and related instance-dependent information
         problem, language, pddl_constants = parse_pddl(config.domain, instance_filename)
+        problem = simplify_problem(problem)
+
         nominals = pddl_constants[:]
         if config.parameter_generator is not None:
             nominals += config.parameter_generator(language)
