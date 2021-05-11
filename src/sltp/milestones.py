@@ -239,14 +239,14 @@ class SampleGenerator:
         s = model.init()
 
         nsteps = 0
-        for nsteps in range(1, self.config.random_walk_length+1):
-            self.process(instance_data, model, s)
+        for nsteps in range(0, self.config.random_walk_length):
             if s is None:
                 print(f"Rollout ended in {nsteps} steps after hitting a dead-end")
                 return
             elif model.is_goal(s):
                 print(f"Rollout ended in {nsteps} steps after hitting a goal state")
                 return
+            self.process(instance_data, model, s)
             s = choose_random_successor(self.rng, model, s)
         print(f"Rollout ended in {nsteps} steps after hitting rollout length limit")
 
