@@ -126,6 +126,9 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
     /////// CNF constraints ///////
     auto ninstances = sample_.sample().num_instances();
 
+//    std::mt19937 rng(options.seed);
+//    std::uniform_real_distribution<> dist(0, 1);
+
     // Let's group positive and negative transitions by the instance they belong to
     std::vector<std::vector<unsigned>> pos_per_instance(ninstances);
     std::vector<std::vector<unsigned>> neg_per_instance(ninstances);
@@ -149,6 +152,8 @@ std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWr
             const auto&[s, sprime] = get_state_pair(pos_id);
 
             for (const auto neg_id:neg_per_instance.at(iid)) {
+//                if (dist(rng) < 0.6) continue;
+
 //            for (const auto neg_id:negative) {
                 const auto&[t, tprime] = get_state_pair(neg_id);
                 cnfclause_t clause;
