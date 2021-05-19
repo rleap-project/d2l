@@ -53,7 +53,7 @@ def experiments():
     exps["milestones"] = update_dict(
         base,
         pipeline=pipelines.MILESTONES,
-        instances=["prob02.pddl"],
+        instances=["prob01.pddl", "prob02.pddl", "prob03.pddl", "prob04.pddl"],
         test_instances=[],
         # test_policy_instances=["p01.pddl"],
 
@@ -67,8 +67,8 @@ def experiments():
         # print_hstar_in_feature_matrix=True,
         verbosity=2,
 
-        num_random_rollouts=20,
-        random_walk_length=10,
+        num_random_rollouts=30,
+        random_walk_length=30,
     )
 
     return exps

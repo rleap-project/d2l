@@ -325,3 +325,34 @@ def freecell_names(feature):
         "Exists(on,<universe>)": "ncards-on-some-card",
     }
     return extend_namer_to_all_features(base).get(s, s)
+
+
+def maintenance_names(feature):
+    s = str(feature)
+    base = {
+        "done": "n-done",
+        "And(Not(done),Not(today))": "n-fixed-last-act",
+        "Not(Forall(which,Exists(Inverse(which),Exists(when_,today))))": "n-visitable-planes",
+        "Exists(where,Forall(Inverse(where),Exists(which,done)))": "n-done-places",
+        # "": "",
+    }
+    return extend_namer_to_all_features(base).get(s, s)
+
+
+def maintenance_names(feature):
+    s = str(feature)
+    base = {
+        "done": "n-done",
+        "And(Not(done),Not(today))": "n-fixed-last-act",
+
+        # "number of planes that do some visit on a day that's still free":
+        # hint: when this gets to 0, we're dead
+        "Exists(Inverse(which),Exists(when_,today))": "n-visitable-planes",
+        "Not(Forall(which,Exists(Inverse(which),Exists(when_,today))))": "WTF",
+
+        # "Number of visits whose place P is such that all planes visiting it are done":
+        # (hint: no need to visit those places ever)
+        "Exists(where,Forall(Inverse(where),Exists(which,done)))": "n-done-places",
+        # "": "",
+    }
+    return extend_namer_to_all_features(base).get(s, s)

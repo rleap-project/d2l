@@ -109,55 +109,31 @@ def experiments():
         num_random_walks=0,
         random_walk_length=0,
     )
-    
-    exps["small-sd2l"] = update_dict(
+
+    exps["milestones"] = update_dict(
         deliv_base,
+        pipeline=pipelines.MILESTONES,
         instances=[
-        	#'instance_3_2_0.pddl',
             'instance_3_3_0.pddl',  # Use one small instance with three packages
             'instance_4_2_0.pddl',  # And a slightly larger one with two packages
-            # 'instance_5_0.pddl',
+            'instance_5_3_0.pddl',
+            'instance_7_2_2.pddl',
         ],
-        test_policy_instances=all_test_instances(),
+        test_instances=[],
+        # test_policy_instances=["p01.pddl"],
 
-        acyclicity="sd2l",
-        sampling_strategy="goal",
+        max_concept_size=10,
+        distance_feature_max_complexity=10,
 
-		n_features=3,
-        max_concept_size=8,
-        distance_feature_max_complexity=14,
-        #initial_sample_size=999999,
-        #initial_sample_size=10,
-        consistency_bound=0,
-        optimal_steps=2,
-        v_slack=2,
-        verbosity=2,
+        # parameter_generator=gripper_parameters,  # Works also, but no real advantage
+        parameter_generator=None,
         use_equivalence_classes=True,
-    )
-    
-    exps["small-dtl"] = update_dict(
-        deliv_base,
-        instances=[
-        	#'instance_3_2_0.pddl',
-            'instance_3_3_0.pddl',  # Use one small instance with three packages
-            'instance_4_2_0.pddl',  # And a slightly larger one with two packages
-            # 'instance_5_0.pddl',
-        ],
-        test_policy_instances=all_test_instances(),
-
-        acyclicity="dtl",
-        sampling_strategy="goal",
-
-		n_features=3,
-        max_concept_size=8,
-        distance_feature_max_complexity=14,
-        #initial_sample_size=999999,
-        #initial_sample_size=10,
-        consistency_bound=10,
-        optimal_steps=2,
-        v_slack=2,
+        # use_feature_dominance=True,
+        # print_hstar_in_feature_matrix=True,
         verbosity=2,
-        use_equivalence_classes=True,
+
+        num_random_rollouts=20,
+        random_walk_length=40,
     )
 
     return exps

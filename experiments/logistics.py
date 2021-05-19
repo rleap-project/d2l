@@ -62,14 +62,14 @@ def experiments():
         num_random_walks=2,
         random_walk_length=10,
     )
-    
+
     exps["small-ipc-inc"] = update_dict(
         exps["small"],
         distinguish_goals=True,
         pipeline=pipelines.INCREMENTAL,
         instances=[f'sample{i}.pddl' for i in [1,2,3]],
         test_policy_instances=all_instances(),
-        
+
         #sampling_strategy="full",
         #initial_sample_size=999999,
         #verbosity=2,
@@ -87,26 +87,31 @@ def experiments():
         num_random_walks=0,
         random_walk_length=0,
     )
-    
-    exps["small-sd2l"] = update_dict(
+
+
+    exps["milestones"] = update_dict(
         base,
-        instances=[f'sample{i}.pddl' for i in [2]],
-        # test_instances=["prob{:02d}.pddl".format(i) for i in range(2, 5)],
+
+        pipeline=pipelines.MILESTONES,
+        instances=[
+            "prob01.pddl",
+        ],
         test_instances=[],
-        test_policy_instances=all_instances(),
-        acyclicity="sd2l",
-        
-        sampling_strategy="goal",
-        n_features=5,
-        max_concept_size=6,
-        distance_feature_max_complexity=6,
-        #initial_sample_size=999999,
-        #initial_sample_size=10,
-        consistency_bound=0,
-        optimal_steps=0,
-        v_slack=2,
-        verbosity=2,
+        test_policy_instances=[],
+
+        max_concept_size=8,
+        distance_feature_max_complexity=8,
+
+        # parameter_generator=gripper_parameters,  # Works also, but no real advantage
+        parameter_generator=None,
         use_equivalence_classes=True,
+        # use_feature_dominance=True,
+        # print_hstar_in_feature_matrix=True,
+        sampling_strategy="goal",
+        verbosity=2,
+
+        num_random_rollouts=10,
+        random_walk_length=10,
     )
 
     return exps

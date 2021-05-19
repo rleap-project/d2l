@@ -60,8 +60,8 @@ def experiments():
         test_instances=[],
         # test_policy_instances=["p01.pddl"],
 
-        max_concept_size=6,
-        distance_feature_max_complexity=6,
+        max_concept_size=8,
+        distance_feature_max_complexity=8,
 
         # parameter_generator=gripper_parameters,  # Works also, but no real advantage
         parameter_generator=None,
@@ -70,7 +70,7 @@ def experiments():
         # print_hstar_in_feature_matrix=True,
         verbosity=2,
 
-        num_random_rollouts=1,
+        num_random_rollouts=50,
         random_walk_length=10,
     )
 

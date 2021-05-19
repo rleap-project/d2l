@@ -124,7 +124,7 @@ def print_sample_info(sample, infos, model_cache, all_predicates, all_functions,
         # Next: per-instance information.
         print(len(infos), file=f)  # Number of instances
 
-        assert len(infos) == len(all_objects) == len(atoms_per_instance)
+        assert len(infos) == len(all_objects)
         for instance_id, objects in enumerate(all_objects, start=0):
             print(" ".join(sorted(objects)), file=f)  # all object names in instance i
 

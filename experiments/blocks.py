@@ -507,6 +507,49 @@ def experiments():
         use_feature_dominance=False,
     )
 
+    exps["milestones-clear"] = update_dict(
+        clear_base,
+
+        pipeline=pipelines.MILESTONES,
+        instances=["training_clear_5-fixed.pddl"],
+
+        test_instances=[],
+        test_policy_instances=["p01.pddl"],
+
+        max_concept_size=8,
+        parameter_generator=blocksworld_declared_parameters_for_clear,
+
+        use_equivalence_classes=True,
+        # use_feature_dominance=True,
+        # print_hstar_in_feature_matrix=True,
+        sampling_strategy="goal",
+        verbosity=2,
+
+        num_random_rollouts=50,
+        random_walk_length=10,
+    )
+
+    exps["milestones-on"] = update_dict(
+        exps["on"],
+        pipeline=pipelines.MILESTONES,
+        instances=[
+            #"test_on_probBLOCKS-11-0.pddl",
+            #"test_on_probBLOCKS-11-1.pddl",
+            "test_on_probBLOCKS-11-2.pddl",],
+        parameter_generator=blocksworld_declared_parameters_for_on,
+        test_policy_instances=[],
+
+        use_equivalence_classes=True,
+        # use_feature_dominance=True,
+        # print_hstar_in_feature_matrix=True,
+        sampling_strategy="goal",
+        verbosity=2,
+
+        num_random_rollouts=50,
+        random_walk_length=10,
+    )
+
+
     return exps
 
 

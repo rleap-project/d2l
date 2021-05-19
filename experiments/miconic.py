@@ -60,11 +60,21 @@ def experiments():
     exps["milestones"] = update_dict(
         base,
         pipeline=pipelines.MILESTONES,
-        instances=['s4-0.pddl',],
+        instances=[
+            's4-0.pddl',
+            's4-1.pddl',
+            's4-2.pddl',
+            's5-0.pddl',
+            's5-1.pddl',
+            's5-2.pddl',
+            's6-0.pddl',
+            's6-1.pddl',
+            's6-2.pddl',
+        ],
         test_instances=[],
 
-        max_concept_size=6,
-        distance_feature_max_complexity=6,
+        max_concept_size=10,
+        distance_feature_max_complexity=10,
 
         # parameter_generator=gripper_parameters,  # Works also, but no real advantage
         parameter_generator=None,
@@ -73,7 +83,7 @@ def experiments():
         # print_hstar_in_feature_matrix=True,
         verbosity=2,
 
-        num_random_rollouts=20,
+        num_random_rollouts=50,
         random_walk_length=10,
     )
 
