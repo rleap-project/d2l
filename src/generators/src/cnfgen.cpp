@@ -137,7 +137,8 @@ public:
         const auto instance = options.workspace + "/instance.lp";
         auto os = utils::get_ofstream(instance);
 //        auto output = generator.generate_asp_instance_1(os);
-        auto output = generator.generate_asp_instance_10(os);
+//        auto output = generator.generate_asp_instance_10(os);
+        auto output = generator.generate_asp_instance_20(os);
         os.close();
         time.generation_time += utils::read_time_in_seconds() - gent0;
 

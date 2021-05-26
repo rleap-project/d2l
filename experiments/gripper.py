@@ -89,6 +89,27 @@ def experiments():
         verbosity=2,
         use_equivalence_classes=True,
     )
+
+    exps["asp"] = update_dict(
+        base,
+        instances=["prob01.pddl"],
+        # test_instances=[f"prob{i:02d}.pddl" for i in range(3, 11)],
+        test_instances=[],
+        test_policy_instances=[f"prob{i:02d}.pddl" for i in range(3, 21)],
+
+        acyclicity="dtl",
+
+        sampling_strategy="goal",
+        n_features=3,
+        max_concept_size=6,
+        distance_feature_max_complexity=6,
+        # initial_sample_size=10,
+        # initial_sample_size=999999,
+        # parameter_generator=gripper_parameters,  # Works also, but no real advantage
+        verbosity=2,
+        use_equivalence_classes=True,
+    )
+
     
 
     return exps

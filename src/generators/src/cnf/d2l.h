@@ -61,6 +61,7 @@ public:
 
     sltp::cnf::CNFGenerationOutput generate_asp_instance_1(std::ofstream& os);
     sltp::cnf::CNFGenerationOutput generate_asp_instance_10(std::ofstream& os);
+    sltp::cnf::CNFGenerationOutput generate_asp_instance_20(std::ofstream& os);
 
     virtual std::pair<cnf::CNFGenerationOutput, VariableMapping> generate(CNFWriter& wr);
 

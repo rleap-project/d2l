@@ -274,6 +274,151 @@ CNFGenerationOutput D2LEncoding::generate_asp_instance_10(std::ofstream& os) {
 }
 
 
+CNFGenerationOutput D2LEncoding::generate_asp_instance_20(std::ofstream& os) {
+    unsigned n_bad_transitions = 0;
+    unsigned n_separation_clauses = 0;
+    unsigned n_goal_clauses = 0;
+    unsigned nrules = 0;
+
+    const auto& mat = sample_.matrix();
+
+//    os << "state(0.." << mat.num_states() << ")." << std::endl;
+    os << "%% We have a total of " << mat.num_features() << " features" << std::endl;
+    os << "feature(0.." << mat.num_features()-1 << ")." << std::endl;
+    os << std::endl;
+
+//    os << "%% There are " << sample_.states_.size() << " in the sample" << std::endl;
+//    for (auto s:sample_.states_) os << "sampled(" << s << "). ";
+//    os << std::endl << std::endl;
+
+    os << "%% Sample description" << std::endl;
+    for (auto s = 0; s < mat.num_states(); ++s) {
+        if (!sample_.in_sample(s)) continue;
+
+        if (!sample_.is_solvable(s)) {
+            os << "unsolvable(" << s << ")." << std::endl;
+        }
+        else if (sample_.is_goal(s)) {
+//            os << "goal(" << s << ")." << std::endl;
+        }
+        else {
+            os << "alive(" << s << ")." << std::endl;
+
+            for (unsigned sprime:sample_.successors(s)) {
+                os << "transition(" << s << ", " << sprime << ")." << std::endl;
+//                const auto& [t, tprime] = get_state_pair(get_class_representative(s, sprime));
+//                os << "repr(" << s << ", " << sprime << ", " << t << ", " << tprime << " )." << std::endl;
+                nrules += 1;
+            }
+        }
+        nrules += 1;
+    }
+    os << std::endl;
+
+    os << "%% Feature description" << std::endl;
+    for (auto s = 0; s < mat.num_states(); ++s) {
+        if (!sample_.in_sample(s)) continue;
+
+        if (sample_.is_alive(s)) {
+
+            for (unsigned f = 0; f < mat.num_features(); ++f) {
+                const auto val = mat.entry(s, f) > 0 ? "gt0" : "eq0";
+                os << "pre_f(" << f << ", " << s << ", " << val << ")." << std::endl;
+                nrules += 1;
+            }
+
+            for (unsigned sprime:sample_.successors(s)) {
+                for (unsigned f = 0; f < mat.num_features(); ++f) {
+                    const auto& fs = sample_.matrix().entry(s, f);
+                    const auto& fsprime = sample_.matrix().entry(sprime, f);
+                    auto change = DNFPolicy::compute_transition_value(fs, fsprime);
+                    const auto changeval = (change == FeatureValue::Inc) ? "inc" : (
+                            (change == FeatureValue::Dec) ? "dec" : "same"
+                            );
+
+                    const auto val = mat.entry(s, f) > 0 ? "gt0" : "eq0";
+                    os << "eff_f(" << f << ", " << s << ", " << sprime << ", " << changeval << ")." << std::endl;
+                    nrules += 1;
+                }
+            }
+        }
+        nrules += 1;
+    }
+    os << std::endl;
+
+
+    /*
+    if (options.distinguish_goals) {
+        os << "%% Goal distinguishability (" << sample_.goal_states().size() << " goals):" << std::endl;
+        for (unsigned s:sample_.goal_states()) {
+            for (unsigned t:sample_.nongoal_states()) {
+
+                const auto d1feats = compute_d1_distinguishing_features(sample_, s, t);
+                if (d1feats.empty()) {
+                    undist_goal_warning(s, t);
+                    return CNFGenerationOutput::UnsatTheory;
+                }
+
+                os << ":-";
+                for (unsigned i=0, m=d1feats.size(); i<m; ++i) {
+                    os << "not sel(" << d1feats[i];
+                    if (i < m-1) os << "), ";
+                }
+                os << ")." << std::endl;
+                n_goal_clauses += 1;
+                nrules += 1;
+            }
+        }
+        os << std::endl;
+    }
+     */
+
+    /*
+    os << "%% Bad transitions: " << std::endl;
+    for (const auto tx1:class_representatives_) {
+        if (is_necessarily_bad(tx1)) {
+            const auto& [s, sprime] = get_state_pair(tx1);
+            os << ":- good(" << s << ", " << sprime << ")." << std::endl;
+            n_bad_transitions += 1;
+            nrules += 1;
+        }
+    }
+    os << std::endl;
+    */
+
+    /*
+    auto transitions_to_distinguish = distinguish_all_transitions();
+    os << "%% Distinguishability constraints for " << transitions_to_distinguish.size() << " pairs of transitions" << std::endl;
+    for (const auto& tpair:transitions_to_distinguish) {
+        assert (!is_necessarily_bad(tpair.tx1));
+        const auto& [s, sprime] = get_state_pair(tpair.tx1);
+        const auto& [t, tprime] = get_state_pair(tpair.tx2);
+
+        os << ":- good(" << s << ", " << sprime << "), not good(" << t << ", " << tprime << ")";
+        for (feature_t f:compute_d1d2_distinguishing_features(feature_ids, sample_, s, sprime, t, tprime)) {
+            os << ", " << "not sel(" << f << ")";
+        }
+        os << "." << std::endl;
+        n_separation_clauses += 1;
+        nrules += 1;
+    }
+    os << std::endl;
+    */
+
+    os << "%% Feature weights" << std::endl;
+    for (unsigned f = 0; f < mat.num_features(); ++f) {
+        os << "weight(" << f << ", " << sample_.feature_weight(f) << ")." << std::endl;
+        nrules += 1;
+    }
+    os << std::endl;
+
+    // Print a breakdown of the clauses
+    std::cout << "A total of " << nrules << " ASP rules were created" << std::endl;
+
+    return CNFGenerationOutput::Success;
+}
+
+
 std::pair<cnf::CNFGenerationOutput, VariableMapping> D2LEncoding::generate(CNFWriter& wr)
 {
     using Wr = CNFWriter;
