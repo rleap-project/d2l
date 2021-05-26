@@ -10,9 +10,9 @@ from tarski.dl import compute_dl_vocabulary
 from tarski.grounding.lp_grounding import ground_problem_schemas_into_plain_operators
 from tarski.io import FstripsReader, FstripsWriter
 from tarski.search import GroundForwardSearchModel
-from tarski.search.applicability import is_applicable
 from tarski.search.blind import make_child_node, make_root_node, SearchStats
 from tarski.search.model import progress
+from tarski.search.operations import is_applicable
 from tarski.syntax.transform.action_grounding import ground_schema_into_plain_operator_from_grounding
 
 from .cnfgen import invoke_cpp_module, parse_dnf_policy
