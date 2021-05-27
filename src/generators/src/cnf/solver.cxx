@@ -60,37 +60,51 @@ SatSolution solve_cnf(const std::string& cnf_filename, const std::string& output
 
 
 ASPSolution solve_asp(const std::string& domain_filename, const std::string& instance_filename, const std::string& output_filename, bool verbose) {
-//    call("clingo " + domain_filename + " " + instance_filename + " > " + output_filename, options.verbosity>1);
-    call("clingo -V0 --outf=1 " + domain_filename + " " + instance_filename + " | tee " + output_filename, verbose);
+//    call("clingo -V0 --outf=1 " + domain_filename + " " + instance_filename + " | tee " + output_filename, verbose);
+    call("clingo -V0 --outf=1 " + domain_filename + " " + instance_filename + " >" + output_filename, verbose);
     auto solutionf = utils::get_ifstream(output_filename);
     std::string line;
     std::vector<std::string> atoms;
 
     ASPSolution solution;
 
-    std::getline(solutionf, line);
+    do { std::getline(solutionf, line); }
+    while (line != "ANSWER" && line != "INONSISTENT" && !solutionf.eof());
+
+    if (solutionf.eof()) throw std::runtime_error("Unexpected Clingo output. Check file: " + output_filename);
+
     if (line == "ANSWER") {
         solution.solved = true;
 
-        // the next line has the form "sel(9). good(1,0). sel(4). sel(12). good(2,5)."
+        // the next line has the form "sel(9, 1). eff(3,2,inc). pre(0,0,dontcare)..."
         std::getline(solutionf, line);
         boost::split(atoms, line, boost::is_any_of(" "));
         std::vector<std::string> aux;
         for (const auto& atom:atoms) {
-            boost::split(aux, atom, boost::is_any_of("()"));
+            boost::split(aux, atom, boost::is_any_of("(),"));
             assert(aux.size()>=2);
-            if (aux[0] == "sel") {
-                solution.selecteds.push_back(boost::lexical_cast<unsigned>(aux[1]));
-            } else if (aux[0] == "good") {
-                boost::split(aux, aux[1], boost::is_any_of(","));
-                solution.goods.emplace_back(boost::lexical_cast<unsigned>(aux[0]), boost::lexical_cast<unsigned>(aux[1]));
+            if (aux.at(0) == "sel") {
+                auto feature = boost::lexical_cast<unsigned>(aux.at(1));
+                auto position = boost::lexical_cast<unsigned>(aux.at(2));
+                if (position>=solution.selecteds.size()) solution.selecteds.resize(position+1);
+                solution.selecteds.at(position) = feature;
+            } else if (aux.at(0) == "pre") {
+                auto rule = boost::lexical_cast<unsigned>(aux.at(1));
+                auto position = boost::lexical_cast<unsigned>(aux.at(2));
+                auto value = aux.at(3);
+                solution.pres_[rule].emplace_back(position, value);
+            } else if (aux.at(0) == "eff") {
+                auto rule = boost::lexical_cast<unsigned>(aux.at(1));
+                auto position = boost::lexical_cast<unsigned>(aux.at(2));
+                auto value = aux.at(3);
+                solution.effs_[rule].emplace_back(position, value);
             }
         }
 
         // Next line: "COST 3"
         std::getline(solutionf, line);
         if (line.substr(0,4) == "COST") {
-            solution.cost = boost::lexical_cast<unsigned>(line.substr(5, std::string::npos));
+            solution.cost = boost::lexical_cast<int>(line.substr(5, std::string::npos));
         }
 
         // Next line: "OPTIMUM"
@@ -99,11 +113,6 @@ ASPSolution solve_asp(const std::string& domain_filename, const std::string& ins
             throw std::runtime_error("Clingo returned non-optimal solution.");
         }
 
-    } else {
-        solution.solved = false;
-        if (line != "INCONSISTENT") {
-            throw std::runtime_error("Unknown Clingo exit code:" + line);
-        }
     }
 
     solutionf.close();

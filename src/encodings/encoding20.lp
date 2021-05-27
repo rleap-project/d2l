@@ -15,11 +15,9 @@
 
 
 % Num of features:
-#const m = 3.
 position(0..m-1).
 
 % Num of rules:
-#const k = 3.
 rule(0..k-1).
 
 
@@ -30,7 +28,7 @@ pre_value(dontcare).
 
 eff_value(inc).
 eff_value(dec).
-eff_value(same).
+eff_value(nil).
 eff_value(dontcare).
 
 
@@ -39,9 +37,9 @@ eff_value(dontcare).
 
 { sel(F, I) : feature(F) } = 1 :- position(I).
 % Note: The constraint below could be dropped, and the effect would be that we
-%        can compute abstractions using less than m bits too by selecting the
-%        same feature in different positions of the abstraction mapping
-{ sel(F, I) : position(I) } = 1 :- feature(F).
+%        can compute policies that use the same feature on different positions,
+%        i.e. equivalent to allowing less than M features
+{ sel(F, I) : position(I) } <= 1 :- feature(F).
 
 
 % Choice variables: pre and effs of each rule
@@ -54,18 +52,26 @@ eff_value(dontcare).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % A ground transition is labeled as good by rule J on position I if the definition of the rule
 % for that position is compatible with the actual changes in the ground transition
-good(J,I,S,S') :- alive(S), transition(S,S'), sel(F, I), pre(J,I,X), pre_f(F,S,X), eff(J,I,Y), eff_f(F,S,S',Y).
+% good(J,I,S,S') :- alive(S), transition(S,S'), sel(F, I), pre(J,I,X), pre_f(F,S,X), eff(J,I,Y), eff_f(F,S,S',Y).
 
+fulfills_pre(J,I,S) :- alive(S), pre(J,I,dontcare).
+fulfills_pre(J,I,S) :- alive(S), sel(F, I), pre(J,I,X), pre_f(F,S,X).
+
+fulfills_eff(J,I,S,S') :- alive(S), transition(S,S'), eff(J,I,dontcare).
+fulfills_eff(J,I,S,S') :- alive(S), transition(S,S'), sel(F, I), eff(J,I,X), eff_f(F,S,S',X).
+
+good(J,I,S,S') :- fulfills_pre(J,I,S), fulfills_eff(J,I,S,S').
 
 % A ground transition is Good if for some rule J, the values of J in all positions I are consistent with the transition.
-good(S,S') :- good(J,I,S,S') : position(I) : rule(J).
+% NOTE: This will be printed in the instance file, one ASP rule per policy rule J:
+%%%  good(S,S') :- transition(S,S'), good(J,0,S,S'), good(J,1,S,S'), ...
 
 
 % Policy completeness
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 :- good(S,S'), unsolvable(S').
 defined(S) :- good(S,S'), transition(S,S').
-:- defined(S), alive(S).
+:- not defined(S), alive(S).
 
 
 % Good edges form no cycle
@@ -73,9 +79,16 @@ defined(S) :- good(S,S'), transition(S,S').
 #edge (S, S') : good(S,S').
 
 
+% Some optimizations
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+:- transition(S,S), good(S,S).       % No self-loops allowed
+:- pre(J,I,eq0), eff(J,I,dec).       % if F=0, then F dec is not possible
+:- sel(F,I), sel(F',J), F<F', I>=J.  % Symmetry-breaking constraints
+
 #show sel/2.
-#show good/2.
 #show pre/3.
 #show eff/3.
 
-#minimize {W, F: sel(F), weight(F, W)}.
+%#show good/2.
+
+#minimize {W, F: sel(F,I), weight(F, W), position(I)}.

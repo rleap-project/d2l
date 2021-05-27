@@ -29,6 +29,7 @@ def invoke_cpp_module(config, data, validate_features=None):
     args += ["--optimal_steps", str(config.optimal_steps)]
     args += ["--consistency_bound", str(config.consistency_bound)]
     args += ["--n_features", str(config.n_features)]
+    args += ["--n_rules", str(config.n_rules)]
     args += ["--closed"] if config.closed else []
     retcode = execute([cmd] + args)
 

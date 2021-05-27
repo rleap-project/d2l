@@ -68,6 +68,9 @@ Options parse_options(int argc, const char **argv) {
         ("n_features", po::value<unsigned>()->default_value(0),
          "The number of features of the policy graph abstraction.")
 
+        ("n_rules", po::value<unsigned>()->default_value(0),
+         "The number of rules of the computed policy.")
+
         ("initial-sample-size", po::value<unsigned>()->default_value(100),
          "The number of solvable and dead states initially sampled at random.")
 
@@ -113,6 +116,7 @@ Options parse_options(int argc, const char **argv) {
     options.optimal_steps = vm["optimal_steps"].as<unsigned>();
     options.consistency_bound = vm["consistency_bound"].as<unsigned>();
     options.n_features = vm["n_features"].as<unsigned>();
+    options.n_rules = vm["n_rules"].as<unsigned>();
     options.v_slack = vm["v_slack"].as<unsigned>();
     options.solve = vm["solve"].as<bool>();
     options.initial_sample_size = vm["initial-sample-size"].as<unsigned>();

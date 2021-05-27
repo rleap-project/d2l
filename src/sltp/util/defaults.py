@@ -151,6 +151,9 @@ def generate_experiment(expid, domain_dir, domain, **kwargs):
         # The number of features of the policy graph abstraction
         n_features=3,
 
+        # The number of rules of the computed policy
+        n_rules=3,
+
         # In the transition-separation encoding, whether to post constraints to ensure distinguishability of goals
         distinguish_goals=False,
 

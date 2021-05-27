@@ -19,7 +19,8 @@ enum class FeatureValue {
     Gt0 = 1,
     Dec = 2,
     Nil = 3,
-    Inc = 4
+    Inc = 4,
+    DontCare = 5
 };
 
 inline std::string print_feature_value(const FeatureValue& fval) {
@@ -33,7 +34,11 @@ inline std::string print_feature_value(const FeatureValue& fval) {
 
 class DNFPolicy {
 public:
+    //! We represent a literal with the ID of the feature it refers to, and its value.
+    //! This ID is absolute, i.e. is the ID in the original pool of candidate features.
     using literal_t = std::pair<uint32_t, FeatureValue>;
+
+    //! A DNF term is a conjunction of literals
     using term_t = std::vector<literal_t>;
 
     static FeatureValue compute_state_value(unsigned x) { return x>0 ? FeatureValue::Gt0 : FeatureValue::Eq0; }
@@ -47,9 +52,19 @@ public:
             features(std::move(features_)), terms()
     {}
 
+    static FeatureValue from_str_to_feature_value(const std::string& str) {
+        if (str=="eq0") return FeatureValue::Eq0;
+        if (str=="gt0") return FeatureValue::Gt0;
+        if (str=="inc") return FeatureValue::Inc;
+        if (str=="dec") return FeatureValue::Dec;
+        if (str=="nil") return FeatureValue::Nil;
+        if (str=="dontcare") return FeatureValue::DontCare;
+        throw std::runtime_error("Unknown FeatureValue: " + str);
+
+    }
+
     std::vector<unsigned> features;
     std::unordered_set<term_t, sltp::utils::container_hash<term_t>> terms;
-
 };
 
 namespace sltp::cnf {

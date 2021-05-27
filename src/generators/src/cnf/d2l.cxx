@@ -275,19 +275,30 @@ CNFGenerationOutput D2LEncoding::generate_asp_instance_10(std::ofstream& os) {
 
 
 CNFGenerationOutput D2LEncoding::generate_asp_instance_20(std::ofstream& os) {
-    unsigned n_bad_transitions = 0;
-    unsigned n_separation_clauses = 0;
-    unsigned n_goal_clauses = 0;
     unsigned nrules = 0;
 
     const auto& mat = sample_.matrix();
+    os << "% Num of rules:" << std::endl;
+    os << "#const k=" << options.n_rules << "." << std::endl;
+    os << "% Num of features:" << std::endl;
+    os << "#const m=" << options.n_features << "." << std::endl;
+    os << std::endl;
 
-//    os << "state(0.." << mat.num_states() << ")." << std::endl;
+    for (unsigned j=0; j < options.n_rules; ++j) {
+        os << "good(S,S') :- transition(S,S')";
+        for (unsigned i=0; i < options.n_features; ++i) {
+            os << ", good(" << j << "," << i << ",S,S')";
+        }
+        os << "." << std::endl;
+    }
+
     os << "%% We have a total of " << mat.num_features() << " features" << std::endl;
     os << "feature(0.." << mat.num_features()-1 << ")." << std::endl;
     os << std::endl;
 
-//    os << "%% There are " << sample_.states_.size() << " in the sample" << std::endl;
+    os << "%% There are " << sample_.states_.size() << " states in the sample" << std::endl;
+//    os << "state(0.." << mat.num_states() << ")." << std::endl
+    ;
 //    for (auto s:sample_.states_) os << "sampled(" << s << "). ";
 //    os << std::endl << std::endl;
 
@@ -299,17 +310,23 @@ CNFGenerationOutput D2LEncoding::generate_asp_instance_20(std::ofstream& os) {
             os << "unsolvable(" << s << ")." << std::endl;
         }
         else if (sample_.is_goal(s)) {
-//            os << "goal(" << s << ")." << std::endl;
+            os << "goal(" << s << ")." << std::endl;
         }
         else {
-            os << "alive(" << s << ")." << std::endl;
+            const auto& succs = sample_.successors(s);
+            assert(succs.size()>0);
 
-            for (unsigned sprime:sample_.successors(s)) {
-                os << "transition(" << s << ", " << sprime << ")." << std::endl;
+            os << "alive(" << s << ")." << std::endl;
+            os << "transition(" << s << ", (";
+
+            for (unsigned i=0; i<succs.size(); ++i) {
+                os << succs[i];
+                if (i<succs.size()-1) os << ";";
 //                const auto& [t, tprime] = get_state_pair(get_class_representative(s, sprime));
 //                os << "repr(" << s << ", " << sprime << ", " << t << ", " << tprime << " )." << std::endl;
-                nrules += 1;
             }
+            nrules += 1;
+            os << "))." << std::endl;
         }
         nrules += 1;
     }
@@ -333,10 +350,9 @@ CNFGenerationOutput D2LEncoding::generate_asp_instance_20(std::ofstream& os) {
                     const auto& fsprime = sample_.matrix().entry(sprime, f);
                     auto change = DNFPolicy::compute_transition_value(fs, fsprime);
                     const auto changeval = (change == FeatureValue::Inc) ? "inc" : (
-                            (change == FeatureValue::Dec) ? "dec" : "same"
+                            (change == FeatureValue::Dec) ? "dec" : "nil"
                             );
 
-                    const auto val = mat.entry(s, f) > 0 ? "gt0" : "eq0";
                     os << "eff_f(" << f << ", " << s << ", " << sprime << ", " << changeval << ")." << std::endl;
                     nrules += 1;
                 }
@@ -412,7 +428,6 @@ CNFGenerationOutput D2LEncoding::generate_asp_instance_20(std::ofstream& os) {
     }
     os << std::endl;
 
-    // Print a breakdown of the clauses
     std::cout << "A total of " << nrules << " ASP rules were created" << std::endl;
 
     return CNFGenerationOutput::Success;
@@ -735,6 +750,38 @@ DNFPolicy D2LEncoding::generate_dnf(const std::vector<std::pair<unsigned, unsign
     return dnf;
 }
 
+
+DNFPolicy D2LEncoding::generate_dnf_from_explicit_solution(const ASPSolution& solution) const {
+    DNFPolicy dnf(solution.selecteds);
+
+    const auto npres = solution.pres_.size();
+    const auto neffs = solution.effs_.size();
+    assert(npres==neffs);
+
+    for (unsigned i = 0; i < npres; ++i) {
+        // Let's process rule #i
+        const auto& rule_pres = solution.pres_.at(i);
+        const auto& rule_effs = solution.effs_.at(i);
+
+        DNFPolicy::term_t clause;
+        for (const auto& [position, value]:rule_pres) {
+            const auto fval = DNFPolicy::from_str_to_feature_value(value);
+            if (fval != FeatureValue::DontCare) {
+                clause.emplace_back(solution.selecteds[position], fval);
+            }
+        }
+        for (const auto& [position, value]:rule_effs) {
+            const auto fval = DNFPolicy::from_str_to_feature_value(value);
+            if (fval != FeatureValue::DontCare) {
+                clause.emplace_back(solution.selecteds[position], fval);
+            }
+        }
+
+        dnf.terms.insert(clause);
+    }
+
+    return dnf;
+}
 
 DNFPolicy D2LEncoding::generate_dnf(const std::vector<unsigned>& goods, const std::vector<unsigned>& selecteds) const {
     std::vector<std::pair<unsigned, unsigned>> pairs;

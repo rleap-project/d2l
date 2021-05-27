@@ -107,9 +107,10 @@ public:
 
     DNFPolicy generate_dnf(const std::vector<unsigned>& goods, const std::vector<unsigned>& selecteds) const;
     DNFPolicy generate_dnf(const std::vector<std::pair<unsigned, unsigned>>& goods, const std::vector<unsigned>& selecteds) const;
+    DNFPolicy generate_dnf_from_explicit_solution(const ASPSolution& solution) const;
 
 
-        protected:
+protected:
     //! The transition sample data
     const StateSpaceSample& sample_;
 

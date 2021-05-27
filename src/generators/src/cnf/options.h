@@ -55,6 +55,9 @@ struct Options {
     //! The number of features of the policy graph abstraction
     unsigned n_features;
 
+    //! The number of rules of the computed policy
+    unsigned n_rules;
+
     //! Whether to enforce policy-closedness constraints
     bool closed;
 

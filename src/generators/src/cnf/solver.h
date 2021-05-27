@@ -4,6 +4,7 @@
 #include <limits>
 #include <vector>
 #include <string>
+#include <unordered_map>
 
 namespace sltp::cnf {
 struct Options;
@@ -20,10 +21,12 @@ struct SatSolution {
 struct ASPSolution {
     bool solved;
     int cost;
-    std::vector<std::pair<unsigned, unsigned>> goods;
     std::vector<unsigned> selecteds;
+    std::unordered_map<unsigned, std::vector<std::pair<unsigned, std::string>>> pres_;
+    std::unordered_map<unsigned, std::vector<std::pair<unsigned, std::string>>> effs_;
 
-    ASPSolution() : solved(false), cost(std::numeric_limits<int>::max()), goods(), selecteds() {}
+
+    ASPSolution() : solved(false), cost(std::numeric_limits<int>::max()), selecteds() {}
 };
 
 

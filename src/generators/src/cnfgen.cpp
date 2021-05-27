@@ -151,7 +151,7 @@ public:
         // Else try solving the encoding
         float solt0 = utils::read_time_in_seconds();
         auto solution = solve_asp(
-                options.encodings_dir + "/encoding10.lp",
+                options.encodings_dir + "/encoding20.lp",
                 instance,
                 options.workspace + "/clingo_output.log",
                 options.verbosity>1);
@@ -164,7 +164,7 @@ public:
         }
         std::cout << "Solution with cost " << solution.cost << " found in " << tsolution << "sec." << std::endl;
 
-        auto dnf = generator.generate_dnf(solution.goods, solution.selecteds);
+        auto dnf = generator.generate_dnf_from_explicit_solution(solution);
 //            dnf = minimize_dnf();
         return {CNFGenerationOutput::Success, dnf};
     }
