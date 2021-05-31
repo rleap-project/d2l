@@ -134,12 +134,26 @@ def experiments():
 
         verbosity=2,
         # initial_sample_size=40,
-         sampling_strategy="goal",
+        sampling_strategy="goal",
         # acyclicity="asp",
 
         # print_hstar_in_feature_matrix=True,
     )
-    
+
+    exps["on_asp"] = update_dict(
+        exps["on"],
+
+        acyclicity="asp",
+
+        n_features=5,
+        n_rules=6,
+
+        max_concept_size=8,
+        distance_feature_max_complexity=8,
+        initial_sample_size=10,
+        verbosity=2,
+    )
+
     exps["on-sd2l"] = update_dict(
         strips_base,
         instances=[
@@ -162,7 +176,7 @@ def experiments():
 
         parameter_generator=blocksworld_parameters_for_on
     )
-    
+
     exps["on-dtl"] = update_dict(
         strips_base,
         instances=[
