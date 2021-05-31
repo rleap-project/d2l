@@ -5,8 +5,7 @@
 %%    - transition(X, Y).
 %%    - feature(F).
 %%    - weight(F).
-%    - pre_f(F,S,X).
-%    - eff_f(F,S,S',Y).
+%%    - val(F,S,X).
 
 % Output IDB Predicates:
 %    - sel(F,I).
@@ -50,35 +49,24 @@ eff_value(dontcare).
 
 % Derived variables: Good(i, j, s, s')  and Good(s, s')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% A ground transition is labeled as good by rule J on position I if the definition of the rule
-% for that position is compatible with the actual changes in the ground transition
-% good(J,I,S,S') :- alive(S), transition(S,S'), sel(F, I), pre(J,I,X), pre_f(F,S,X), eff(J,I,Y), eff_f(F,S,S',Y).
+% Project feature value into the actual feature selection
+val_i(I,S,X) :- sel(F,I), val(F,S,X).
 
-% fulfills_pre(J,I,S) :- alive(S), pre(J,I,dontcare).
-% fulfills_pre(J,I,S) :- alive(S), sel(F, I), pre(J,I,X), pre_f(F,S,X).
-
-% fulfills_eff(J,I,S,S') :- alive(S), transition(S,S'), eff(J,I,dontcare).
-% fulfills_eff(J,I,S,S') :- alive(S), transition(S,S'), sel(F, I), eff(J,I,X), eff_f(F,S,S',X).
-
-% good(J,I,S,S') :- fulfills_pre(J,I,S), fulfills_eff(J,I,S,S').
-
-% NEW VERSION
+% Case-by-case definition of Good(J, I, S, S'):
 good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,dontcare), eff(J,I,dontcare).
-good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,dontcare), eff(J,I,inc), sel(F, I), val(F, S, X), val(F, S', Y), X < Y.
-good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,dontcare), eff(J,I,nil), sel(F, I), val(F, S, X), val(F, S', Y), X = Y.
-good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,dontcare), eff(J,I,dec), sel(F, I), val(F, S, X), val(F, S', Y), X > Y.
+good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,dontcare), eff(J,I,inc), val_i(I,S,X), val_i(I,S',Y), X<Y.
+good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,dontcare), eff(J,I,nil), val_i(I,S,X), val_i(I,S',X).
+good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,dontcare), eff(J,I,dec), val_i(I,S,X), val_i(I,S',Y), X>Y.
 
-good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,gt0), eff(J,I,dontcare), sel(F, I), val(F, S, X), X > 0.
-good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,gt0), eff(J,I,inc), sel(F, I), val(F, S, X), X > 0, val(F, S', Y), X < Y.
-good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,gt0), eff(J,I,nil), sel(F, I), val(F, S, X), X > 0, val(F, S', Y), X = Y.
-good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,gt0), eff(J,I,dec), sel(F, I), val(F, S, X), X > 0, val(F, S', Y), X > Y.
+good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,gt0), eff(J,I,dontcare), val_i(I,S,X), X>0.
+good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,gt0), eff(J,I,inc), val_i(I,S,X), val_i(I,S',Y), X>0, X<Y.
+good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,gt0), eff(J,I,nil), val_i(I,S,X), val_i(I,S',X), X>0.
+good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,gt0), eff(J,I,dec), val_i(I,S,X), val_i(I,S',Y), X>0, X>Y.
 
-good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,eq0), eff(J,I,dontcare), sel(F, I), val(F, S, 0).
-good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,eq0), eff(J,I,inc), sel(F, I), val(F, S, 0), val(F, S', Y), 0 < Y.
-good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,eq0), eff(J,I,nil), sel(F, I), val(F, S, 0), val(F, S', 0).
+good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,eq0), eff(J,I,dontcare), val_i(I,S,0).
+good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,eq0), eff(J,I,inc), val_i(I,S,0), val_i(I,S',Y), Y>0.
+good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,eq0), eff(J,I,nil), val_i(I,S,0), val_i(I,S',0).
 % Note that if X=0, then it cannot be that the effect decrements, hence the asymmetry
-
-
 
 
 % A ground transition is Good if for some rule J, the values of J in all positions I are consistent with the transition.
@@ -102,8 +90,9 @@ defined(S) :- good(S,S'), transition(S,S').
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 :- transition(S,S), good(S,S).       % No self-loops allowed
 :- pre(J,I,eq0), eff(J,I,dec).       % if F=0, then F dec is not possible
-%:- sel(F,I), sel(F',J), F<F', I>=J.  % Symmetry-breaking constraints
-:- position(I), position(I+1), sel(F,I), sel(F',I+1), F'<=F.  % Symmetry-breaking constraints
+
+% Symmetry-breaking constraints. Often do more harm than good. ¿?
+%:- position(I), position(I+1), sel(F,I), sel(F',I+1), F'<=F.
 
 #show sel/2.
 #show pre/3.

@@ -34,6 +34,9 @@ public:
 
     virtual ~FeatureMatrix() = default;
 
+    inline bool is_numeric(unsigned f) const { return numeric_features_.at(f); }
+    inline bool is_bool(unsigned f) const { return !is_numeric(f); }
+
     std::size_t num_states() const { return rowdata_.size(); }
 
     std::size_t num_features() const { return num_features_; }

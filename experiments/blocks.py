@@ -252,6 +252,20 @@ def experiments():
         sampling_strategy="goal"
     )
 
+    exps["all_at_5_asp"] = update_dict(
+        exps["all_at_5"],
+
+        acyclicity="asp",
+
+        n_features=3,
+        n_rules=4,
+
+        max_concept_size=8,
+        distance_feature_max_complexity=8,
+        initial_sample_size=20,
+        verbosity=2,
+    )
+
     exps["all_at_5-sd2l"] = update_dict(
         strips_atomic_base,
         instances=[
