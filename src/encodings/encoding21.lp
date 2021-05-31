@@ -47,11 +47,13 @@ eff_value(dontcare).
 {eff(J, I, V) : eff_value(V)} = 1 :- position(I), rule(J).
 
 
-% Derived variables: Good(i, j, s, s')  and Good(s, s')
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Project feature value into the actual feature selection
 val_i(I,S,X) :- sel(F,I), val(F,S,X).
+bool_i(I) :-  sel(F,I), bool(F).
+num_i(I) :-  sel(F,I), num(F).
 
+% Derived variables: Good(i, j, s, s')  and Good(s, s')
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Case-by-case definition of Good(J, I, S, S'):
 good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,dontcare), eff(J,I,dontcare).
 good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,dontcare), eff(J,I,inc), val_i(I,S,X), val_i(I,S',Y), X<Y.
@@ -90,6 +92,8 @@ defined(S) :- good(S,S'), transition(S,S').
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 :- transition(S,S), good(S,S).       % No self-loops allowed
 :- pre(J,I,eq0), eff(J,I,dec).       % if F=0, then F dec is not possible
+
+:- bool(I), pre(J,I,gt0), eff(J,I,inc).
 
 % Symmetry-breaking constraints. Often do more harm than good. ¿?
 %:- position(I), position(I+1), sel(F,I), sel(F',I+1), F'<=F.
