@@ -5,7 +5,8 @@
 %    - transition(X, Y).
 %    - feature(F).
 %    - weight(F).
-%    - val(F,S,X).
+%    - pre_f(F,S,X).
+%    - eff_f(F,S,S',Y).
 
 % Output IDB Predicates:
 %    - sel(F,I).
@@ -38,14 +39,13 @@ eff_value(dontcare).
 % Note: The constraint below could be dropped, and the effect would be that we
 %        can compute policies that use the same feature on different positions,
 %        i.e. equivalent to allowing less than M features
-%{ sel(F, I) : position(I) } <= 1 :- feature(F).
+% { sel(F, I) : position(I) } <= 1 :- feature(F).
 
 
 % Choice variables: pre and effs of each rule
 %%%%%%%%%%%%%%%%%%
 {pre(J, I, V) : pre_value(V)} = 1 :- position(I), rule(J).
 {eff(J, I, V) : eff_value(V)} = 1 :- position(I), rule(J).
-
 
 % Project feature value into the actual feature selection
 val_i(I,S,X) :- sel(F,I), val(F,S,X).
@@ -54,21 +54,18 @@ num_i(I) :-  sel(F,I), num(F).
 
 % Derived variables: Good(i, j, s, s')  and Good(s, s')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Case-by-case definition of Good(J, I, S, S'):
-good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,dontcare), eff(J,I,dontcare).
-good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,dontcare), eff(J,I,inc), val_i(I,S,X), val_i(I,S',Y), X<Y.
-good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,dontcare), eff(J,I,nil), val_i(I,S,X), val_i(I,S',X).
-good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,dontcare), eff(J,I,dec), val_i(I,S,X), val_i(I,S',Y), X>Y.
+% A ground transition is labeled as good by rule J on position I if the definition of the rule
+% for that position is compatible with the actual changes in the ground transition
+fulfills_pre(J,I,S) :- alive(S), pre(J,I,dontcare).
+fulfills_pre(J,I,S) :- alive(S), pre(J,I,gt0), val_i(I,S,X), X>0.
+fulfills_pre(J,I,S) :- alive(S), pre(J,I,eq0), val_i(I,S,0).
 
-good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,gt0), eff(J,I,dontcare), val_i(I,S,X), X>0.
-good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,gt0), eff(J,I,inc), val_i(I,S,X), val_i(I,S',Y), X>0, X<Y.
-good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,gt0), eff(J,I,nil), val_i(I,S,X), val_i(I,S',X), X>0.
-good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,gt0), eff(J,I,dec), val_i(I,S,X), val_i(I,S',Y), X>0, X>Y.
+fulfills_eff(J,I,S,S') :- alive(S), transition(S,S'), eff(J,I,dontcare).
+fulfills_eff(J,I,S,S') :- alive(S), transition(S,S'), eff(J,I,inc), val_i(I,S,X), val_i(I,S',Y), X<Y.
+fulfills_eff(J,I,S,S') :- alive(S), transition(S,S'), eff(J,I,nil), val_i(I,S,X), val_i(I,S',X).
+fulfills_eff(J,I,S,S') :- alive(S), transition(S,S'), eff(J,I,dec), val_i(I,S,X), val_i(I,S',Y), X>Y.
 
-good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,eq0), eff(J,I,dontcare), val_i(I,S,0).
-good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,eq0), eff(J,I,inc), val_i(I,S,0), val_i(I,S',Y), Y>0.
-good(J,I,S,S') :- alive(S), transition(S, S'), pre(J,I,eq0), eff(J,I,nil), val_i(I,S,0), val_i(I,S',0).
-% Note that if X=0, then it cannot be that the effect decrements, hence the asymmetry
+good(J,I,S,S') :- fulfills_pre(J,I,S), fulfills_eff(J,I,S,S').
 
 
 % A ground transition is Good if for some rule J, the values of J in all positions I are consistent with the transition.

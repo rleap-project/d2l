@@ -337,6 +337,28 @@ CNFGenerationOutput D2LEncoding::generate_asp_instance_20(std::ofstream& os) {
     for (auto s = 0; s < mat.num_states(); ++s) {
         if (!sample_.in_sample(s)) continue;
 
+        if (sample_.is_alive(s)) {
+            for (unsigned f = 0; f < mat.num_features(); ++f) {
+                const auto val = mat.entry(s, f) > 0 ? "gt0" : "eq0";
+                os << "pre_f(" << f << ", " << s << ", " << val << ")." << std::endl;
+                nrules += 1;
+            }
+
+            for (unsigned sprime:sample_.successors(s)) {
+                for (unsigned f = 0; f < mat.num_features(); ++f) {
+                    const auto& fs = sample_.matrix().entry(s, f);
+                    const auto& fsprime = sample_.matrix().entry(sprime, f);
+                    auto change = DNFPolicy::compute_transition_value(fs, fsprime);
+                    const auto changeval = (change == FeatureValue::Inc) ? "inc" : (
+                            (change == FeatureValue::Dec) ? "dec" : "nil"
+                    );
+
+                    os << "eff_f(" << f << ", " << s << ", " << sprime << ", " << changeval << ")." << std::endl;
+                    nrules += 1;
+                }
+            }
+        }
+
         mentioned.insert(s);
         if (sample_.is_alive(s)) {
             for (unsigned sprime:sample_.successors(s)) {
@@ -345,13 +367,13 @@ CNFGenerationOutput D2LEncoding::generate_asp_instance_20(std::ofstream& os) {
         }
     }
 
-    for (unsigned s:mentioned) {
-        for (unsigned f = 0; f < mat.num_features(); ++f) {
-            os << "val(" << f << ", " << s << ", " << mat.entry(s, f) << ")." << std::endl;
-            nrules += 1;
-        }
-    }
-    
+//     for (unsigned s:mentioned) {
+//         for (unsigned f = 0; f < mat.num_features(); ++f) {
+//            os << "val(" << f << ", " << s << ", " << mat.entry(s, f) << ")." << std::endl;
+//            nrules += 1;
+//         }
+//     }
+
     os << std::endl;
 
 

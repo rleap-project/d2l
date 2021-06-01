@@ -151,7 +151,7 @@ public:
         // Else try solving the encoding
         float solt0 = utils::read_time_in_seconds();
         auto solution = solve_asp(
-                options.encodings_dir + "/encoding21.lp",
+                options.encodings_dir + "/encoding23.lp",
                 instance,
                 options.workspace + "/clingo_output.log",
                 options.verbosity>1);
